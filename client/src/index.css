@@ -103,7 +103,7 @@ body.loading {
    BASE STYLES
 =========================== */
 body {
-  font-family: "Poppins", "Roboto", sans-serif;
+  font-family: "Poppins", sans-serif;
   background-color: var(--bg-main);
   color: var(--text-primary);
 }
