@@ -8,7 +8,7 @@ import Home from "./pages/Home";
 
 const App = () => {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen max-w-310 mx-auto">
       {/* Toast Notifications */}
       <ToastContainer
         position="top-right"

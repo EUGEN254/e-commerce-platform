@@ -14,7 +14,7 @@ const Navbar = () => {
   ];
 
   return (
-    <div className="max-w-310 mx-auto mt-2 mb-4">
+    <div className=" mt-2 mb-4">
       {/* Main Navbar - Stays rounded-full */}
       <nav className="bg-white shadow-lg p-2 rounded-full">
         <div className="flex justify-between items-center">
