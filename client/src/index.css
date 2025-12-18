@@ -1,6 +1,218 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap");
 @import "tailwindcss";
 
+/* ===========================
+   PRELOADER STYLES
+=========================== */
+#preloader {
+  position: fixed;
+  inset: 0;
+  background: #f5f7ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+body.loading {
+  overflow: hidden;
+}
+
+.loader {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #221aba, #020489);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.loader svg {
+  width: 34px;
+  height: 34px;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Fade out */
+.hide {
+  opacity: o;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+/* ===========================
+   COLOR SYSTEM
+=========================== */
+:root {
+  /* Base */
+  --bg-main: #f5f5f5; /* whitesmoke */
+  --bg-card: #ffffff;
+  --border-soft: #e5e7eb;
+
+  /* Text */
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+
+  /* Brand Blue */
+  --primary-500: #4f46e5;
+  --primary-600: #4338ca;
+  --primary-700: #3730a3;
+
+  /* UI */
+  --hover-soft: #eef2ff;
+  --focus-ring: rgba(79, 70, 229, 0.4);
+}
+
+/* ===========================
+   BASE STYLES
+=========================== */
 body {
-  font-family: 'Poppins', 'Roboto', sans-serif;
-}   
+  font-family: "Poppins", "Roboto", sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+}
+
+/* ===========================
+   SCROLLBAR
+=========================== */
+
+/* Chrome / Edge / Safari */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #eeeeee;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--primary-500), var(--primary-600));
+  border-radius: 8px;
+  border: 2px solid #eeeeee;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-700);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-600) #eeeeee;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-700);
+}
+
+/* ===========================
+   BUTTONS
+=========================== */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+  color: #ffffff;
+  padding: 0.6rem 1.4rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  transition: all 0.25s ease;
+  box-shadow: 0 8px 18px rgba(79, 70, 229, 0.25);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+.btn-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+/* Secondary button */
+.btn-secondary {
+  background: var(--bg-card);
+  color: var(--primary-600);
+  border: 1px solid var(--border-soft);
+  padding: 0.6rem 1.4rem;
+  border-radius: 9999px;
+  transition: all 0.25s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--hover-soft);
+}
+.btn-secondary:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+/* ===========================
+   TOASTIFY CUSTOM STYLES
+=========================== */
+
+
+/* Toast box */
+.Toastify__toast {
+  min-height: 5px;
+  max-width: 500px;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  font-family: "Poppins", "Roboto", sans-serif;
+  font-size: 14px;
+
+}
+
+
+
+/* Progress bar */
+.Toastify__progress-bar {
+  background: linear-gradient(90deg, #4f46e5, #6366f1);
+  height: 4px;
+  border-radius: 0 0 14px 14px;
+}
+
+/* Close button */
+.Toastify__close-button {
+  color: #6b7280;
+  opacity: 0.7;
+}
+
+.Toastify__close-button:hover {
+  opacity: 1;
+}
+
+/* Success / Error / Info variants */
+.Toastify__toast--success {
+  border-left: 4px solid #22c55e;
+}
+
+.Toastify__toast--error {
+  border-left: 4px solid #ef4444;
+}
+
+.Toastify__toast--info {
+  border-left: 4px solid #4f46e5;
+}
+
+.Toastify__toast--warning {
+  border-left: 4px solid #f59e0b;
+}
