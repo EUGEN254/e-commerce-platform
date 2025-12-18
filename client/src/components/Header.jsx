@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import assets from "../assets/assets";
 
 const Header = () => {
@@ -13,6 +13,9 @@ const Header = () => {
     assets.shoe1,
   ];
 
+  // State for controlling animation
+  const [isHovered, setIsHovered] = useState(false);
+  
   // Duplicate the array for seamless looping
   const duplicatedShoes = [...shoes, ...shoes];
 
@@ -36,24 +39,68 @@ const Header = () => {
       </div>
 
       {/* Moving Shoes Section */}
-      <div className="lg:w-1/2 w-full h-48 overflow-hidden relative flex items-center bg-transparent rounded-lg p-4 border border-transparent">
+      <div 
+        className="lg:w-1/2 w-full h-48 overflow-hidden relative flex items-center  rounded-2xl p-4 border border-transparent "
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         {/* Limited Offers Tag */}
         <div className="absolute top-3 left-3 z-10">
-          <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
-            LIMITED OFFERS
+          <span className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+            🔥 LIMITED OFFERS
           </span>
         </div>
 
-        <div className="flex animate-marquee space-x-6">
-          {duplicatedShoes.map((shoe, index) => (
-            <img
-              key={index}
-              src={shoe}
-              alt={`Shoe ${index + 1}`}
-              className="w-32 h-auto object-contain"
-            />
-          ))}
+        {/* Animated Images Container */}
+        <div className="relative w-full overflow-hidden">
+          {/* First Row - Moving Right to Left */}
+          <div 
+            className={`flex space-x-8 mb-4 ${isHovered ? 'paused' : ''}`}
+            style={{
+              animation: 'marquee 25s linear infinite',
+              animationPlayState: isHovered ? 'paused' : 'running'
+            }}
+          >
+            {duplicatedShoes.map((shoe, index) => (
+              <div 
+                key={`row1-${index}`} 
+                className="group relative flex-shrink-0 transform transition-all duration-300 hover:scale-110 hover:z-10"
+              >
+                <img
+                  src={shoe}
+                  alt={`Product ${index + 1}`}
+                  className="w-28 h-28 object-contain filter drop-shadow-lg group-hover:drop-shadow-2xl transition-all duration-300"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+              </div>
+            ))}
+          </div>
+
+          {/* Second Row - Moving Left to Right (reverse direction) */}
+          <div 
+            className={`flex space-x-8 ${isHovered ? 'paused' : ''}`}
+            style={{
+              animation: 'marquee-reverse 30s linear infinite',
+              animationPlayState: isHovered ? 'paused' : 'running'
+            }}
+          >
+            {duplicatedShoes.map((shoe, index) => (
+              <div 
+                key={`row2-${index}`} 
+                className="group relative flex-shrink-0 transform transition-all duration-300 hover:scale-110 hover:z-10"
+              >
+                <img
+                  src={shoe}
+                  alt={`Product ${index + 9}`}
+                  className="w-24 h-24 object-contain filter drop-shadow-lg group-hover:drop-shadow-2xl transition-all duration-300"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
+              </div>
+            ))}
+          </div>
         </div>
+
+      
       </div>
     </div>
   );

@@ -20,7 +20,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center">
           {/* Logo */}
           <div className="text-xl font-bold text-indigo-600 pl-3">
-            <h1>MyStore</h1>
+            <h1>ShopHub</h1>
           </div>
 
           {/* Desktop Navigation */}
