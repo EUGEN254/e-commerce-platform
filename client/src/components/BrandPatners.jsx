@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import assets from "../assets/assets";
 
 const BrandPartners = () => {
   const scrollContainerRef = useRef(null);
@@ -9,73 +10,73 @@ const BrandPartners = () => {
     {
       id: 1,
       name: "Nike",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg",
+      logo: assets.shoe1,
       category: "Sportswear"
     },
     {
       id: 2,
       name: "Apple",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg",
+      logo: assets.shoe1,
       category: "Electronics"
     },
     {
       id: 3,
       name: "Samsung",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/2/24/Samsung_Logo.svg",
+      logo: assets.shoe1,
       category: "Electronics"
     },
     {
       id: 4,
       name: "Adidas",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg",
+      logo: assets.shoe1,
       category: "Sportswear"
     },
     {
       id: 5,
       name: "Sony",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/c/ca/Sony_logo.svg",
+      logo: assets.shoe1,
       category: "Electronics"
     },
     {
       id: 6,
       name: "Levi's",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Levi%27s_logo.svg/1024px-Levi%27s_logo.svg.png",
+      logo: assets.shoe1,
       category: "Fashion"
     },
     {
       id: 7,
       name: "Puma",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/3/36/Puma_logo.svg",
+      logo:assets.shoe1,
       category: "Sportswear"
     },
     {
       id: 8,
       name: "Zara",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/f/fd/Zara_Logo.svg",
+      logo: assets.shoe1,
       category: "Fashion"
     },
     {
       id: 9,
       name: "LG",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/2/20/LG_symbol.svg",
+      logo: assets.shoe1,
       category: "Electronics"
     },
     {
       id: 10,
       name: "Under Armour",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/0/04/Under_armour_logo.svg",
+      logo: assets.shoe1,
       category: "Sportswear"
     },
     {
       id: 11,
       name: "H&M",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/5/53/H%26M-Logo.svg",
+      logo: assets.shoe1,
       category: "Fashion"
     },
     {
       id: 12,
       name: "Dell",
-      logo: "https://upload.wikimedia.org/wikipedia/commons/1/18/Dell_logo_2016.svg",
+      logo: assets.shoe1,
       category: "Electronics"
     },
   ];
