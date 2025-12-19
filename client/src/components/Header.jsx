@@ -4,13 +4,10 @@ import assets from "../assets/assets";
 const Header = () => {
   const shoes = [
     assets.shoe1,
-    assets.shoe1,
-    assets.shoe1,
-    assets.shoe1,
-    assets.shoe1,
-    assets.shoe1,
-    assets.shoe1,
-    assets.shoe1,
+    assets.wireless,
+    assets.teashirt,
+    assets.laptopbag,
+    assets.cofeemaker
   ];
 
   // State for controlling animation
