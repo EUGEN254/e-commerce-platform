@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import { ShoppingCart, Menu, X, User } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link,useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
   const [user, setUser] = useState(false);
 
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Shop", path: "/shop" },
+    { name: "My Orders", path: "/my-orders" },
     { name: "About", path: "/about" },
     { name: "Contact", path: "/contact" },
+    
   ];
 
   return (
@@ -50,10 +53,10 @@ const Navbar = () => {
                 </span>
               </button>
 
-              {!user ? (
+              {user ? (
                 <button className="btn-secondary flex items-center space-x-1 text-xs">
                   <User className="w-4 h-4" />
-                  <span>Profile</span>
+                  <span onClick={()=>navigate("/profile")}>Profile</span>
                 </button>
               ) : (
                 <button className="btn-secondary text-xs">

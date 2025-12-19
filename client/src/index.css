@@ -81,7 +81,7 @@ body.loading {
 =========================== */
 :root {
   /* Base */
-  --bg-main: #f5f5f5; /* whitesmoke */
+  --bg-main: #fdf5f5; /* whitesmoke */
   --bg-card: #ffffff;
   --border-soft: #e5e7eb;
 
