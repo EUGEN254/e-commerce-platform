@@ -1,12 +1,12 @@
-// Remove these icon imports from assets file - they belong in your component
-// import { FaTshirt, FaLaptop, FaCouch, FaShoePrints, FaMobileAlt } from 'react-icons/fa';
-
 import shoe1 from "./shoe1.png";
 import premiumShoeGeneral from "./premiumrunningshoe.jpg";
 import wireless from "./wireless.jpg";
 import teashirt from "./teashirt.jpg";
 import laptopbag from "./laptop.jpg";
 import cofeemaker from "./cofeemaker.jpg";
+import woofer from "./woofer.jpg";
+import book from "./book.jpg";
+import furniture from "./furniture.jpg";
 
 // Import all fashion images
 import premiumShoe from "./premiumShoe.jpg";
@@ -45,6 +45,7 @@ const assets = {
 export default assets;
 
 // Featured products data
+
 export const featuredProducts = [
   {
     id: 1,
@@ -130,6 +131,36 @@ export const fashionAssets = {
     dress,
     jacket,
     sweater,
+  },
+
+  // electronics
+  electronics: {
+    woofer,
+  },
+
+  // home
+  home: {
+    furniture,
+  },
+
+  // mobile
+  mobile: {
+    wireless,
+  },
+
+  // beauty
+  beauty: {
+    teashirt,
+  },
+
+  // sports
+  sports: {
+    shoe1,
+  },
+
+  // books
+  books: {
+    book,
   },
 
   // Accessories
@@ -337,16 +368,6 @@ export const fashionCategories = [
   },
 ];
 
-// Helper function to get fashion-only categories
-export const getFashionSubcategories = () => {
-  return fashionCategories.filter((cat) => cat.type === "fashion");
-};
-
-// Helper function to get main categories
-export const getMainCategories = () => {
-  return fashionCategories.filter((cat) => cat.isMainCategory);
-};
-
 // Featured fashion products
 export const featuredFashionProducts = [
   {
@@ -544,7 +565,7 @@ export const fashionProductsByCategory = {
   ],
   clothing: [
     {
-      id: 201,
+      id: 103,
       name: "Formal Business Shirt",
       subcategory: "Shirts",
       price: 39.99,
@@ -557,9 +578,24 @@ export const fashionProductsByCategory = {
       brand: "Van Heusen",
     },
   ],
+  electronics: [
+    {
+      id: 104,
+      name: "Formal Business Shirt",
+      subcategory: "Shirts",
+      price: 39.99,
+      originalPrice: 54.99,
+      rating: 4.5,
+      reviewCount: 123,
+      image: fashionAssets.electronics.woofer,
+      tag: "BUSINESS",
+      discount: 27,
+      brand: "Van Heusen",
+    },
+  ],
   accessories: [
     {
-      id: 301,
+      id: 105,
       name: "Designer Sunglasses",
       subcategory: "Sunglasses",
       price: 89.99,
@@ -570,6 +606,187 @@ export const fashionProductsByCategory = {
       tag: "STYLE",
       discount: 25,
       brand: "Ray-Ban",
+    },
+  ],
+  // home
+  home: [
+    {
+      id: 106,
+      name: "Designer Sunglasses",
+      subcategory: "Sunglasses",
+      price: 89.99,
+      originalPrice: 119.99,
+      rating: 4.7,
+      reviewCount: 214,
+      image: fashionAssets.home.furniture,
+      tag: "STYLE",
+      discount: 25,
+      brand: "Ray-Ban",
+    },
+  ],
+  // mobile
+  mobile: [
+    {
+      id: 107,
+      name: "Designer Sunglasses",
+      subcategory: "Sunglasses",
+      price: 89.99,
+      originalPrice: 119.99,
+      rating: 4.7,
+      reviewCount: 214,
+      image: fashionAssets.mobile.wireless,
+      tag: "STYLE",
+      discount: 25,
+      brand: "Ray-Ban",
+    },
+  ],
+  // beauty
+  beauty: [
+    {
+      id: 108,
+      name: "Designer Sunglasses",
+      subcategory: "Sunglasses",
+      price: 89.99,
+      originalPrice: 119.99,
+      rating: 4.7,
+      reviewCount: 214,
+      image: fashionAssets.beauty.teashirt,
+      tag: "STYLE",
+      discount: 25,
+      brand: "Ray-Ban",
+    },
+  ],
+  // sports
+  sports: [
+    {
+      id: 109,
+      name: "Designer Sunglasses",
+      subcategory: "Sunglasses",
+      price: 89.99,
+      originalPrice: 119.99,
+      rating: 4.7,
+      reviewCount: 214,
+      image: fashionAssets.sports.shoe1,
+      tag: "STYLE",
+      discount: 25,
+      brand: "Ray-Ban",
+    },
+  ],
+  // books
+  books: [
+    {
+      id: 110,
+      name: "Designer Sunglasses",
+      subcategory: "Sunglasses",
+      price: 89.99,
+      originalPrice: 119.99,
+      rating: 4.7,
+      reviewCount: 214,
+      image: fashionAssets.books.book,
+      tag: "STYLE",
+      discount: 25,
+      brand: "Ray-Ban",
+    },
+  ],
+};
+
+// Add subcategory-specific product data
+export const fashionProductsBySubcategory = {
+  // Shoes subcategories
+  Sneakers: [
+    {
+      id: 201,
+      name: "Classic White Sneakers",
+      price: 59.99,
+      originalPrice: 79.99,
+      rating: 4.5,
+      reviewCount: 156,
+      image: fashionAssets.shoes.casualSneakers,
+      tag: "CASUAL",
+      discount: 25,
+      brand: "Converse",
+      category: "shoes",
+      subcategory: "Sneakers",
+    },
+    {
+      id: 202,
+      name: "Running Sneakers Pro",
+      price: 89.99,
+      originalPrice: 119.99,
+      rating: 4.7,
+      reviewCount: 203,
+      image: fashionAssets.shoes.sportsShoes,
+      tag: "PERFORMANCE",
+      discount: 25,
+      brand: "Nike",
+      category: "shoes",
+      subcategory: "Sneakers",
+    },
+  ],
+  Formal: [
+    {
+      id: 203,
+      name: "Leather Oxford Shoes",
+      price: 129.99,
+      originalPrice: 159.99,
+      rating: 4.6,
+      reviewCount: 89,
+      image: fashionAssets.shoes.formalShoes,
+      tag: "PREMIUM",
+      discount: 19,
+      brand: "Clarks",
+      category: "shoes",
+      subcategory: "Formal",
+    },
+  ],
+  Sports: [
+    {
+      id: 204,
+      name: "Sports Running Shoes",
+      price: 79.99,
+      originalPrice: 99.99,
+      rating: 4.4,
+      reviewCount: 187,
+      image: fashionAssets.shoes.sportsShoes,
+      tag: "SPORTS",
+      discount: 20,
+      brand: "Adidas",
+      category: "shoes",
+      subcategory: "Sports",
+    },
+  ],
+
+  // Clothing subcategories
+  "T-Shirts": [
+    {
+      id: 301,
+      name: "Premium Cotton T-Shirt",
+      price: 24.99,
+      originalPrice: 39.99,
+      rating: 4.3,
+      reviewCount: 156,
+      image: fashionAssets.clothing.designerTshirt,
+      tag: "BASIC",
+      discount: 38,
+      brand: "Uniqlo",
+      category: "clothing",
+      subcategory: "T-Shirts",
+    },
+  ],
+  Shirts: [
+    {
+      id: 302,
+      name: "Formal Business Shirt",
+      price: 39.99,
+      originalPrice: 54.99,
+      rating: 4.5,
+      reviewCount: 123,
+      image: fashionAssets.clothing.formalShirt,
+      tag: "FORMAL",
+      discount: 27,
+      brand: "Van Heusen",
+      category: "clothing",
+      subcategory: "Shirts",
     },
   ],
 };

@@ -1,6 +1,7 @@
 // utils/productUtils.js
 import { 
   fashionProductsByCategory,
+  fashionProductsBySubcategory,
   featuredFashionProducts,
   featuredProducts 
 } from '../assets/assets';
@@ -55,3 +56,19 @@ export const filterProducts = (products, filters) => {
     return true;
   });
 };
+
+// Helper function to get products by subcategory
+export const getProductsBySubcategory = (subcategoryName) => {
+  return fashionProductsBySubcategory[subcategoryName] || [];
+};
+
+// Helper function to get fashion-only categories
+export const getFashionSubcategories = () => {
+  return fashionCategories.filter((cat) => cat.type === "fashion");
+};
+
+// Helper function to get main categories
+export const getMainCategories = () => {
+  return fashionCategories.filter((cat) => cat.isMainCategory);
+};
+

@@ -10,18 +10,19 @@ import {
   FaFire,
   FaShoppingBasket,
   FaUserTie,
-  FaPersonBooth,
   FaChevronLeft,
   FaChevronRight,
   FaSprayCan,
   FaRunning,
   FaBook,
+  FaTimes,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import assets, { fashionCategories } from "../assets/assets";
 import {
   getFeaturedFashionProducts,
   getProductsByCategory,
+  getProductsBySubcategory,
 } from "../utils/productUtils";
 
 // Map fashion categories to icons
@@ -34,6 +35,7 @@ const categoryIcons = {
 const Categories = () => {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("fashion");
+  const [selectedSubcategory, setSelectedSubcategory] = useState("All");
   const [displayProducts, setDisplayProducts] = useState([]);
   const scrollContainerRef = useRef(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -52,18 +54,44 @@ const Categories = () => {
     FaBook: FaBook,
   };
 
-  // Initialize with fashion products
+  // Load products when category or subcategory changes
   useEffect(() => {
-    if (selectedCategory === "fashion") {
+    loadProducts();
+  }, [selectedCategory, selectedSubcategory]);
+
+  const loadProducts = () => {
+    console.log(
+      "Selected category:",
+      selectedCategory,
+      "Subcategory:",
+      selectedSubcategory
+    );
+
+    // Reset subcategory when main category changes
+    if (
+      selectedSubcategory !== "All" &&
+      !isSubcategoryInCurrentCategory(selectedSubcategory)
+    ) {
+      setSelectedSubcategory("All");
+    }
+
+    if (selectedSubcategory !== "All") {
+      // Load subcategory-specific products
+      const subcategoryProducts = getProductsBySubcategory(selectedSubcategory);
+      setDisplayProducts(
+        subcategoryProducts.length > 0 ? subcategoryProducts.slice(0, 8) : []
+      );
+    } else if (selectedCategory === "fashion") {
+      // Load featured fashion products
       setDisplayProducts(getFeaturedFashionProducts(8));
     } else if (fashionCategories.some((cat) => cat.id === selectedCategory)) {
-      // If it's a fashion subcategory
+      // Load category products
       const products = getProductsByCategory(selectedCategory);
       setDisplayProducts(products.length > 0 ? products.slice(0, 8) : []);
     } else {
-      // For other categories, create placeholder products
+      // Placeholder products for other categories
       const placeholderProducts = Array.from({ length: 8 }, (_, i) => ({
-        id: i + 1000, // Use high IDs to avoid conflict with real products
+        id: i + 1000,
         name: `${
           selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)
         } Product ${i + 1}`,
@@ -72,13 +100,48 @@ const Categories = () => {
         discount: i % 3 === 0 ? 25 : i % 2 === 0 ? 15 : 0,
         rating: 4.5 - i * 0.1,
         reviewCount: Math.floor(Math.random() * 100) + 50,
-        image: assets.shoe1, // Default image for placeholders
+        image: assets.shoe1,
         isNew: i < 2,
         isBestSeller: i === 0 || i === 3,
       }));
       setDisplayProducts(placeholderProducts);
     }
-  }, [selectedCategory]);
+  };
+
+  const isSubcategoryInCurrentCategory = (subcategory) => {
+    const selectedCat = fashionCategories.find(
+      (cat) => cat.id === selectedCategory
+    );
+    return (
+      selectedCat &&
+      selectedCat.subcategories &&
+      selectedCat.subcategories.includes(subcategory)
+    );
+  };
+
+  // Handle category click
+  const handleCategoryClick = (categoryId) => {
+    setSelectedCategory(categoryId);
+    // Don't reset subcategory if it's the same category
+    const selectedCat = fashionCategories.find((cat) => cat.id === categoryId);
+    if (
+      !selectedCat ||
+      !selectedCat.subcategories ||
+      !selectedCat.subcategories.includes(selectedSubcategory)
+    ) {
+      setSelectedSubcategory("All");
+    }
+  };
+
+  // Handle subcategory click
+  const handleSubcategoryClick = (subcategory) => {
+    setSelectedSubcategory(subcategory);
+  };
+
+  // Clear subcategory filter
+  const clearSubcategoryFilter = () => {
+    setSelectedSubcategory("All");
+  };
 
   const renderStars = (rating) => {
     return [...Array(5)].map((_, i) => (
@@ -91,16 +154,13 @@ const Categories = () => {
     ));
   };
 
-  // Combine fashion categories with general categories
   const allCategories = fashionCategories;
 
-  // Get category name for display
   const getCategoryDisplayName = (categoryId) => {
     const category = allCategories.find((cat) => cat.id === categoryId);
     return category ? category.name : categoryId;
   };
 
-  // Get category icon
   const getCategoryIcon = (categoryId) => {
     const category = allCategories.find((cat) => cat.id === categoryId);
     if (category && category.icon) {
@@ -116,7 +176,6 @@ const Categories = () => {
     // Add your cart logic here
   };
 
-  // Check scroll position
   const checkScrollPosition = () => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } =
@@ -126,7 +185,6 @@ const Categories = () => {
     }
   };
 
-  // Scroll functions
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollBy({
@@ -145,11 +203,10 @@ const Categories = () => {
     }
   };
 
-  // Check scroll position on resize
   useEffect(() => {
     const handleResize = () => checkScrollPosition();
     window.addEventListener("resize", handleResize);
-    checkScrollPosition(); // Initial check
+    checkScrollPosition();
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
@@ -199,10 +256,10 @@ const Categories = () => {
           {allCategories.map((cat) => (
             <div
               key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`flex-shrink-0 w-32 md:w-36 group relative cursor-pointer p-4 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl border-2 ${
+              onClick={() => handleCategoryClick(cat.id)}
+              className={`shrink-0 w-32 md:w-36 group relative cursor-pointer p-4 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl border-2 ${
                 selectedCategory === cat.id
-                  ? "border-indigo-500 bg-gradient-to-b from-indigo-50 to-white"
+                  ? "border-indigo-500 bg-linear-to-b from-indigo-50 to-white"
                   : "border-gray-100 bg-white hover:border-gray-200"
               }`}
             >
@@ -248,84 +305,102 @@ const Categories = () => {
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Scroll Indicator Dots (Optional) */}
-        <div className="flex justify-center gap-2 mt-4">
-          {allCategories.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                if (scrollContainerRef.current) {
-                  const container = scrollContainerRef.current;
-                  const itemWidth = 144; // w-36 = 144px
-                  container.scrollTo({
-                    left: index * itemWidth,
-                    behavior: "smooth",
-                  });
-                }
-              }}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                selectedCategory === allCategories[index].id
-                  ? "bg-indigo-600 w-4"
-                  : "bg-gray-300 hover:bg-gray-400"
-              }`}
-              aria-label={`Go to category ${index + 1}`}
-            />
-          ))}
-        </div>
+      {/* Subcategories Filter */}
+      {(() => {
+        const selectedCat = fashionCategories.find(
+          (cat) => cat.id === selectedCategory
+        );
 
-        {/* Subcategories Filter - only show if category has subcategories */}
-        {(() => {
-          // Find the selected category to check if it has subcategories
-          const selectedCat = fashionCategories.find(
-            (cat) => cat.id === selectedCategory
-          );
+        if (!selectedCat || !selectedCat.subcategories) {
+          return null;
+        }
 
-          // Only show if this category has subcategories
-          if (!selectedCat || !selectedCat.subcategories) {
-            return null; // Don't show anything if no subcategories
-          }
-
-          return (
-            <div className="mt-6 mb-8">
-              <div className="flex items-center justify-between mb-4">
+        return (
+          <div className="mt-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
                 <h3 className="text-lg font-semibold text-gray-800">
                   Shop by Type
                 </h3>
-                <button className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-                  View all
-                </button>
+
+                {/* Active filter badge */}
+                {selectedSubcategory !== "All" && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">
+                    <span>{selectedSubcategory}</span>
+                    <button
+                      onClick={clearSubcategoryFilter}
+                      className="hover:text-indigo-900"
+                      aria-label="Clear filter"
+                    >
+                      <FaTimes className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <button className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-full text-sm hover:bg-indigo-700 transition-colors">
-                  All {selectedCat.name}
-                </button>
-                {selectedCat.subcategories.map((subcat, index) => (
-                  <button
-                    key={index}
-                    className="px-4 py-2 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 transition-colors duration-200"
-                  >
-                    {subcat}
-                  </button>
-                ))}
-              </div>
+
+              <button
+                onClick={() => navigate(`/shop/${selectedCategory}`)}
+                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+              >
+                View all
+              </button>
             </div>
-          );
-        })()}
-      </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => handleSubcategoryClick("All")}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  selectedSubcategory === "All"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                }`}
+              >
+                All {selectedCat.name}
+              </button>
+
+              {selectedCat.subcategories.map((subcat, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSubcategoryClick(subcat)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    selectedSubcategory === subcat
+                      ? "bg-indigo-100 border border-indigo-300 text-indigo-700"
+                      : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                  }`}
+                >
+                  {subcat}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Products Section */}
       <div className="mt-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
-              {getCategoryDisplayName(selectedCategory)} Collection
+              {selectedSubcategory !== "All"
+                ? selectedSubcategory
+                : getCategoryDisplayName(selectedCategory)}
+              {selectedSubcategory !== "All" ? (
+                <span className="text-base font-normal text-gray-600">
+                  ({getCategoryDisplayName(selectedCategory)})
+                </span>
+              ) : null}
               {selectedCategory === "fashion" && (
                 <FaFire className="text-orange-500 w-5 h-5" />
               )}
             </h2>
             <p className="text-gray-600 mt-1">
-              {displayProducts.length} handpicked items just for you
+              {displayProducts.length}{" "}
+              {selectedSubcategory !== "All"
+                ? selectedSubcategory.toLowerCase()
+                : "handpicked"}{" "}
+              items just for you
             </p>
           </div>
           <button
@@ -342,6 +417,12 @@ const Categories = () => {
             <p className="text-gray-500">
               No products available in this category yet.
             </p>
+            <button
+              onClick={clearSubcategoryFilter}
+              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              View All Products
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -367,6 +448,15 @@ const Categories = () => {
                   <div className="absolute top-3 right-3 z-10">
                     <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-500 text-white">
                       NEW
+                    </span>
+                  </div>
+                )}
+
+                {/* Subcategory Badge */}
+                {product.subcategory && (
+                  <div className="absolute top-12 left-3 z-10">
+                    <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-white bg-opacity-90 rounded-full border border-gray-200">
+                      {product.subcategory}
                     </span>
                   </div>
                 )}
