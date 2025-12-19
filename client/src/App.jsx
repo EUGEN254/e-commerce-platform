@@ -11,6 +11,7 @@ import Contact from "./pages/Contact";
 import Profile from "./pages/Profile";
 import MyOrders from "./pages/MyOrders";
 import ProductDescription from "./pages/ProductDescription";
+import Auth from "./pages/Auth";
 
 const App = () => {
   return (
@@ -34,6 +35,10 @@ const App = () => {
         {/* Main Content */}
         <main>
           <Routes>
+            {/* authenitication route */}
+            <Route path="/create-account" element={<Auth />} />
+
+            {/* main area */}
             <Route path="/" element={<Home />} />
             <Route path="/shop" element={<Shope />} />
             <Route path="/about" element={<About />} />
@@ -41,7 +46,6 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/my-orders" element={<MyOrders />} />
             <Route path="/product/:id" element={<ProductDescription />} />
-            
           </Routes>
         </main>
 

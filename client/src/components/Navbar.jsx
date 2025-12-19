@@ -59,7 +59,9 @@ const Navbar = () => {
                   <span onClick={()=>navigate("/profile")}>Profile</span>
                 </button>
               ) : (
-                <button className="btn-secondary text-xs">
+                <button 
+                onClick={()=>navigate("/create-account")}
+                className="btn-secondary text-xs">
                   Create Account
                 </button>
               )}
