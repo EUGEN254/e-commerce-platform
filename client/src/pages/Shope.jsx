@@ -316,7 +316,7 @@ const Shop = () => {
   }, [location.state, navigate, location.pathname]);
 
   return (
-    <div>
+    <div className="mt-10 px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12">
       <div className="container py-8">
         {/* Header */}
         <div className="mb-8">
