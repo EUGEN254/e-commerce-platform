@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Shope from "./pages/Shope";
 import About from "./pages/About";
@@ -15,15 +15,22 @@ import Auth from "./pages/Auth";
 import { Toaster } from "./components/ui/sonner";
 
 const App = () => {
+  const location = useLocation();
+  
+  // Scroll to top when route changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [location.pathname]); // Runs when URL path changes
+
   return (
     <div className="flex flex-col min-h-screen max-w-310 mx-auto">
       {/* Toast Notifications */}
-        <Toaster
+      <Toaster
         position="top-center"
         toastOptions={{
           className: 'bg-background text-foreground border-border',
         }}
-        />
+      />
 
       {/* App Layout */}
       <div>
@@ -32,7 +39,7 @@ const App = () => {
         {/* Main Content */}
         <main>
           <Routes>
-            {/* authenitication route */}
+            {/* authentication route */}
             <Route path="/create-account" element={<Auth />} />
 
             {/* main area */}

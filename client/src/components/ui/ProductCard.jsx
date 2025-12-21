@@ -4,9 +4,11 @@ import { Badge } from './badge';
 import { Button } from './button';
 import { cn } from '../../lib/utils';
 import { useCart } from '../../context/CartContext';
+import { useNavigate } from 'react-router-dom';
 
 export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
@@ -21,6 +23,12 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
     'SALE': 'bg-sale text-sale-foreground',
   };
 
+  console.log("rendering produictimage", product.image);
+
+  const handleProductClick = () => {
+    navigate(`/product/${product.id}`);
+  }
+
   // List view layout
   if (viewMode === 'list') {
     return (
@@ -32,7 +40,9 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
         className="group bg-card rounded-2xl overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300 flex"
       >
         {/* Image Container - Smaller for list view */}
-        <div className="relative w-32 h-32 md:w-40 md:h-40 flex-shrink-0 overflow-hidden">
+        <div 
+         onClick={handleProductClick}
+        className="relative w-32 h-32 md:w-40 md:h-40 flex-shrink-0 overflow-hidden">
           <img
             src={product.image}
             alt={product.name}
@@ -128,8 +138,11 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
       className="group bg-card rounded-2xl overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300"
     >
       {/* Image Container */}
-      <div className="relative aspect-square overflow-hidden">
+      <div 
+      onClick={handleProductClick}
+      className="relative aspect-square overflow-hidden">
         <img
+        
           src={product.image}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

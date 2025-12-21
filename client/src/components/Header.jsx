@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import assets from "../assets/assets";
 import { Flame } from 'lucide-react';
+import { Button } from "./ui/button";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
   const [isHovered, setIsHovered] = useState(false);
+   const navigate = useNavigate();
   
   // Your shoes/images
   const shoes = [
@@ -16,6 +19,7 @@ const Header = () => {
   
   // Duplicate for seamless scrolling
   const duplicatedShoes = [...shoes, ...shoes, ...shoes, ...shoes];
+ 
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 items-center lg:items-start mt-2 px-5 lg:px-20 border-2 border-gray-300 rounded-xl p-6 lg:p-10 mx-4">
@@ -31,8 +35,9 @@ const Header = () => {
           to your life.
         </p>
         <div className="flex flex-row gap-3 lg:gap-4">
-          <button className="btn-primary">Shop Now</button>
-          <button className="btn-secondary">Explore More</button>
+          <Button 
+          onClick={()=>navigate("/shop")}
+          className="btn-primary">Shop Now</Button>
         </div>
       </div>
 

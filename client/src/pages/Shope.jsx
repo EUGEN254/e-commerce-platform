@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Filter, 
-  SlidersHorizontal, 
-  Grid, 
-  List, 
-  ChevronLeft, 
+import { useState, useEffect } from "react";
+import {
+  Search,
+  Filter,
+  SlidersHorizontal,
+  Grid,
+  List,
+  ChevronLeft,
   ChevronRight,
   Star,
   Tag,
@@ -21,49 +21,117 @@ import {
   TrendingUp,
   Truck,
   Clock,
-  Shield
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { Input } from '../components/ui/input';
-import { cn } from '../lib/utils';
-import { Button } from '../components/ui/button';
-import { Checkbox } from '../components/ui/checkbox';
-import { ProductCard } from '../components/ui/ProductCard';
-import assets from '../assets/assets';
+  Shield,
+  Accessibility,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Input } from "../components/ui/input";
+import { cn } from "../lib/utils";
+import { Button } from "../components/ui/button";
+import { Checkbox } from "../components/ui/checkbox";
+import { ProductCard } from "../components/ui/ProductCard";
+import assets from "../assets/assets";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 const Shop = () => {
   // State management
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    // Check if we have category in location state
+    if (location.state?.selectedCategory) {
+      return location.state.selectedCategory;
+    }
+    return "all";
+  });
   const [priceRange, setPriceRange] = useState([0, 500]);
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [selectedRating, setSelectedRating] = useState(0);
-  const [sortBy, setSortBy] = useState('featured');
-  const [viewMode, setViewMode] = useState('grid');
+  const [sortBy, setSortBy] = useState("featured");
+  const [viewMode, setViewMode] = useState("grid");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [wishlist, setWishlist] = useState({});
   const [productsPerPage, setProductsPerPage] = useState(12);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
+
+    // Clear location state after using it
+  useEffect(() => {
+    if (location.state?.selectedCategory) {
+      // Clear the state so it doesn't persist on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
+
   // Categories
   const categories = [
-    { id: 'all', name: 'All Products', icon: <Flame className="h-4 w-4" />, color: 'bg-gradient-to-r from-red-500 to-orange-500' },
-    { id: 'fashion', name: 'Fashion', icon: <Shirt className="h-4 w-4" />, color: 'bg-gradient-to-r from-pink-500 to-rose-500' },
-    { id: 'electronics', name: 'Electronics', icon: <Laptop className="h-4 w-4" />, color: 'bg-gradient-to-r from-blue-500 to-cyan-500' },
-    { id: 'home', name: 'Home & Kitchen', icon: <Home className="h-4 w-4" />, color: 'bg-gradient-to-r from-amber-500 to-orange-500' },
-    { id: 'shoes', name: 'Shoes', icon: <Footprints className="h-4 w-4" />, color: 'bg-gradient-to-r from-emerald-500 to-teal-500' },
-    { id: 'mobile', name: 'Mobile', icon: <Smartphone className="h-4 w-4" />, color: 'bg-gradient-to-r from-purple-500 to-violet-500' },
+    {
+      id: "all",
+      name: "All Products",
+      icon: <Flame className="h-4 w-4" />,
+      color: "bg-gradient-to-r from-red-500 to-orange-500",
+      path: "/shop",
+    },
+    {
+      id: "fashion",
+      name: "Fashion",
+      icon: <Shirt className="h-4 w-4" />,
+      color: "bg-gradient-to-r from-pink-500 to-rose-500",
+      path: "/shop/fashion",
+    },
+    {
+      id: "electronics",
+      name: "Electronics",
+      icon: <Laptop className="h-4 w-4" />,
+      color: "bg-gradient-to-r from-blue-500 to-cyan-500",
+      path: "/shop/electronics",
+    },
+    {
+      id: "home",
+      name: "Home & Kitchen",
+      icon: <Home className="h-4 w-4" />,
+      color: "bg-gradient-to-r from-amber-500 to-orange-500",
+      path: "/shop/home",
+    },
+    {
+      id: "shoes",
+      name: "Shoes",
+      icon: <Footprints className="h-4 w-4" />,
+      color: "bg-gradient-to-r from-emerald-500 to-teal-500",
+      path: "/shop/shoes",
+    },
+    {
+      id: "mobile",
+      name: "Mobile",
+      icon: <Smartphone className="h-4 w-4" />,
+      color: "bg-gradient-to-r from-purple-500 to-violet-500",
+      path: "/shop/mobile",
+    },
+    {
+      id: "accessories",
+      name: "accessories",
+      icon: <Accessibility className="h-4 w-4" />,
+      color: "bg-gradient-to-r from-purple-500 to-violet-500",
+      path: "/shop/accessories",
+    },
+    {
+      id:"clothing",
+      name: "Clothing",
+      icon: <Shirt className="h-4 w-4" />,
+      color: "bg-gradient-to-r from-pink-500 to-rose-500",
+    }
   ];
 
   // Brands
   const brands = [
-    { id: 1, name: 'Nike', productCount: 42 },
-    { id: 2, name: 'Adidas', productCount: 38 },
-    { id: 3, name: 'Apple', productCount: 25 },
-    { id: 4, name: 'Samsung', productCount: 31 },
-    { id: 5, name: 'Sony', productCount: 19 },
-    { id: 6, name: 'Zara', productCount: 27 },
+    { id: 1, name: "Nike", productCount: 42 },
+    { id: 2, name: "Adidas", productCount: 38 },
+    { id: 3, name: "Apple", productCount: 25 },
+    { id: 4, name: "Samsung", productCount: 31 },
+    { id: 5, name: "Sony", productCount: 19 },
+    { id: 6, name: "Zara", productCount: 27 },
   ];
 
   // Sample products data (you would replace with actual data from your API or data file)
@@ -71,18 +139,21 @@ const Shop = () => {
     id: i + 1,
     name: `Premium Product ${i + 1}`,
     description: `High-quality product with amazing features. Perfect for daily use and designed to last.`,
-    price: 89.99 + (i * 15),
-    originalPrice: 119.99 + (i * 15),
+    price: 89.99 + i * 15,
+    originalPrice: 119.99 + i * 15,
     discount: i % 4 === 0 ? 25 : i % 3 === 0 ? 15 : 0,
-    rating: 4.5 - (i * 0.05),
+    rating: 4.5 - i * 0.05,
     reviewCount: Math.floor(Math.random() * 200) + 50,
     category: categories[Math.floor(Math.random() * categories.length)].id,
     brand: brands[Math.floor(Math.random() * brands.length)].name,
     image: assets.cofeemaker,
     isNew: i < 5,
     isFeatured: i < 3,
-    stock: i % 5 === 0 ? 'Low Stock' : 'In Stock',
-    tags: ['Premium', 'Popular', 'Trending'].slice(0, Math.floor(Math.random() * 3) + 1),
+    stock: i % 5 === 0 ? "Low Stock" : "In Stock",
+    tags: ["Premium", "Popular", "Trending"].slice(
+      0,
+      Math.floor(Math.random() * 3) + 1
+    ),
   }));
 
   // Simulate loading
@@ -94,35 +165,42 @@ const Shop = () => {
   }, []);
 
   // Filter products
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = products.filter((product) => {
     // Category filter
-    if (selectedCategory !== 'all' && product.category !== selectedCategory) return false;
-    
+    if (selectedCategory !== "all" && product.category !== selectedCategory)
+      return false;
+
     // Price filter
-    if (product.price < priceRange[0] || product.price > priceRange[1]) return false;
-    
+    if (product.price < priceRange[0] || product.price > priceRange[1])
+      return false;
+
     // Brand filter
-    if (selectedBrands.length > 0 && !selectedBrands.includes(product.brand)) return false;
-    
+    if (selectedBrands.length > 0 && !selectedBrands.includes(product.brand))
+      return false;
+
     // Rating filter
     if (selectedRating > 0 && product.rating < selectedRating) return false;
-    
+
     // Search filter
-    if (searchQuery && !product.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    
+    if (
+      searchQuery &&
+      !product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+      return false;
+
     return true;
   });
 
   // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
-      case 'price-low':
+      case "price-low":
         return a.price - b.price;
-      case 'price-high':
+      case "price-high":
         return b.price - a.price;
-      case 'rating':
+      case "rating":
         return b.rating - a.rating;
-      case 'newest':
+      case "newest":
         return b.id - a.id;
       default:
         return b.isFeatured - a.isFeatured;
@@ -132,33 +210,38 @@ const Shop = () => {
   // Pagination
   const totalPages = Math.ceil(sortedProducts.length / productsPerPage);
   const startIndex = (currentPage - 1) * productsPerPage;
-  const paginatedProducts = sortedProducts.slice(startIndex, startIndex + productsPerPage);
+  const paginatedProducts = sortedProducts.slice(
+    startIndex,
+    startIndex + productsPerPage
+  );
 
   // Handlers
   const toggleWishlist = (productId) => {
-    setWishlist(prev => ({
+    setWishlist((prev) => ({
       ...prev,
-      [productId]: !prev[productId]
+      [productId]: !prev[productId],
     }));
-    toast.success(wishlist[productId] ? 'Removed from wishlist' : 'Added to wishlist');
+    toast.success(
+      wishlist[productId] ? "Removed from wishlist" : "Added to wishlist"
+    );
   };
 
   const toggleBrand = (brandName) => {
-    setSelectedBrands(prev =>
+    setSelectedBrands((prev) =>
       prev.includes(brandName)
-        ? prev.filter(b => b !== brandName)
+        ? prev.filter((b) => b !== brandName)
         : [...prev, brandName]
     );
   };
 
   const clearFilters = () => {
-    setSelectedCategory('all');
+    setSelectedCategory("all");
     setPriceRange([0, 500]);
     setSelectedBrands([]);
     setSelectedRating(0);
-    setSearchQuery('');
+    setSearchQuery("");
     setCurrentPage(1);
-    toast.success('Filters cleared');
+    toast.success("Filters cleared");
   };
 
   const addToCart = (product) => {
@@ -170,8 +253,10 @@ const Shop = () => {
       <Star
         key={i}
         className={cn(
-          'h-4 w-4',
-          i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+          "h-4 w-4",
+          i < Math.floor(rating)
+            ? "text-yellow-400 fill-yellow-400"
+            : "text-gray-300"
         )}
       />
     ));
@@ -183,7 +268,9 @@ const Shop = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="font-display text-4xl font-bold mb-2">Shop</h1>
-          <p className="text-muted-foreground">Discover our complete collection</p>
+          <p className="text-muted-foreground">
+            Discover our complete collection
+          </p>
         </div>
 
         {/* Top Bar with Search and Filters */}
@@ -220,16 +307,16 @@ const Shop = () => {
             {/* View Mode Toggle */}
             <div className="flex gap-1">
               <Button
-                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                variant={viewMode === "grid" ? "default" : "outline"}
                 size="icon"
-                onClick={() => setViewMode('grid')}
+                onClick={() => setViewMode("grid")}
               >
                 <Grid className="h-4 w-4" />
               </Button>
               <Button
-                variant={viewMode === 'list' ? 'default' : 'outline'}
+                variant={viewMode === "list" ? "default" : "outline"}
                 size="icon"
-                onClick={() => setViewMode('list')}
+                onClick={() => setViewMode("list")}
               >
                 <List className="h-4 w-4" />
               </Button>
@@ -280,7 +367,9 @@ const Shop = () => {
                       min="0"
                       max="500"
                       value={priceRange[0]}
-                      onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
+                      onChange={(e) =>
+                        setPriceRange([parseInt(e.target.value), priceRange[1]])
+                      }
                       className="absolute w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
                     />
                     <input
@@ -288,7 +377,9 @@ const Shop = () => {
                       min="0"
                       max="500"
                       value={priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
+                      onChange={(e) =>
+                        setPriceRange([priceRange[0], parseInt(e.target.value)])
+                      }
                       className="absolute w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
                     />
                   </div>
@@ -296,7 +387,9 @@ const Shop = () => {
                     {[0, 100, 250, 500].map((price) => (
                       <Button
                         key={price}
-                        variant={priceRange[1] === price ? 'default' : 'outline'}
+                        variant={
+                          priceRange[1] === price ? "default" : "outline"
+                        }
                         size="sm"
                         className="text-xs"
                         onClick={() => setPriceRange([0, price])}
@@ -315,13 +408,16 @@ const Shop = () => {
                   {categories.map((cat) => (
                     <Button
                       key={cat.id}
-                      variant={selectedCategory === cat.id ? 'default' : 'ghost'}
+                      variant={
+                        selectedCategory === cat.id ? "default" : "ghost"
+                      }
                       className={cn(
-                        'w-full justify-start',
+                        "w-full justify-start",
                         selectedCategory === cat.id && cat.color
                       )}
                       onClick={() => {
                         setSelectedCategory(cat.id);
+
                         setCurrentPage(1);
                       }}
                     >
@@ -337,7 +433,10 @@ const Shop = () => {
                 <h3 className="font-medium text-sm mb-3">Brands</h3>
                 <div className="space-y-2">
                   {brands.map((brand) => (
-                    <div key={brand.id} className="flex items-center justify-between">
+                    <div
+                      key={brand.id}
+                      className="flex items-center justify-between"
+                    >
                       <div className="flex items-center gap-2">
                         <Checkbox
                           id={`brand-${brand.id}`}
@@ -366,15 +465,21 @@ const Shop = () => {
                   {[4, 3, 2, 1].map((rating) => (
                     <Button
                       key={rating}
-                      variant={selectedRating === rating ? 'secondary' : 'ghost'}
+                      variant={
+                        selectedRating === rating ? "secondary" : "ghost"
+                      }
                       className="w-full justify-between"
-                      onClick={() => setSelectedRating(rating === selectedRating ? 0 : rating)}
+                      onClick={() =>
+                        setSelectedRating(
+                          rating === selectedRating ? 0 : rating
+                        )
+                      }
                     >
                       <div className="flex items-center gap-2">
-                        <div className="flex">
-                          {renderStars(rating)}
-                        </div>
-                        <span className="text-sm text-muted-foreground">& above</span>
+                        <div className="flex">{renderStars(rating)}</div>
+                        <span className="text-sm text-muted-foreground">
+                          & above
+                        </span>
                       </div>
                       {selectedRating === rating && (
                         <Check className="h-4 w-4 text-primary" />
@@ -391,15 +496,18 @@ const Shop = () => {
             {/* Results Info */}
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <p className="text-sm text-muted-foreground">
-                Showing {paginatedProducts.length} of {filteredProducts.length} products
+                Showing {paginatedProducts.length} of {filteredProducts.length}{" "}
+                products
               </p>
-              
+
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Show:</span>
                   <select
                     value={productsPerPage}
-                    onChange={(e) => setProductsPerPage(parseInt(e.target.value))}
+                    onChange={(e) =>
+                      setProductsPerPage(parseInt(e.target.value))
+                    }
                     className="border border-input bg-background rounded px-3 py-1 text-sm focus:ring-2 focus:ring-ring focus:border-transparent outline-none"
                   >
                     <option value={12}>12</option>
@@ -414,7 +522,10 @@ const Shop = () => {
             {isLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="bg-card rounded-xl border border-border p-4 animate-pulse">
+                  <div
+                    key={i}
+                    className="bg-card rounded-xl border border-border p-4 animate-pulse"
+                  >
                     <div className="h-48 bg-muted rounded-lg mb-4"></div>
                     <div className="h-4 bg-muted rounded mb-2"></div>
                     <div className="h-4 bg-muted rounded w-3/4 mb-4"></div>
@@ -423,12 +534,14 @@ const Shop = () => {
                 ))}
               </div>
             ) : paginatedProducts.length > 0 ? (
-              <div className={cn(
-                'gap-6',
-                viewMode === 'grid'
-                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3'
-                  : 'flex flex-col'
-              )}>
+              <div
+                className={cn(
+                  "gap-6",
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3"
+                    : "flex flex-col"
+                )}
+              >
                 {paginatedProducts.map((product) => (
                   <ProductCard
                     key={product.id}
@@ -445,13 +558,13 @@ const Shop = () => {
                 <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
                   <Search className="w-10 h-10 text-muted-foreground" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">No products found</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  No products found
+                </h3>
                 <p className="text-muted-foreground mb-6">
                   Try adjusting your filters or search terms
                 </p>
-                <Button onClick={clearFilters}>
-                  Clear All Filters
-                </Button>
+                <Button onClick={clearFilters}>Clear All Filters</Button>
               </div>
             )}
 
@@ -462,12 +575,12 @@ const Shop = () => {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  
+
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     let pageNum;
                     if (totalPages <= 5) {
@@ -479,11 +592,13 @@ const Shop = () => {
                     } else {
                       pageNum = currentPage - 2 + i;
                     }
-                    
+
                     return (
                       <Button
                         key={pageNum}
-                        variant={currentPage === pageNum ? 'default' : 'outline'}
+                        variant={
+                          currentPage === pageNum ? "default" : "outline"
+                        }
                         size="sm"
                         onClick={() => setCurrentPage(pageNum)}
                       >
@@ -491,11 +606,13 @@ const Shop = () => {
                       </Button>
                     );
                   })}
-                  
+
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    onClick={() =>
+                      setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    }
                     disabled={currentPage === totalPages}
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -510,7 +627,10 @@ const Shop = () => {
       {/* Mobile Filters Modal */}
       {showMobileFilters && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 lg:hidden">
-          <div className="absolute inset-0" onClick={() => setShowMobileFilters(false)} />
+          <div
+            className="absolute inset-0"
+            onClick={() => setShowMobileFilters(false)}
+          />
           <div className="absolute right-0 top-0 bottom-0 w-4/5 max-w-sm bg-card border-l border-border overflow-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
@@ -523,7 +643,7 @@ const Shop = () => {
                   <X className="h-5 w-5" />
                 </Button>
               </div>
-              
+
               {/* Mobile filter content (same as desktop sidebar) */}
               <div className="space-y-6">
                 {/* Price Range */}
@@ -534,25 +654,25 @@ const Shop = () => {
                   </h3>
                   {/* ... same price range content ... */}
                 </div>
-                
+
                 {/* Categories */}
                 <div>
                   <h3 className="font-medium text-sm mb-3">Categories</h3>
                   {/* ... same categories content ... */}
                 </div>
-                
+
                 {/* Brands */}
                 <div>
                   <h3 className="font-medium text-sm mb-3">Brands</h3>
                   {/* ... same brands content ... */}
                 </div>
-                
+
                 {/* Ratings */}
                 <div>
                   <h3 className="font-medium text-sm mb-3">Customer Rating</h3>
                   {/* ... same ratings content ... */}
                 </div>
-                
+
                 <Button onClick={clearFilters} className="w-full">
                   Clear All Filters
                 </Button>

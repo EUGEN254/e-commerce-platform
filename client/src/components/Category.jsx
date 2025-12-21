@@ -60,6 +60,20 @@ const Categories = () => {
     loadProducts();
   }, [selectedCategory, selectedSubcategory]);
 
+  console.log("the products to display", displayProducts);
+
+  const isSubcategoryInCurrentCategory = (subcategory) => {
+    const selectedCat = fashionCategories.find(
+      (cat) => cat.id === selectedCategory //e.g fashion
+    );
+    return (
+      selectedCat &&
+      selectedCat.subcategories &&
+      selectedCat.subcategories.includes(subcategory)
+    );
+  };
+
+
   const loadProducts = () => {
     console.log(
       "Selected category:",
@@ -109,17 +123,7 @@ const Categories = () => {
     }
   };
 
-  const isSubcategoryInCurrentCategory = (subcategory) => {
-    const selectedCat = fashionCategories.find(
-      (cat) => cat.id === selectedCategory
-    );
-    return (
-      selectedCat &&
-      selectedCat.subcategories &&
-      selectedCat.subcategories.includes(subcategory)
-    );
-  };
-
+  
   // Handle category click
   const handleCategoryClick = (categoryId) => {
     setSelectedCategory(categoryId);

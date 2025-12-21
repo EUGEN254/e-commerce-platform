@@ -21,12 +21,15 @@ import {
   FaChevronRight,
 } from "react-icons/fa";
 import { useParams, useNavigate } from "react-router-dom";
-import assets from "../assets/assets";
+import assets, {
+  featuredFashionProducts,
+  featuredProducts,
+} from "../assets/assets";
 
 const ProductDescription = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [selectedSize, setSelectedSize] = useState("M");
   const [selectedColor, setSelectedColor] = useState("black");
   const [quantity, setQuantity] = useState(1);
@@ -35,59 +38,55 @@ const ProductDescription = () => {
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
   const [showZoom, setShowZoom] = useState(false);
 
-  // Product data - in real app, this would come from API
-  const product = {
-    id: id || "1",
-    name: "Premium Running Shoes",
-    category: "Shoes",
-    brand: "Nike",
-    price: 129.99,
-    originalPrice: 169.99,
-    discount: 24,
-    rating: 4.5,
-    reviews: 128,
-    description: "Experience ultimate comfort and performance with these premium running shoes. Designed for serious runners and casual joggers alike.",
-    features: [
-      "Breathable mesh upper for optimal ventilation",
-      "Responsive cushioning for maximum comfort",
-      "Non-slip rubber outsole for excellent traction",
-      "Lightweight design reduces fatigue",
-      "Arch support for all-day comfort",
-      "Easy slip-on design with secure laces",
-    ],
-    specs: {
-      "Material": "Mesh, Rubber",
-      "Weight": "280g per shoe",
-      "Closure": "Lace-up",
-      "Sole": "Rubber",
-      "Color": "Black/White",
-      "Warranty": "1 Year",
-    },
-    images: [
-      assets.shoe1,
-      assets.shoe1,
-      assets.shoe1,
-      assets.shoe1,assets.shoe1,assets.shoe1,
-    ],
-    colors: [
-      { name: "Black", value: "black", hex: "#000000" },
-      { name: "Blue", value: "blue", hex: "#3B82F6" },
-      { name: "Red", value: "red", hex: "#EF4444" },
-      { name: "White", value: "white", hex: "#FFFFFF", border: true },
-    ],
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    stock: 15,
-    sku: "SHOE-2023-NK-RUN",
-    tags: ["Running", "Sports", "Comfort", "Premium"],
+  // Log all available products to see what you have
+  console.log("All featured products:", featuredProducts);
+  console.log("All fashion products:", featuredFashionProducts);
+  console.log("Looking for product with ID:", id);
+
+  const findPorductById = (id) => {
+    // check in featured products
+    const fromFeatured = featuredProducts.find(
+      (product) => product.id === parseInt(id)
+    );
+    if (fromFeatured) return fromFeatured;
+
+    // check in fashion products
+    const fromFashion = featuredFashionProducts.find(
+      (product) => product.id === parseInt(id)
+    );
+    if (fromFashion) return fromFashion;
+
+    // if not found
+    return null;
   };
 
-  const relatedProducts = Array.from({ length: 4 }, (_, i) => ({
-    id: i + 2,
-    name: `Related Product ${i + 1}`,
-    price: 89.99 + (i * 20),
-    image: assets.shoe1,
-    rating: 4.2 + (i * 0.1),
-  }));
+  const product = findPorductById(id);
+  console.log("Found product:", product);
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">
+            Product Not Found
+          </h1>
+          <p className="text-gray-600 mb-6">
+            The product you are looking for does not exist.
+          </p>
+          <button
+            onClick={() => navigate("/shop")}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            Back to Shop
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const relatedProducts = featuredProducts
+    .filter((p) => p.id !== parseInt(id) && p.category === product.category)
+    .slice(0, 4);
 
   const reviews = [
     {
@@ -95,7 +94,8 @@ const ProductDescription = () => {
       name: "Alex Johnson",
       rating: 5,
       date: "2 days ago",
-      comment: "Absolutely love these shoes! Perfect fit and super comfortable for long runs.",
+      comment:
+        "Absolutely love these shoes! Perfect fit and super comfortable for long runs.",
       verified: true,
       helpful: 24,
     },
@@ -104,7 +104,8 @@ const ProductDescription = () => {
       name: "Sarah Miller",
       rating: 4,
       date: "1 week ago",
-      comment: "Great shoes, but they run a bit small. I'd recommend ordering half size up.",
+      comment:
+        "Great shoes, but they run a bit small. I'd recommend ordering half size up.",
       verified: true,
       helpful: 18,
     },
@@ -138,7 +139,8 @@ const ProductDescription = () => {
   };
 
   const handleImageHover = (e) => {
-    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const { left, top, width, height } =
+      e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - left) / width) * 100;
     const y = ((e.clientY - top) / height) * 100;
     setZoomPosition({ x, y });
@@ -148,7 +150,9 @@ const ProductDescription = () => {
     return [...Array(5)].map((_, i) => (
       <FaStar
         key={i}
-        className={`w-4 h-4 ${i < Math.floor(rating) ? "text-yellow-400" : "text-gray-300"}`}
+        className={`w-4 h-4 ${
+          i < Math.floor(rating) ? "text-yellow-400" : "text-gray-300"
+        }`}
       />
     ));
   };
@@ -162,24 +166,42 @@ const ProductDescription = () => {
             <nav className="text-sm">
               <ol className="flex items-center space-x-2">
                 <li>
-                  <button onClick={() => navigate("/")} className="text-gray-600 hover:text-indigo-600">
+                  <button
+                    onClick={() => navigate("/")}
+                    className="text-gray-600 hover:text-indigo-600"
+                  >
                     Home
                   </button>
                 </li>
                 <li className="text-gray-400">/</li>
                 <li>
-                  <button onClick={() => navigate("/shop")} className="text-gray-600 hover:text-indigo-600">
+                  <button
+                    onClick={() => navigate("/shop")}
+                    className="text-gray-600 hover:text-indigo-600"
+                  >
                     Shop
                   </button>
                 </li>
                 <li className="text-gray-400">/</li>
                 <li>
-                  <button onClick={() => navigate(`/shop/${product.category.toLowerCase()}`)} className="text-gray-600 hover:text-indigo-600">
+                  <button
+                    onClick={() => {
+                      // Navigate to shop and pass category as state
+                      navigate("/shop", {
+                        state: {
+                          selectedCategory: product.category.toLowerCase(),
+                        },
+                      });
+                    }}
+                    className="text-gray-600 hover:text-indigo-600"
+                  >
                     {product.category}
                   </button>
                 </li>
                 <li className="text-gray-400">/</li>
-                <li className="text-gray-800 font-medium truncate">{product.name}</li>
+                <li className="text-gray-800 font-medium truncate">
+                  {product.name}
+                </li>
               </ol>
             </nav>
           </div>
@@ -194,18 +216,18 @@ const ProductDescription = () => {
               {/* Left Column - Images */}
               <div>
                 {/* Main Image with Zoom */}
-                <div 
+                <div
                   className="relative rounded-xl overflow-hidden bg-gray-100 mb-4 cursor-zoom-in"
                   onMouseMove={handleImageHover}
                   onMouseEnter={() => setShowZoom(true)}
                   onMouseLeave={() => setShowZoom(false)}
                 >
                   <img
-                    src={product.images[activeImage]}
+                    src={product.images[activeImage] || product.image}
                     alt={product.name}
                     className="w-full h-96 object-contain"
                   />
-                  
+
                   {/* Badges */}
                   <div className="absolute top-4 left-4 flex flex-col gap-2">
                     {product.discount > 0 && (
@@ -221,12 +243,12 @@ const ProductDescription = () => {
                   {/* Zoom Preview */}
                   {showZoom && (
                     <div className="absolute top-0 right-0 bottom-0 left-0 overflow-hidden">
-                      <div 
+                      <div
                         className="absolute w-full h-full bg-cover bg-no-repeat"
                         style={{
                           backgroundImage: `url(${product.images[activeImage]})`,
                           backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
-                          transform: 'scale(2)',
+                          transform: "scale(2)",
                         }}
                       />
                     </div>
@@ -234,13 +256,21 @@ const ProductDescription = () => {
 
                   {/* Navigation Arrows */}
                   <button
-                    onClick={() => setActiveImage(prev => prev > 0 ? prev - 1 : product.images.length - 1)}
+                    onClick={() =>
+                      setActiveImage((prev) =>
+                        prev > 0 ? prev - 1 : product.images.length - 1
+                      )
+                    }
                     className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-colors"
                   >
                     <FaChevronLeft className="w-5 h-5 text-gray-700" />
                   </button>
                   <button
-                    onClick={() => setActiveImage(prev => prev < product.images.length - 1 ? prev + 1 : 0)}
+                    onClick={() =>
+                      setActiveImage((prev) =>
+                        prev < product.images.length - 1 ? prev + 1 : 0
+                      )
+                    }
                     className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-colors"
                   >
                     <FaChevronRight className="w-5 h-5 text-gray-700" />
@@ -320,12 +350,15 @@ const ProductDescription = () => {
                           ${product.originalPrice.toFixed(2)}
                         </span>
                         <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-sm font-bold">
-                          Save ${(product.originalPrice - product.price).toFixed(2)}
+                          Save $
+                          {(product.originalPrice - product.price).toFixed(2)}
                         </span>
                       </>
                     )}
                   </div>
-                  <p className="text-gray-600 text-sm mt-1">Including all taxes</p>
+                  <p className="text-gray-600 text-sm mt-1">
+                    Including all taxes
+                  </p>
                 </div>
 
                 {/* Description */}
@@ -335,7 +368,13 @@ const ProductDescription = () => {
 
                 {/* Color Selection */}
                 <div className="mb-6">
-                  <h3 className="font-semibold text-gray-800 mb-3">Color: {product.colors.find(c => c.value === selectedColor)?.name}</h3>
+                  <h3 className="font-semibold text-gray-800 mb-3">
+                    Color:{" "}
+                    {
+                      product.colors.find((c) => c.value === selectedColor)
+                        ?.name
+                    }
+                  </h3>
                   <div className="flex gap-3">
                     {product.colors.map((color) => (
                       <button
@@ -421,7 +460,11 @@ const ProductDescription = () => {
                         : "border-gray-300 hover:border-gray-400 text-gray-700"
                     }`}
                   >
-                    <FaHeart className={`w-5 h-5 ${isInWishlist ? "fill-red-500" : ""}`} />
+                    <FaHeart
+                      className={`w-5 h-5 ${
+                        isInWishlist ? "fill-red-500" : ""
+                      }`}
+                    />
                     {isInWishlist ? "In Wishlist" : "Add to Wishlist"}
                   </button>
                   <button className="px-4 py-2 border border-gray-300 rounded-lg hover:border-gray-400 text-gray-700 flex items-center gap-2">
@@ -436,21 +479,27 @@ const ProductDescription = () => {
                     <FaTruck className="w-5 h-5 text-green-600" />
                     <div>
                       <div className="font-medium text-sm">Free Shipping</div>
-                      <div className="text-sm text-gray-600">On orders over $50</div>
+                      <div className="text-sm text-gray-600">
+                        On orders over $50
+                      </div>
                     </div>
                   </div>
                   <div className="flex  items-center gap-3">
                     <FaRedo className="w-5 h-5 text-blue-600" />
                     <div>
                       <div className="font-medium text-sm">30-Day Returns</div>
-                      <div className="text-sm text-gray-600">Easy return policy</div>
+                      <div className="text-sm text-gray-600">
+                        Easy return policy
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <FaShieldAlt className="w-5 h-5 text-purple-600" />
                     <div>
                       <div className="font-medium text-sm">2-Year Warranty</div>
-                      <div className="text-sm text-gray-600">Manufacturer warranty</div>
+                      <div className="text-sm text-gray-600">
+                        Manufacturer warranty
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -491,7 +540,13 @@ const ProductDescription = () => {
             {/* Tab Headers */}
             <div className="border-b border-gray-200">
               <div className="flex overflow-x-auto">
-                {["Description", "Features", "Specifications", "Reviews", "Shipping"].map((tab) => (
+                {[
+                  "Description",
+                  "Features",
+                  "Specifications",
+                  "Reviews",
+                  "Shipping",
+                ].map((tab) => (
                   <button
                     key={tab}
                     className="px-6 py-4 font-medium whitespace-nowrap border-b-2 border-transparent hover:text-indigo-600 transition-colors"
@@ -506,14 +561,19 @@ const ProductDescription = () => {
             <div className="p-6 lg:p-8">
               {/* Description */}
               <div className="space-y-4">
-                <h3 className="text-xl font-bold text-gray-800 mb-4">Product Description</h3>
+                <h3 className="text-xl font-bold text-gray-800 mb-4">
+                  Product Description
+                </h3>
                 <p className="text-gray-700">
-                  These premium running shoes are designed for athletes and fitness enthusiasts 
-                  who demand the best in comfort, performance, and style. 
-                  Engineered with cutting-edge technology and premium materials.
+                  These premium running shoes are designed for athletes and
+                  fitness enthusiasts who demand the best in comfort,
+                  performance, and style. Engineered with cutting-edge
+                  technology and premium materials.
                 </p>
-                
-                <h4 className="font-bold text-gray-800 mt-6 mb-3">Key Features:</h4>
+
+                <h4 className="font-bold text-gray-800 mt-6 mb-3">
+                  Key Features:
+                </h4>
                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {product.features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2">
@@ -523,10 +583,15 @@ const ProductDescription = () => {
                   ))}
                 </ul>
 
-                <h4 className="font-bold text-gray-800 mt-6 mb-3">Specifications:</h4>
+                <h4 className="font-bold text-gray-800 mt-6 mb-3">
+                  Specifications:
+                </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {Object.entries(product.specs).map(([key, value]) => (
-                    <div key={key} className="flex justify-between py-2 border-b border-gray-100">
+                    <div
+                      key={key}
+                      className="flex justify-between py-2 border-b border-gray-100"
+                    >
                       <span className="text-gray-600">{key}</span>
                       <span className="font-medium text-gray-800">{value}</span>
                     </div>
@@ -537,7 +602,9 @@ const ProductDescription = () => {
               {/* Reviews Section */}
               <div className="mt-8">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold text-gray-800">Customer Reviews</h3>
+                  <h3 className="text-xl font-bold text-gray-800">
+                    Customer Reviews
+                  </h3>
                   <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                     Write a Review
                   </button>
@@ -547,19 +614,26 @@ const ProductDescription = () => {
                 <div className="bg-gray-50 rounded-xl p-6 mb-6">
                   <div className="flex flex-col md:flex-row items-center gap-6">
                     <div className="text-center">
-                      <div className="text-5xl font-bold text-gray-800">{product.rating}</div>
+                      <div className="text-5xl font-bold text-gray-800">
+                        {product.rating}
+                      </div>
                       <div className="flex justify-center mt-2">
                         {renderStars(product.rating)}
                       </div>
-                      <div className="text-gray-600 mt-2">{product.reviews} reviews</div>
+                      <div className="text-gray-600 mt-2">
+                        {product.reviews} reviews
+                      </div>
                     </div>
                     <div className="flex-1">
                       {[5, 4, 3, 2, 1].map((stars) => (
-                        <div key={stars} className="flex items-center gap-3 mb-2">
+                        <div
+                          key={stars}
+                          className="flex items-center gap-3 mb-2"
+                        >
                           <div className="w-12 text-gray-600">{stars} star</div>
                           <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-yellow-400" 
+                            <div
+                              className="h-full bg-yellow-400"
                               style={{ width: `${(stars / 5) * 100}%` }}
                             />
                           </div>
@@ -572,15 +646,22 @@ const ProductDescription = () => {
                 {/* Individual Reviews */}
                 <div className="space-y-6">
                   {reviews.map((review) => (
-                    <div key={review.id} className="border-b border-gray-100 pb-6">
+                    <div
+                      key={review.id}
+                      className="border-b border-gray-100 pb-6"
+                    >
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <div className="font-bold text-gray-800">{review.name}</div>
+                          <div className="font-bold text-gray-800">
+                            {review.name}
+                          </div>
                           <div className="flex items-center gap-2 mt-1">
                             <div className="flex">
                               {renderStars(review.rating)}
                             </div>
-                            <span className="text-sm text-gray-500">{review.date}</span>
+                            <span className="text-sm text-gray-500">
+                              {review.date}
+                            </span>
                             {review.verified && (
                               <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
                                 Verified Purchase
@@ -602,7 +683,13 @@ const ProductDescription = () => {
 
           {/* Related Products */}
           <div className="mt-8">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">You May Also Like</h3>
+            {!relatedProducts ? (
+              <h3 className="text-2xl font-bold text-gray-800 mb-6">
+                You May Also Like
+              </h3>
+            ) : (
+              <></>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts.map((product) => (
                 <div
@@ -618,7 +705,9 @@ const ProductDescription = () => {
                     />
                   </div>
                   <div className="p-4">
-                    <h4 className="font-bold text-gray-800 mb-2 truncate">{product.name}</h4>
+                    <h4 className="font-bold text-gray-800 mb-2 truncate">
+                      {product.name}
+                    </h4>
                     <div className="flex items-center gap-1 mb-3">
                       {renderStars(product.rating)}
                     </div>
