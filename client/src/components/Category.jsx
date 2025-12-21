@@ -25,6 +25,7 @@ import {
   getProductsBySubcategory,
 } from "../utils/productUtils";
 import { ProductCard } from "./ui/ProductCard";
+import { useProducts } from "../context/ProductContext";
 
 // Map fashion categories to icons
 const categoryIcons = {
@@ -35,6 +36,8 @@ const categoryIcons = {
 
 const Categories = () => {
   const navigate = useNavigate();
+  const { products, loading, error } = useProducts();
+  
   const [selectedCategory, setSelectedCategory] = useState("fashion");
   const [selectedSubcategory, setSelectedSubcategory] = useState("All");
   const [displayProducts, setDisplayProducts] = useState([]);
@@ -57,24 +60,54 @@ const Categories = () => {
 
   // Load products when category or subcategory changes
   useEffect(() => {
-    loadProducts();
-  }, [selectedCategory, selectedSubcategory]);
+    if (!loading) {
+      loadProducts();
+    }
+  }, [selectedCategory, selectedSubcategory, products, loading]);
 
-  console.log("the products to display", displayProducts);
+  console.log("All products from context:", products);
+  console.log("Display products:", displayProducts);
 
   const isSubcategoryInCurrentCategory = (subcategory) => {
     const selectedCat = fashionCategories.find(
-      (cat) => cat.id === selectedCategory //e.g fashion
+      (cat) => cat.id === selectedCategory
     );
+    
+    // Also check if there are any products in this category with the subcategory
+    const hasProductsWithSubcategory = products.some(
+      (product) => 
+        product.category === selectedCategory && 
+        product.subcategory === subcategory
+    );
+    
     return (
       selectedCat &&
       selectedCat.subcategories &&
-      selectedCat.subcategories.includes(subcategory)
+      selectedCat.subcategories.includes(subcategory) &&
+      hasProductsWithSubcategory
     );
   };
 
-
   const loadProducts = () => {
+    if (loading) {
+      // Show placeholder while loading
+      const placeholderProducts = Array.from({ length: 8 }, (_, i) => ({
+        id: i + 1000,
+        name: `Loading Product ${i + 1}`,
+        price: (i + 1) * 29.99,
+        originalPrice: (i + 1) * 39.99,
+        discount: i % 3 === 0 ? 25 : i % 2 === 0 ? 15 : 0,
+        rating: 4.5 - i * 0.1,
+        reviewCount: Math.floor(Math.random() * 100) + 50,
+        image: assets.shoe1,
+        isNew: i < 2,
+        isBestSeller: i === 0 || i === 3,
+        isLoading: true,
+      }));
+      setDisplayProducts(placeholderProducts);
+      return;
+    }
+
     console.log(
       "Selected category:",
       selectedCategory,
@@ -90,19 +123,26 @@ const Categories = () => {
       setSelectedSubcategory("All");
     }
 
+    // Filter products based on category and subcategory
+    let filteredProducts = [];
+
     if (selectedSubcategory !== "All") {
-      // Load subcategory-specific products
-      const subcategoryProducts = getProductsBySubcategory(selectedSubcategory);
-      setDisplayProducts(
-        subcategoryProducts.length > 0 ? subcategoryProducts.slice(0, 8) : []
+      // Filter by subcategory
+      filteredProducts = products.filter(
+        (product) => 
+          product.subcategory === selectedSubcategory &&
+          product.category === selectedCategory
       );
     } else if (selectedCategory === "fashion") {
-      // Load featured fashion products
-      setDisplayProducts(getFeaturedFashionProducts(8));
+      // Filter featured fashion products
+      filteredProducts = products.filter(
+        (product) => product.category === "fashion" && product.isFeatured
+      );
     } else if (fashionCategories.some((cat) => cat.id === selectedCategory)) {
-      // Load category products
-      const products = getProductsByCategory(selectedCategory);
-      setDisplayProducts(products.length > 0 ? products.slice(0, 8) : []);
+      // Filter by main category
+      filteredProducts = products.filter(
+        (product) => product.category === selectedCategory
+      );
     } else {
       // Placeholder products for other categories
       const placeholderProducts = Array.from({ length: 8 }, (_, i) => ({
@@ -120,14 +160,39 @@ const Categories = () => {
         isBestSeller: i === 0 || i === 3,
       }));
       setDisplayProducts(placeholderProducts);
+      return;
     }
-  };
 
+    // Transform the data for ProductCard
+    const transformedProducts = filteredProducts.slice(0, 8).map(product => ({
+      id: product._id,
+      name: product.name,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      discount: product.discount,
+      rating: product.rating,
+      reviewCount: product.reviewCount,
+      image: product.mainImage || (product.images && product.images[0]) || assets.shoe1,
+      isNew: product.isNew || false,
+      isBestSeller: product.isBestSeller || false,
+      isFeatured: product.isFeatured || false,
+      brand: product.brand,
+      category: product.category,
+      subcategory: product.subcategory,
+      description: product.shortDescription || product.description,
+      stock: product.stock,
+      inStock: product.inStock,
+      tags: product.tags || [],
+      features: product.features || [],
+      // Add any other properties your ProductCard might need
+    }));
+
+    setDisplayProducts(transformedProducts);
+  };
   
   // Handle category click
   const handleCategoryClick = (categoryId) => {
     setSelectedCategory(categoryId);
-    // Don't reset subcategory if it's the same category
     const selectedCat = fashionCategories.find((cat) => cat.id === categoryId);
     if (
       !selectedCat ||
@@ -214,6 +279,24 @@ const Categories = () => {
     checkScrollPosition();
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="mt-10 px-5 lg:px-5">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <h3 className="text-lg font-semibold text-red-700 mb-2">Error Loading Products</h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-10 px-5 lg:px-5">
@@ -417,7 +500,12 @@ const Categories = () => {
           </button>
         </div>
 
-        {displayProducts.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="text-gray-600 mt-4">Loading products...</p>
+          </div>
+        ) : displayProducts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500">
               No products available in this category yet.
@@ -432,13 +520,17 @@ const Categories = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {displayProducts.map((product, index) => (
-              <ProductCard key={product.id} product={product} index={index} />
+              <ProductCard 
+                key={product.id || product._id || index} 
+                product={product} 
+                index={index} 
+              />
             ))}
           </div>
         )}
 
         {/* View All Button for Mobile */}
-        {displayProducts.length > 0 && (
+        {displayProducts.length > 0 && !loading && (
           <div className="mt-8 flex justify-center lg:hidden">
             <button
               onClick={() => navigate(`/shop/${selectedCategory}`)}
