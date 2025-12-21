@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import assets from "../assets/assets";
+import { Flame } from 'lucide-react';
 
 const Header = () => {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  // Your shoes/images
   const shoes = [
     assets.shoe1,
     assets.wireless,
@@ -9,16 +13,13 @@ const Header = () => {
     assets.laptopbag,
     assets.cofeemaker
   ];
-
-  // State for controlling animation
-  const [isHovered, setIsHovered] = useState(false);
   
-  // Duplicate the array for seamless looping
-  const duplicatedShoes = [...shoes, ...shoes];
+  // Duplicate for seamless scrolling
+  const duplicatedShoes = [...shoes, ...shoes, ...shoes, ...shoes];
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 items-center lg:items-start mt-2 px-5 lg:px-20 border-2 border-gray-300 rounded-xl p-6 lg:p-10 mx-4">
-      {/* Text Section */}
+      {/* Text Section - Left side */}
       <div className="lg:w-1/2 flex flex-col justify-center items-start w-full">
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
           Discover Everything <br />
@@ -35,69 +36,67 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Moving Shoes Section */}
-      <div 
-        className="lg:w-1/2 w-full h-48 overflow-hidden relative flex items-center  rounded-2xl p-4 border border-transparent "
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {/* Limited Offers Tag */}
-        <div className="absolute top-3 left-3 z-10">
-          <span className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-            🔥 LIMITED OFFERS
-          </span>
-        </div>
-
-        {/* Animated Images Container */}
-        <div className="relative w-full overflow-hidden">
-          {/* First Row - Moving Right to Left */}
-          <div 
-            className={`flex space-x-8 mb-4 ${isHovered ? 'paused' : ''}`}
-            style={{
-              animation: 'marquee 25s linear infinite',
-              animationPlayState: isHovered ? 'paused' : 'running'
-            }}
-          >
-            {duplicatedShoes.map((shoe, index) => (
-              <div 
-                key={`row1-${index}`} 
-                className="group relative flex-shrink-0 transform transition-all duration-300 hover:scale-110 hover:z-10"
-              >
-                <img
-                  src={shoe}
-                  alt={`Product ${index + 1}`}
-                  className="w-28 h-28 object-contain filter drop-shadow-lg group-hover:drop-shadow-2xl transition-all duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
-              </div>
-            ))}
+      {/* Limited Offers Carousel - Right side */}
+      <div className="lg:w-1/2 w-full">
+        <div 
+          className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-2xl p-6 h-full overflow-hidden relative"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          {/* Limited Offers Tag */}
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 text-primary">
+              <Flame className="h-5 w-5" />
+              <span className="font-display font-bold text-lg">LIMITED OFFERS</span>
+            </div>
+            <div className="h-px flex-1 bg-gradient-to-r from-primary/30 to-transparent" />
           </div>
 
-          {/* Second Row - Moving Left to Right (reverse direction) */}
-          <div 
-            className={`flex space-x-8 ${isHovered ? 'paused' : ''}`}
-            style={{
-              animation: 'marquee-reverse 30s linear infinite',
-              animationPlayState: isHovered ? 'paused' : 'running'
-            }}
-          >
-            {duplicatedShoes.map((shoe, index) => (
-              <div 
-                key={`row2-${index}`} 
-                className="group relative flex-shrink-0 transform transition-all duration-300 hover:scale-110 hover:z-10"
-              >
-                <img
-                  src={shoe}
-                  alt={`Product ${index + 9}`}
-                  className="w-24 h-24 object-contain filter drop-shadow-lg group-hover:drop-shadow-2xl transition-all duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg" />
-              </div>
-            ))}
+          {/* Horizontal Scrolling Images - Like LimitedOffersCarousel */}
+          <div className="relative overflow-hidden h-40">
+            <div 
+              className={`flex gap-6 ${isHovered ? 'paused' : ''}`}
+              style={{
+                animation: 'marquee 20s linear infinite',
+                animationPlayState: isHovered ? 'paused' : 'running',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+              }}
+            >
+              {duplicatedShoes.map((shoe, index) => (
+                <div
+                  key={index}
+                  className="flex-shrink-0 w-32 h-32 rounded-xl overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300 group"
+                >
+                  <div className="relative w-full h-full overflow-hidden">
+                    <img
+                      src={shoe}
+                      alt={`Limited Offer ${index + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    {/* Price Overlay */}
+                    <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold">
+                      ${29.99 + (index % 5) * 20}
+                    </div>
+                    {/* Discount Badge */}
+                    <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      -{15 + (index % 3) * 10}%
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Call to Action */}
+          <div className="mt-4 text-center">
+            <button className="text-primary text-sm font-medium hover:underline">
+              View All Limited Offers →
+            </button>
           </div>
         </div>
-
-      
       </div>
     </div>
   );

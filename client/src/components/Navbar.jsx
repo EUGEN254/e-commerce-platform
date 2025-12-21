@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { ShoppingCart, Menu, X, User } from "lucide-react";
-import { Link,useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "./ui/button";
+import { FaPersonBooth } from "react-icons/fa";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -13,7 +15,6 @@ const Navbar = () => {
     { name: "My Orders", path: "/my-orders" },
     { name: "About", path: "/about" },
     { name: "Contact", path: "/contact" },
-    
   ];
 
   return (
@@ -27,7 +28,7 @@ const Navbar = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-45">
             <div className="flex space-x-5">
               {navLinks.map((link, index) => (
                 <Link
@@ -45,25 +46,41 @@ const Navbar = () => {
               ))}
             </div>
 
-            <div className="flex items-center space-x-3">
-              <button className="relative">
+            <div className="flex items-center space-x-6">
+              <button className="relative flex justify-between items-center gap-3">
                 <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                <span className="absolute -top-2 right-18 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
                   3
                 </span>
+                <span className="text-sm">View Cart</span>
               </button>
 
               {user ? (
                 <button className="btn-secondary flex items-center space-x-1 text-xs">
                   <User className="w-4 h-4" />
-                  <span onClick={()=>navigate("/profile")}>Profile</span>
+                  <span onClick={() => navigate("/profile")}>Profile</span>
                 </button>
               ) : (
-                <button 
-                onClick={()=>navigate("/create-account")}
-                className="btn-secondary text-xs">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/create-account")}
+                  className="text-xs"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
                   Create Account
-                </button>
+                </Button>
               )}
             </div>
           </div>

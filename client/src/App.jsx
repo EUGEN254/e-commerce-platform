@@ -12,21 +12,18 @@ import Profile from "./pages/Profile";
 import MyOrders from "./pages/MyOrders";
 import ProductDescription from "./pages/ProductDescription";
 import Auth from "./pages/Auth";
+import { Toaster } from "./components/ui/sonner";
 
 const App = () => {
   return (
     <div className="flex flex-col min-h-screen max-w-310 mx-auto">
       {/* Toast Notifications */}
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        pauseOnHover
-        draggable
-        theme="light"
-      />
+        <Toaster
+        position="top-center"
+        toastOptions={{
+          className: 'bg-background text-foreground border-border',
+        }}
+        />
 
       {/* App Layout */}
       <div>

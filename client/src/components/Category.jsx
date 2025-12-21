@@ -24,6 +24,7 @@ import {
   getProductsByCategory,
   getProductsBySubcategory,
 } from "../utils/productUtils";
+import { ProductCard } from "./ui/ProductCard";
 
 // Map fashion categories to icons
 const categoryIcons = {
@@ -426,137 +427,8 @@ const Categories = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {displayProducts.map((product) => (
-              <div
-                key={product.id}
-                className="group relative bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl hover:border-indigo-200 transition-all duration-300"
-              >
-                {/* Product Badges */}
-                {product.tag && (
-                  <div className="absolute top-3 left-3 z-10">
-                    <span
-                      className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                        product.tagColor || "bg-red-500"
-                      } text-white`}
-                    >
-                      {product.tag}
-                    </span>
-                  </div>
-                )}
-
-                {product.isNew && (
-                  <div className="absolute top-3 right-3 z-10">
-                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-500 text-white">
-                      NEW
-                    </span>
-                  </div>
-                )}
-
-                {/* Subcategory Badge */}
-                {product.subcategory && (
-                  <div className="absolute top-12 left-3 z-10">
-                    <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-white bg-opacity-90 rounded-full border border-gray-200">
-                      {product.subcategory}
-                    </span>
-                  </div>
-                )}
-
-                {/* Product Image */}
-                <div
-                  className="relative h-48 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 cursor-pointer"
-                  onClick={() => navigate(`/product/${product.id}`)}
-                >
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-500"
-                  />
-                </div>
-
-                {/* Product Details */}
-                <div className="p-5">
-                  {/* Category Badge */}
-                  {product.category && (
-                    <span className="inline-block px-2 py-1 mb-2 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-full">
-                      {product.category}
-                    </span>
-                  )}
-
-                  <h3
-                    className="font-bold text-gray-900 text-base mb-2 line-clamp-1 hover:text-indigo-600 transition-colors duration-200 cursor-pointer"
-                    onClick={() => navigate(`/product/${product.id}`)}
-                  >
-                    {product.name}
-                  </h3>
-
-                  {product.description && (
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                      {product.description}
-                    </p>
-                  )}
-
-                  {/* Rating */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex items-center">
-                      {renderStars(product.rating)}
-                    </div>
-                    <span className="text-xs text-gray-500">
-                      {product.rating.toFixed(1)} ({product.reviewCount})
-                    </span>
-                  </div>
-
-                  {/* Price Section */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xl font-bold text-gray-800">
-                        ${product.price.toFixed(2)}
-                      </span>
-                      {product.originalPrice && product.discount > 0 && (
-                        <>
-                          <span className="text-sm text-gray-500 line-through">
-                            ${product.originalPrice.toFixed(2)}
-                          </span>
-                          <span className="text-xs text-red-500 font-semibold bg-red-50 px-2 py-1 rounded">
-                            -{product.discount}%
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Brand and Stock Info */}
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                    {product.brand && (
-                      <span className="font-medium">
-                        Brand: {product.brand}
-                      </span>
-                    )}
-                    {product.inStock !== undefined && (
-                      <span
-                        className={`font-medium ${
-                          product.inStock ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {product.inStock ? "In Stock" : "Out of Stock"}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Add to Cart Button */}
-                  <button
-                    onClick={(e) => handleAddToCart(e, product.id)}
-                    disabled={product.inStock === false}
-                    className={`w-full py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-medium rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg ${
-                      product.inStock === false
-                        ? "opacity-50 cursor-not-allowed"
-                        : "hover:from-indigo-700 hover:to-indigo-800"
-                    }`}
-                  >
-                    <FaShoppingCart className="w-4 h-4" />
-                    {product.inStock === false ? "Out of Stock" : "Add to Cart"}
-                  </button>
-                </div>
-              </div>
+            {displayProducts.map((product, index) => (
+              <ProductCard key={product.id} product={product} index={index} />
             ))}
           </div>
         )}
