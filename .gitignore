@@ -24,4 +24,7 @@ dist-ssr
 *.sw?
 
 
-.env
+.env.env
+backend/.env
+admin/.env
+client/.env
