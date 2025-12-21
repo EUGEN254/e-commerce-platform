@@ -18,7 +18,7 @@ connectCloudinary();
 
 
 // determine environment and allow connections accordingly
-const isProduction = (process.env.NODE_ENV === 'development') === "production";
+const isProduction = process.env.NODE_ENV === "production";
 const allowedOrigins = (
     isProduction ? process.env.PROD_ORIGINS : process.env.DEV_ORIGINS
 )?.split(',');
