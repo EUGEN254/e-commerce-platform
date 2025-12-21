@@ -32,7 +32,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { ProductCard } from "../components/ui/ProductCard";
 import assets from "../assets/assets";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useProducts } from "../contexts/ProductContext";
+import { useProducts } from "../context/ProductContext";
 
 const Shop = () => {
   // Use the ProductContext
