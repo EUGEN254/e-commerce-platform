@@ -78,6 +78,13 @@ export function ProductProvider({ children }) {
     }
   }, [backendUrl]);
 
+  const getProductsBySubcategory = useCallback((category, subcategory) => {
+  // Filter from existing products
+  return products.filter(
+    product => product.category === category && product.subcategory === subcategory
+  );
+}, [products]);
+
   useEffect(() => {
     fetchProducts();
     fetchFeaturedProducts();
@@ -93,6 +100,7 @@ export function ProductProvider({ children }) {
         loading,
         error,
         fetchProducts,
+        getProductsBySubcategory,
         getProductById,
         searchProducts,
         getProductsByCategory,

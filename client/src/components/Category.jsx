@@ -19,11 +19,6 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import assets, { fashionCategories } from "../assets/assets";
-import {
-  getFeaturedFashionProducts,
-  getProductsByCategory,
-  getProductsBySubcategory,
-} from "../utils/productUtils";
 import { ProductCard } from "./ui/ProductCard";
 import { useProducts } from "../context/ProductContext";
 
@@ -36,8 +31,14 @@ const categoryIcons = {
 
 const Categories = () => {
   const navigate = useNavigate();
-  const { products, loading, error } = useProducts();
-  
+  const {
+    products,
+    loading,
+    error,
+    getProductsByCategory,
+    getProductsBySubcategory,
+  } = useProducts();
+
   const [selectedCategory, setSelectedCategory] = useState("fashion");
   const [selectedSubcategory, setSelectedSubcategory] = useState("All");
   const [displayProducts, setDisplayProducts] = useState([]);
@@ -72,14 +73,14 @@ const Categories = () => {
     const selectedCat = fashionCategories.find(
       (cat) => cat.id === selectedCategory
     );
-    
+
     // Also check if there are any products in this category with the subcategory
     const hasProductsWithSubcategory = products.some(
-      (product) => 
-        product.category === selectedCategory && 
+      (product) =>
+        product.category === selectedCategory &&
         product.subcategory === subcategory
     );
-    
+
     return (
       selectedCat &&
       selectedCat.subcategories &&
@@ -88,7 +89,7 @@ const Categories = () => {
     );
   };
 
-  const loadProducts = () => {
+  const loadProducts = async () => {
     if (loading) {
       // Show placeholder while loading
       const placeholderProducts = Array.from({ length: 8 }, (_, i) => ({
@@ -115,83 +116,134 @@ const Categories = () => {
       selectedSubcategory
     );
 
-    // Reset subcategory when main category changes
-    if (
-      selectedSubcategory !== "All" &&
-      !isSubcategoryInCurrentCategory(selectedSubcategory)
-    ) {
-      setSelectedSubcategory("All");
-    }
-
-    // Filter products based on category and subcategory
     let filteredProducts = [];
 
+    // CASE 1: Specific subcategory selected
     if (selectedSubcategory !== "All") {
-      // Filter by subcategory
-      filteredProducts = products.filter(
-        (product) => 
-          product.subcategory === selectedSubcategory &&
-          product.category === selectedCategory
+      console.log(
+        `Filtering by subcategory: ${selectedSubcategory} in category: ${selectedCategory}`
       );
-    } else if (selectedCategory === "fashion") {
-      // Filter featured fashion products
+
+      // First check if we have products with this subcategory in our current context products
+      const contextProducts = products.filter(
+        (product) =>
+          product.category === selectedCategory &&
+          product.subcategory === selectedSubcategory
+      );
+
+      console.log(`Found ${contextProducts.length} products in context`);
+
+      if (contextProducts.length > 0) {
+        filteredProducts = contextProducts;
+      } else {
+        // Fetch from API since we don't have enough products in context
+        try {
+          console.log(`Fetching from API for category: ${selectedCategory}`);
+          const categoryProducts = await getProductsByCategory(
+            selectedCategory
+          );
+
+          // Filter by subcategory client-side
+          filteredProducts = categoryProducts.filter(
+            (product) => product.subcategory === selectedSubcategory
+          );
+
+          console.log(
+            `API returned ${filteredProducts.length} products for subcategory ${selectedSubcategory}`
+          );
+        } catch (error) {
+          console.error("Error fetching category products:", error);
+          // Fallback to products in context (if any)
+          filteredProducts = products.filter(
+            (product) => product.category === selectedCategory
+          );
+        }
+      }
+    }
+    // CASE 2: Fashion category (no specific subcategory)
+    else if (selectedCategory === "fashion") {
+      console.log("Loading fashion products (featured or all)");
+
+      // First try to get featured fashion products
       filteredProducts = products.filter(
         (product) => product.category === "fashion" && product.isFeatured
       );
-    } else if (fashionCategories.some((cat) => cat.id === selectedCategory)) {
-      // Filter by main category
+
+      // If no featured fashion products, try all fashion products
+      if (filteredProducts.length === 0) {
+        filteredProducts = products.filter(
+          (product) => product.category === "fashion"
+        );
+      }
+
+      // If still no products, fetch from API
+      if (filteredProducts.length === 0) {
+        try {
+          console.log("Fetching fashion products from API");
+          filteredProducts = await getProductsByCategory("fashion");
+        } catch (error) {
+          console.error("Error fetching fashion products:", error);
+        }
+      }
+    }
+    // CASE 3: Other categories (no specific subcategory)
+    else {
+      console.log(`Loading products for category: ${selectedCategory}`);
+
+      // Check if we have products for this category in context
       filteredProducts = products.filter(
         (product) => product.category === selectedCategory
       );
-    } else {
-      // Placeholder products for other categories
-      const placeholderProducts = Array.from({ length: 8 }, (_, i) => ({
-        id: i + 1000,
-        name: `${
-          selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)
-        } Product ${i + 1}`,
-        price: (i + 1) * 29.99,
-        originalPrice: (i + 1) * 39.99,
-        discount: i % 3 === 0 ? 25 : i % 2 === 0 ? 15 : 0,
-        rating: 4.5 - i * 0.1,
-        reviewCount: Math.floor(Math.random() * 100) + 50,
-        image: assets.shoe1,
-        isNew: i < 2,
-        isBestSeller: i === 0 || i === 3,
-      }));
-      setDisplayProducts(placeholderProducts);
-      return;
+
+      // If not enough products, fetch from API
+      if (filteredProducts.length < 4) {
+        // You can adjust this threshold
+        try {
+          console.log(`Fetching ${selectedCategory} products from API`);
+          filteredProducts = await getProductsByCategory(selectedCategory);
+        } catch (error) {
+          console.error(`Error fetching ${selectedCategory} products:`, error);
+        }
+      }
     }
 
+    console.log(
+      `Displaying ${filteredProducts.length} products for ${selectedCategory}` +
+        (selectedSubcategory !== "All" ? ` (${selectedSubcategory})` : "")
+    );
+
     // Transform the data for ProductCard
-    const transformedProducts = filteredProducts.slice(0, 8).map(product => ({
-      id: product._id,
-      name: product.name,
-      price: product.price,
-      originalPrice: product.originalPrice,
-      discount: product.discount,
-      rating: product.rating,
-      reviewCount: product.reviewCount,
-      image: product.mainImage || (product.images && product.images[0]) || assets.shoe1,
-      isNew: product.isNew || false,
-      isBestSeller: product.isBestSeller || false,
-      isFeatured: product.isFeatured || false,
-      brand: product.brand,
-      category: product.category,
-      subcategory: product.subcategory,
-      description: product.shortDescription || product.description,
-      stock: product.stock,
-      inStock: product.inStock,
-      tags: product.tags || [],
-      features: product.features || [],
-      // Add any other properties your ProductCard might need
-    }));
+    const transformedProducts = filteredProducts
+      .slice(0, 12)
+      .map((product) => ({
+        id: product._id,
+        name: product.name,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        discount: product.discount,
+        rating: product.rating,
+        reviewCount: product.reviewCount,
+        image:
+          product.mainImage ||
+          (product.images && product.images[0]) ||
+          assets.shoe1,
+        isNew: product.isNew || false,
+        isBestSeller: product.isBestSeller || false,
+        isFeatured: product.isFeatured || false,
+        brand: product.brand,
+        category: product.category,
+        subcategory: product.subcategory,
+        description: product.shortDescription || product.description,
+        stock: product.stock,
+        inStock: product.inStock,
+        tags: product.tags || [],
+        features: product.features || [],
+      }));
 
     setDisplayProducts(transformedProducts);
   };
-  
   // Handle category click
-  const handleCategoryClick = (categoryId) => {
+  const handleCategoryClick = async (categoryId) => {
     setSelectedCategory(categoryId);
     const selectedCat = fashionCategories.find((cat) => cat.id === categoryId);
     if (
@@ -204,7 +256,8 @@ const Categories = () => {
   };
 
   // Handle subcategory click
-  const handleSubcategoryClick = (subcategory) => {
+  const handleSubcategoryClick = async (subcategory) => {
+    console.log("Clicked subcategory:", subcategory);
     setSelectedSubcategory(subcategory);
   };
 
@@ -285,7 +338,9 @@ const Categories = () => {
     return (
       <div className="mt-10 px-5 lg:px-5">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h3 className="text-lg font-semibold text-red-700 mb-2">Error Loading Products</h3>
+          <h3 className="text-lg font-semibold text-red-700 mb-2">
+            Error Loading Products
+          </h3>
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
@@ -520,10 +575,10 @@ const Categories = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {displayProducts.map((product, index) => (
-              <ProductCard 
-                key={product.id || product._id || index} 
-                product={product} 
-                index={index} 
+              <ProductCard
+                key={product.id || product._id || index}
+                product={product}
+                index={index}
               />
             ))}
           </div>
