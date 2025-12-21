@@ -32,8 +32,18 @@ import { Checkbox } from "../components/ui/checkbox";
 import { ProductCard } from "../components/ui/ProductCard";
 import assets from "../assets/assets";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useProducts } from "../contexts/ProductContext";
 
 const Shop = () => {
+  // Use the ProductContext
+  const { 
+    products: allProducts, 
+    categories: backendCategories, 
+    loading, 
+    getProductsByCategory,
+    searchProducts 
+  } = useProducts();
+  
   // State management
   const location = useLocation();
   const navigate = useNavigate();
@@ -54,16 +64,8 @@ const Shop = () => {
   const [wishlist, setWishlist] = useState({});
   const [productsPerPage, setProductsPerPage] = useState(12);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-
-
-    // Clear location state after using it
-  useEffect(() => {
-    if (location.state?.selectedCategory) {
-      // Clear the state so it doesn't persist on refresh
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location.state, navigate, location.pathname]);
+  const [products, setProducts] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Categories
   const categories = [
@@ -111,65 +113,112 @@ const Shop = () => {
     },
     {
       id: "accessories",
-      name: "accessories",
+      name: "Accessories",
       icon: <Accessibility className="h-4 w-4" />,
       color: "bg-gradient-to-r from-purple-500 to-violet-500",
       path: "/shop/accessories",
     },
     {
-      id:"clothing",
+      id: "clothing",
       name: "Clothing",
       icon: <Shirt className="h-4 w-4" />,
       color: "bg-gradient-to-r from-pink-500 to-rose-500",
-    }
+      path: "/shop/clothing",
+    },
+    {
+      id: "beauty",
+      name: "Beauty",
+      icon: <Sparkles className="h-4 w-4" />,
+      color: "bg-gradient-to-r from-pink-500 to-purple-500",
+      path: "/shop/beauty",
+    },
+    {
+      id: "sports",
+      name: "Sports",
+      icon: <Flame className="h-4 w-4" />,
+      color: "bg-gradient-to-r from-orange-500 to-red-500",
+      path: "/shop/sports",
+    },
+    {
+      id: "books",
+      name: "Books",
+      icon: <TrendingUp className="h-4 w-4" />,
+      color: "bg-gradient-to-r from-blue-500 to-indigo-500",
+      path: "/shop/books",
+    },
   ];
 
-  // Brands
-  const brands = [
-    { id: 1, name: "Nike", productCount: 42 },
-    { id: 2, name: "Adidas", productCount: 38 },
-    { id: 3, name: "Apple", productCount: 25 },
-    { id: 4, name: "Samsung", productCount: 31 },
-    { id: 5, name: "Sony", productCount: 19 },
-    { id: 6, name: "Zara", productCount: 27 },
-  ];
+  // Extract unique brands from products
+  const brands = Array.from(
+    new Set(allProducts.map(product => product.brand))
+  )
+    .filter(brand => brand)
+    .map((brand, index) => ({
+      id: index + 1,
+      name: brand,
+      productCount: allProducts.filter(p => p.brand === brand).length
+    }));
 
-  // Sample products data (you would replace with actual data from your API or data file)
-  const products = Array.from({ length: 24 }, (_, i) => ({
-    id: i + 1,
-    name: `Premium Product ${i + 1}`,
-    description: `High-quality product with amazing features. Perfect for daily use and designed to last.`,
-    price: 89.99 + i * 15,
-    originalPrice: 119.99 + i * 15,
-    discount: i % 4 === 0 ? 25 : i % 3 === 0 ? 15 : 0,
-    rating: 4.5 - i * 0.05,
-    reviewCount: Math.floor(Math.random() * 200) + 50,
-    category: categories[Math.floor(Math.random() * categories.length)].id,
-    brand: brands[Math.floor(Math.random() * brands.length)].name,
-    image: assets.cofeemaker,
-    isNew: i < 5,
-    isFeatured: i < 3,
-    stock: i % 5 === 0 ? "Low Stock" : "In Stock",
-    tags: ["Premium", "Popular", "Trending"].slice(
-      0,
-      Math.floor(Math.random() * 3) + 1
-    ),
-  }));
-
-  // Simulate loading
+  // Filter products based on selected category
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+    const fetchProductsByCategory = async () => {
+      if (selectedCategory === "all") {
+        setProducts(allProducts);
+        setIsSearching(false);
+      } else {
+        try {
+          const categoryProducts = await getProductsByCategory(selectedCategory);
+          setProducts(categoryProducts);
+          setIsSearching(false);
+        } catch (error) {
+          console.error("Error fetching category products:", error);
+          // Fallback to filtering from allProducts if API fails
+          const filtered = allProducts.filter(
+            product => product.category === selectedCategory
+          );
+          setProducts(filtered);
+          setIsSearching(false);
+        }
+      }
+    };
 
-  // Filter products
+    fetchProductsByCategory();
+  }, [selectedCategory, allProducts, getProductsByCategory]);
+
+  // Handle search
+  useEffect(() => {
+    const handleSearch = async () => {
+      if (!searchQuery.trim()) {
+        // If search query is empty, show all products for current category
+        if (selectedCategory === "all") {
+          setProducts(allProducts);
+        }
+        setIsSearching(false);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const searchResults = await searchProducts(searchQuery);
+        setProducts(searchResults);
+      } catch (error) {
+        console.error("Error searching products:", error);
+        // Fallback to local filtering
+        const filtered = allProducts.filter(product =>
+          product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+        setProducts(filtered);
+      }
+    };
+
+    const debounceTimer = setTimeout(handleSearch, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, allProducts, selectedCategory, searchProducts]);
+
+  // Filter products based on filters
   const filteredProducts = products.filter((product) => {
-    // Category filter
-    if (selectedCategory !== "all" && product.category !== selectedCategory)
-      return false;
-
     // Price filter
     if (product.price < priceRange[0] || product.price > priceRange[1])
       return false;
@@ -179,14 +228,7 @@ const Shop = () => {
       return false;
 
     // Rating filter
-    if (selectedRating > 0 && product.rating < selectedRating) return false;
-
-    // Search filter
-    if (
-      searchQuery &&
-      !product.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-      return false;
+    if (selectedRating > 0 && (product.rating || 0) < selectedRating) return false;
 
     return true;
   });
@@ -199,11 +241,14 @@ const Shop = () => {
       case "price-high":
         return b.price - a.price;
       case "rating":
-        return b.rating - a.rating;
+        return (b.rating || 0) - (a.rating || 0);
       case "newest":
-        return b.id - a.id;
+        // Assuming newer products have higher IDs or createdDate
+        return b._id.localeCompare(a._id); // Use _id as fallback
+      case "featured":
+        return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
       default:
-        return b.isFeatured - a.isFeatured;
+        return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
     }
   });
 
@@ -254,13 +299,21 @@ const Shop = () => {
         key={i}
         className={cn(
           "h-4 w-4",
-          i < Math.floor(rating)
+          i < Math.floor(rating || 0)
             ? "text-yellow-400 fill-yellow-400"
             : "text-gray-300"
         )}
       />
     ));
   };
+
+  // Clear location state after using it
+  useEffect(() => {
+    if (location.state?.selectedCategory) {
+      // Clear the state so it doesn't persist on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   return (
     <div>
@@ -417,7 +470,6 @@ const Shop = () => {
                       )}
                       onClick={() => {
                         setSelectedCategory(cat.id);
-
                         setCurrentPage(1);
                       }}
                     >
@@ -429,34 +481,36 @@ const Shop = () => {
               </div>
 
               {/* Brands */}
-              <div className="mb-6">
-                <h3 className="font-medium text-sm mb-3">Brands</h3>
-                <div className="space-y-2">
-                  {brands.map((brand) => (
-                    <div
-                      key={brand.id}
-                      className="flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id={`brand-${brand.id}`}
-                          checked={selectedBrands.includes(brand.name)}
-                          onCheckedChange={() => toggleBrand(brand.name)}
-                        />
-                        <label
-                          htmlFor={`brand-${brand.id}`}
-                          className="text-sm cursor-pointer"
-                        >
-                          {brand.name}
-                        </label>
+              {brands.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-medium text-sm mb-3">Brands</h3>
+                  <div className="space-y-2">
+                    {brands.map((brand) => (
+                      <div
+                        key={brand.id}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={`brand-${brand.id}`}
+                            checked={selectedBrands.includes(brand.name)}
+                            onCheckedChange={() => toggleBrand(brand.name)}
+                          />
+                          <label
+                            htmlFor={`brand-${brand.id}`}
+                            className="text-sm cursor-pointer"
+                          >
+                            {brand.name}
+                          </label>
+                        </div>
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          {brand.productCount}
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                        {brand.productCount}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Ratings */}
               <div>
@@ -496,8 +550,14 @@ const Shop = () => {
             {/* Results Info */}
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <p className="text-sm text-muted-foreground">
-                Showing {paginatedProducts.length} of {filteredProducts.length}{" "}
-                products
+                {isSearching ? (
+                  "Searching..."
+                ) : (
+                  <>
+                    Showing {paginatedProducts.length} of {filteredProducts.length}{" "}
+                    products
+                  </>
+                )}
               </p>
 
               <div className="flex items-center gap-4">
@@ -519,7 +579,7 @@ const Shop = () => {
             </div>
 
             {/* Products Grid */}
-            {isLoading ? (
+            {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <div
@@ -544,12 +604,21 @@ const Shop = () => {
               >
                 {paginatedProducts.map((product) => (
                   <ProductCard
-                    key={product.id}
-                    product={product}
+                    key={product._id || product.id}
+                    product={{
+                      ...product,
+                      id: product._id || product.id,
+                      image: product.mainImage || product.images?.[0] || assets.cofeemaker,
+                      originalPrice: product.originalPrice || product.price * 1.2,
+                      discount: product.discount || Math.floor((1 - product.price / (product.originalPrice || product.price * 1.2)) * 100),
+                      rating: product.rating || 4.0,
+                      reviewCount: product.reviewCount || Math.floor(Math.random() * 200) + 50,
+                      tags: product.tags || ["Popular", "Trending"].slice(0, Math.floor(Math.random() * 2) + 1),
+                    }}
                     viewMode={viewMode}
-                    onWishlistToggle={() => toggleWishlist(product.id)}
+                    onWishlistToggle={() => toggleWishlist(product._id || product.id)}
                     onAddToCart={() => addToCart(product)}
-                    isInWishlist={wishlist[product.id]}
+                    isInWishlist={wishlist[product._id || product.id]}
                   />
                 ))}
               </div>
@@ -562,14 +631,14 @@ const Shop = () => {
                   No products found
                 </h3>
                 <p className="text-muted-foreground mb-6">
-                  Try adjusting your filters or search terms
+                  {isSearching ? "Searching..." : "Try adjusting your filters or search terms"}
                 </p>
                 <Button onClick={clearFilters}>Clear All Filters</Button>
               </div>
             )}
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {totalPages > 1 && !loading && (
               <div className="mt-12 flex justify-center">
                 <div className="flex items-center gap-2">
                   <Button
@@ -644,7 +713,7 @@ const Shop = () => {
                 </Button>
               </div>
 
-              {/* Mobile filter content (same as desktop sidebar) */}
+              {/* Mobile filter content */}
               <div className="space-y-6">
                 {/* Price Range */}
                 <div>
@@ -652,25 +721,124 @@ const Shop = () => {
                     <Tag className="h-4 w-4" />
                     Price Range
                   </h3>
-                  {/* ... same price range content ... */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>${priceRange[0]}</span>
+                      <span>${priceRange[1]}</span>
+                    </div>
+                    <div className="relative h-2">
+                      <input
+                        type="range"
+                        min="0"
+                        max="500"
+                        value={priceRange[0]}
+                        onChange={(e) =>
+                          setPriceRange([parseInt(e.target.value), priceRange[1]])
+                        }
+                        className="absolute w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                      />
+                      <input
+                        type="range"
+                        min="0"
+                        max="500"
+                        value={priceRange[1]}
+                        onChange={(e) =>
+                          setPriceRange([priceRange[0], parseInt(e.target.value)])
+                        }
+                        className="absolute w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Categories */}
                 <div>
                   <h3 className="font-medium text-sm mb-3">Categories</h3>
-                  {/* ... same categories content ... */}
+                  <div className="space-y-2">
+                    {categories.map((cat) => (
+                      <Button
+                        key={cat.id}
+                        variant={
+                          selectedCategory === cat.id ? "default" : "ghost"
+                        }
+                        className={cn(
+                          "w-full justify-start",
+                          selectedCategory === cat.id && cat.color
+                        )}
+                        onClick={() => {
+                          setSelectedCategory(cat.id);
+                          setCurrentPage(1);
+                          setShowMobileFilters(false);
+                        }}
+                      >
+                        <span className="mr-2">{cat.icon}</span>
+                        {cat.name}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Brands */}
-                <div>
-                  <h3 className="font-medium text-sm mb-3">Brands</h3>
-                  {/* ... same brands content ... */}
-                </div>
+                {brands.length > 0 && (
+                  <div>
+                    <h3 className="font-medium text-sm mb-3">Brands</h3>
+                    <div className="space-y-2">
+                      {brands.map((brand) => (
+                        <div
+                          key={brand.id}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id={`mobile-brand-${brand.id}`}
+                              checked={selectedBrands.includes(brand.name)}
+                              onCheckedChange={() => toggleBrand(brand.name)}
+                            />
+                            <label
+                              htmlFor={`mobile-brand-${brand.id}`}
+                              className="text-sm cursor-pointer"
+                            >
+                              {brand.name}
+                            </label>
+                          </div>
+                          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                            {brand.productCount}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Ratings */}
                 <div>
                   <h3 className="font-medium text-sm mb-3">Customer Rating</h3>
-                  {/* ... same ratings content ... */}
+                  <div className="space-y-2">
+                    {[4, 3, 2, 1].map((rating) => (
+                      <Button
+                        key={rating}
+                        variant={
+                          selectedRating === rating ? "secondary" : "ghost"
+                        }
+                        className="w-full justify-between"
+                        onClick={() =>
+                          setSelectedRating(
+                            rating === selectedRating ? 0 : rating
+                          )
+                        }
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex">{renderStars(rating)}</div>
+                          <span className="text-sm text-muted-foreground">
+                            & above
+                          </span>
+                        </div>
+                        {selectedRating === rating && (
+                          <Check className="h-4 w-4 text-primary" />
+                        )}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
                 <Button onClick={clearFilters} className="w-full">
