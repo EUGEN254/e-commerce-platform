@@ -471,6 +471,7 @@ const Shop = () => {
                       onClick={() => {
                         setSelectedCategory(cat.id);
                         setCurrentPage(1);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
                       }}
                     >
                       <span className="mr-2">{cat.icon}</span>
