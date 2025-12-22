@@ -5,6 +5,8 @@ import connectCloudinary from './configs/Cloudinary.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import productRouter from './routes/product.js';
+import categoryRoutes from './routes/category.js';
+import limitedOfferRouter from './routes/limitedOffers.js';
 
 // load environment variables
 dotenv.config();
@@ -36,6 +38,9 @@ app.get('/', (req, res) => {
 
 // routes
 app.use('/api/products',productRouter);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/limited-offers', limitedOfferRouter);
+
 
 // connect to database
 await connectDB();

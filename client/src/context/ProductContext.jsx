@@ -16,8 +16,7 @@ export function ProductProvider({ children }) {
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${backendUrl}/api/products/`);
-      console.log('Fetched products:', response.data);
+      const response = await axios.get(`${backendUrl}/api/products`);
       setProducts(response.data.data || []);
       setError(null);
     } catch (err) {
@@ -27,6 +26,7 @@ export function ProductProvider({ children }) {
       setLoading(false);
     }
   }, [backendUrl]);
+
 
   const fetchFeaturedProducts = useCallback(async () => {
     try {

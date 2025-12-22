@@ -13,6 +13,11 @@ import MyOrders from "./pages/MyOrders";
 import ProductDescription from "./pages/ProductDescription";
 import Auth from "./pages/Auth";
 import { Toaster } from "./components/ui/sonner";
+import { Cart } from "./pages/Cart";
+import Checkout from "./pages/Checkout";
+import Offers from "./pages/Offers";
+import OfferDetails from "./pages/OfferDetails";
+import NotFound from "./pages/NotFound";
 
 const App = () => {
   const location = useLocation();
@@ -50,6 +55,17 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/my-orders" element={<MyOrders />} />
             <Route path="/product/:id" element={<ProductDescription />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/checkout" element={<Checkout />} />
+            
+            {/* Offer Routes */}
+            <Route path="/offers" element={<Offers />} />
+            <Route path="/offers/:id" element={<OfferDetails />} />
+            
+           
+
+           {/* not found route */}
+           <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
 

@@ -18,7 +18,6 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import assets, { fashionCategories } from "../assets/assets";
 import { ProductCard } from "./ui/ProductCard";
 import { useProducts } from "../context/ProductContext";
 
@@ -34,9 +33,9 @@ const Categories = () => {
   const {
     products,
     loading,
+    categories,
     error,
     getProductsByCategory,
-    getProductsBySubcategory,
   } = useProducts();
 
   const [selectedCategory, setSelectedCategory] = useState("fashion");
@@ -66,63 +65,26 @@ const Categories = () => {
     }
   }, [selectedCategory, selectedSubcategory, products, loading]);
 
-  console.log("All products from context:", products);
-  console.log("Display products:", displayProducts);
-
-  const isSubcategoryInCurrentCategory = (subcategory) => {
-    const selectedCat = fashionCategories.find(
-      (cat) => cat.id === selectedCategory
-    );
-
-    // Also check if there are any products in this category with the subcategory
-    const hasProductsWithSubcategory = products.some(
-      (product) =>
-        product.category === selectedCategory &&
-        product.subcategory === subcategory
-    );
-
-    return (
-      selectedCat &&
-      selectedCat.subcategories &&
-      selectedCat.subcategories.includes(subcategory) &&
-      hasProductsWithSubcategory
-    );
-  };
-
   const loadProducts = async () => {
     if (loading) {
-      // Show placeholder while loading
-      const placeholderProducts = Array.from({ length: 8 }, (_, i) => ({
-        id: i + 1000,
-        name: `Loading Product ${i + 1}`,
-        price: (i + 1) * 29.99,
-        originalPrice: (i + 1) * 39.99,
-        discount: i % 3 === 0 ? 25 : i % 2 === 0 ? 15 : 0,
-        rating: 4.5 - i * 0.1,
-        reviewCount: Math.floor(Math.random() * 100) + 50,
-        image: assets.shoe1,
-        isNew: i < 2,
-        isBestSeller: i === 0 || i === 3,
-        isLoading: true,
-      }));
-      setDisplayProducts(placeholderProducts);
-      return;
+      return (
+        <div className="animate-pulse border rounded-lg p-4">
+          <div className="bg-gray-200 h-48 rounded-md mb-4"></div>
+          <div className="space-y-3">
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+            <div className="h-6 bg-gray-200 rounded w-1/4 mt-4"></div>
+          </div>
+        </div>
+      );
     }
 
-    console.log(
-      "Selected category:",
-      selectedCategory,
-      "Subcategory:",
-      selectedSubcategory
-    );
 
     let filteredProducts = [];
 
     // CASE 1: Specific subcategory selected
     if (selectedSubcategory !== "All") {
-      console.log(
-        `Filtering by subcategory: ${selectedSubcategory} in category: ${selectedCategory}`
-      );
+      
 
       // First check if we have products with this subcategory in our current context products
       const contextProducts = products.filter(
@@ -131,14 +93,13 @@ const Categories = () => {
           product.subcategory === selectedSubcategory
       );
 
-      console.log(`Found ${contextProducts.length} products in context`);
-
+    
       if (contextProducts.length > 0) {
         filteredProducts = contextProducts;
       } else {
         // Fetch from API since we don't have enough products in context
         try {
-          console.log(`Fetching from API for category: ${selectedCategory}`);
+        
           const categoryProducts = await getProductsByCategory(
             selectedCategory
           );
@@ -148,11 +109,8 @@ const Categories = () => {
             (product) => product.subcategory === selectedSubcategory
           );
 
-          console.log(
-            `API returned ${filteredProducts.length} products for subcategory ${selectedSubcategory}`
-          );
+          
         } catch (error) {
-          console.error("Error fetching category products:", error);
           // Fallback to products in context (if any)
           filteredProducts = products.filter(
             (product) => product.category === selectedCategory
@@ -162,7 +120,6 @@ const Categories = () => {
     }
     // CASE 2: Fashion category (no specific subcategory)
     else if (selectedCategory === "fashion") {
-      console.log("Loading fashion products (featured or all)");
 
       // First try to get featured fashion products
       filteredProducts = products.filter(
@@ -179,7 +136,6 @@ const Categories = () => {
       // If still no products, fetch from API
       if (filteredProducts.length === 0) {
         try {
-          console.log("Fetching fashion products from API");
           filteredProducts = await getProductsByCategory("fashion");
         } catch (error) {
           console.error("Error fetching fashion products:", error);
@@ -188,7 +144,6 @@ const Categories = () => {
     }
     // CASE 3: Other categories (no specific subcategory)
     else {
-      console.log(`Loading products for category: ${selectedCategory}`);
 
       // Check if we have products for this category in context
       filteredProducts = products.filter(
@@ -199,7 +154,6 @@ const Categories = () => {
       if (filteredProducts.length < 4) {
         // You can adjust this threshold
         try {
-          console.log(`Fetching ${selectedCategory} products from API`);
           filteredProducts = await getProductsByCategory(selectedCategory);
         } catch (error) {
           console.error(`Error fetching ${selectedCategory} products:`, error);
@@ -207,10 +161,6 @@ const Categories = () => {
       }
     }
 
-    console.log(
-      `Displaying ${filteredProducts.length} products for ${selectedCategory}` +
-        (selectedSubcategory !== "All" ? ` (${selectedSubcategory})` : "")
-    );
 
     // Transform the data for ProductCard
     const transformedProducts = filteredProducts
@@ -245,7 +195,7 @@ const Categories = () => {
   // Handle category click
   const handleCategoryClick = async (categoryId) => {
     setSelectedCategory(categoryId);
-    const selectedCat = fashionCategories.find((cat) => cat.id === categoryId);
+    const selectedCat = categories.find((cat) => cat.id === categoryId);
     if (
       !selectedCat ||
       !selectedCat.subcategories ||
@@ -257,7 +207,6 @@ const Categories = () => {
 
   // Handle subcategory click
   const handleSubcategoryClick = async (subcategory) => {
-    console.log("Clicked subcategory:", subcategory);
     setSelectedSubcategory(subcategory);
   };
 
@@ -277,7 +226,7 @@ const Categories = () => {
     ));
   };
 
-  const allCategories = fashionCategories;
+  const allCategories = categories;
 
   const getCategoryDisplayName = (categoryId) => {
     const category = allCategories.find((cat) => cat.id === categoryId);
@@ -291,12 +240,6 @@ const Categories = () => {
       return IconComponent ? <IconComponent /> : <FaTshirt />;
     }
     return <FaTshirt />;
-  };
-
-  const handleAddToCart = (e, productId) => {
-    e.stopPropagation();
-    console.log("Add to cart", productId);
-    // Add your cart logic here
   };
 
   const checkScrollPosition = () => {
@@ -452,7 +395,7 @@ const Categories = () => {
 
       {/* Subcategories Filter */}
       {(() => {
-        const selectedCat = fashionCategories.find(
+        const selectedCat = categories.find(
           (cat) => cat.id === selectedCategory
         );
 

@@ -3,15 +3,18 @@ import { ShoppingCart, Menu, X, User } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { FaPersonBooth } from "react-icons/fa";
+import { useCart } from "../context/CartContext";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const [user, setUser] = useState(false);
+    const { totalItems } = useCart(); 
 
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Shop", path: "/shop" },
+    { name: "Offers", path: "/offers" },
     { name: "My Orders", path: "/my-orders" },
     { name: "About", path: "/about" },
     { name: "Contact", path: "/contact" },
@@ -46,13 +49,19 @@ const Navbar = () => {
               ))}
             </div>
 
-            <div className="flex items-center space-x-6">
-              <button className="relative flex justify-between items-center gap-3">
+            <div 
+            onClick={()=>navigate("/cart")}
+            className="flex items-center space-x-6 ">
+              <button 
+              
+              className="relative flex justify-between items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-amber-100 hover:shadow-md">
                 <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-2 right-18 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                  3
+                <span className="absolute -top-0 right-20 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                 {totalItems > 99 ? "99+" : totalItems}
                 </span>
-                <span className="text-sm">View Cart</span>
+                <span 
+                
+                className="text-sm">View Cart</span>
               </button>
 
               {user ? (
@@ -90,7 +99,7 @@ const Navbar = () => {
             <button className="relative">
               <ShoppingCart className="w-5 h-5" />
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                3
+              {totalItems > 99 ? "99+" : totalItems}
               </span>
             </button>
 
@@ -131,7 +140,7 @@ const Navbar = () => {
           <div className="border-t border-gray-100 pt-3 space-y-2">
             <button className="w-full flex items-center justify-center py-3 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
               <ShoppingCart className="w-4 h-4 mr-2" />
-              View Cart (3)
+              View Cart {totalItems}
             </button>
 
             {!user ? (

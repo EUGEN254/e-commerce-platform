@@ -7,15 +7,18 @@ import { BrowserRouter } from "react-router-dom";
 import { CartProvider } from "./context/CartContext.jsx";
 import { ProductProvider } from "./context/ProductContext.jsx";
 import { UserProvider } from "./context/UserContext.jsx";
+import { OfferProvider } from "./context/Offers.jsx";
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     {/* Order matters! User should be outside so products can use auth if needed */}
     <UserProvider>
       <ProductProvider>
-        <CartProvider>
+        <OfferProvider>
+          <CartProvider>
             <App />
-        </CartProvider>
+          </CartProvider>
+        </OfferProvider>
       </ProductProvider>
     </UserProvider>
   </BrowserRouter>

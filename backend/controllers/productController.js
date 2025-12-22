@@ -222,8 +222,7 @@ const createProduct = async (req, res) => {
 
 const getProducts = async (req, res) => {
   try {
-    console.log("Getting products with query:", req.query);
-
+  
     // Build query object
     const queryObj = { ...req.query };
 

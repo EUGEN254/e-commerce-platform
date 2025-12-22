@@ -1,55 +1,77 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const categorySchema = new mongoose.Schema({
+const subcategorySchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    unique: true,
     trim: true
   },
-  slug: {
+  description: String,
+  totalProducts: {
+    type: Number,
+    default: 0
+  }
+}, { _id: false });
+
+const categorySchema = new mongoose.Schema({
+  id: {
     type: String,
     required: true,
     unique: true,
+    trim: true,
     lowercase: true
   },
-  description: {
-    type: String
+  name: {
+    type: String,
+    required: true,
+    trim: true
   },
   icon: {
     type: String,
-    default: 'FaBox'
+    required: true,
+    trim: true
+  },
+  path: {
+    type: String,
+    required: true,
+    trim: true
   },
   type: {
     type: String,
-    enum: ['main', 'fashion'],
+    required: true,
+    enum: ['main', 'fashion', 'electronics', 'home', 'beauty', 'sports', 'books'],
     default: 'main'
   },
   isMainCategory: {
     type: Boolean,
     default: false
   },
-  parentCategory: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Category',
-    default: null
+  subcategories: {
+    type: [String],
+    default: []
   },
-  subcategories: [{
-    type: String
-  }],
-  image: {
-    type: String
+  subcategoriesDetailed: [subcategorySchema],
+  description: {
+    type: String,
+    default: ''
   },
   totalProducts: {
     type: Number,
     default: 0
   },
-  meta: {
-    title: String,
-    description: String,
-    keywords: [String]
+  featured: {
+    type: Boolean,
+    default: false
   },
-  displayOrder: {
+  image: {
+    type: String,
+    default: ''
+  },
+  bannerImage: {
+    type: String,
+    default: ''
+  },
+  order: {
     type: Number,
     default: 0
   },
@@ -61,23 +83,11 @@ const categorySchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Virtual for getting all products in this category
-categorySchema.virtual('products', {
-  ref: 'Product',
-  localField: '_id',
-  foreignField: 'category'
-});
-
-// Indexes
-categorySchema.index({ slug: 1 });
+// Create index for better query performance
+categorySchema.index({ type: 1 });
 categorySchema.index({ isMainCategory: 1 });
-categorySchema.index({ displayOrder: 1 });
+categorySchema.index({ isActive: 1 });
 
-// Pre-save middleware
-categorySchema.pre('save', function(next) {
-  if (!this.isModified('name')) return next();
-  this.slug = this.name.toLowerCase().replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-');
-  next();
-});
+const Category = mongoose.model("Category", categorySchema);
 
-module.exports = mongoose.model('Category', categorySchema);
+export default Category;
