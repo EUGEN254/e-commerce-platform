@@ -9,7 +9,7 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const [user, setUser] = useState(false);
-    const { totalItems } = useCart(); 
+  const { totalItems } = useCart();
 
   const navLinks = [
     { name: "Home", path: "/" },
@@ -49,25 +49,27 @@ const Navbar = () => {
               ))}
             </div>
 
-            <div 
-            onClick={()=>navigate("/cart")}
-            className="flex items-center space-x-6 ">
-              <button 
-              
-              className="relative flex justify-between items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-amber-100 hover:shadow-md">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate("/cart")}
+                className="relative flex justify-between items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-amber-100 hover:shadow-md"
+              >
                 <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-0 right-20 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                 {totalItems > 99 ? "99+" : totalItems}
+                <span className="absolute -top-0 right-19 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                  {" "}
+                  {/* Fixed positioning from right-20 */}
+                  {totalItems > 99 ? "99+" : totalItems}
                 </span>
-                <span 
-                
-                className="text-sm">View Cart</span>
+                <span className="text-sm">View Cart</span>
               </button>
 
               {user ? (
-                <button className="btn-secondary flex items-center space-x-1 text-xs">
+                <button
+                  onClick={() => navigate("/profile")}
+                  className="btn-secondary flex items-center space-x-1 text-xs"
+                >
                   <User className="w-4 h-4" />
-                  <span onClick={() => navigate("/profile")}>Profile</span>
+                  <span>Profile</span>
                 </button>
               ) : (
                 <Button
@@ -76,7 +78,7 @@ const Navbar = () => {
                   className="text-xs"
                 >
                   <svg
-                    className="h-4 w-4"
+                    className="h-4 w-4 mr-1"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -99,7 +101,7 @@ const Navbar = () => {
             <button className="relative">
               <ShoppingCart className="w-5 h-5" />
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-              {totalItems > 99 ? "99+" : totalItems}
+                {totalItems > 99 ? "99+" : totalItems}
               </span>
             </button>
 

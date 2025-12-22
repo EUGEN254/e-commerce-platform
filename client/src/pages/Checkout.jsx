@@ -4,19 +4,25 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { toast } from "sonner";
-import { 
-  CreditCard, 
-  Smartphone, 
-  Wallet, 
+import {
+  CreditCard,
+  Smartphone,
+  Wallet,
   Truck,
   ShieldCheck,
   Lock,
-  ArrowLeft
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 export default function Checkout() {
   const { cart, getCartTotal, clearCart } = useCart();
   const navigate = useNavigate();
+
+  // Add pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 3; // Show 3 items per page
 
   const [shippingInfo, setShippingInfo] = useState({
     fullName: "",
@@ -30,6 +36,12 @@ export default function Checkout() {
 
   const [selectedPayment, setSelectedPayment] = useState("stripe");
 
+  // Pagination calculations
+  const totalPages = Math.ceil(cart.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = cart.slice(startIndex, endIndex);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setShippingInfo((prev) => ({ ...prev, [name]: value }));
@@ -40,7 +52,11 @@ export default function Checkout() {
       ([key, value]) => value.trim() === ""
     );
     if (emptyField) {
-      toast.error(`Please fill in your ${emptyField[0].replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+      toast.error(
+        `Please fill in your ${emptyField[0]
+          .replace(/([A-Z])/g, " $1")
+          .toLowerCase()}`
+      );
       return;
     }
 
@@ -60,7 +76,7 @@ export default function Checkout() {
       icon: <CreditCard className="h-5 w-5" />,
       description: "Pay with Visa, Mastercard, or Amex",
       color: "border-blue-500 bg-blue-50 hover:bg-blue-100",
-      activeColor: "border-blue-600 bg-blue-100 ring-2 ring-blue-200"
+      activeColor: "border-blue-600 bg-blue-100 ring-2 ring-blue-200",
     },
     {
       id: "paypal",
@@ -73,7 +89,7 @@ export default function Checkout() {
       ),
       description: "Secure online payments",
       color: "border-yellow-500 bg-yellow-50 hover:bg-yellow-100",
-      activeColor: "border-yellow-600 bg-yellow-100 ring-2 ring-yellow-200"
+      activeColor: "border-yellow-600 bg-yellow-100 ring-2 ring-yellow-200",
     },
     {
       id: "mpesa",
@@ -81,12 +97,12 @@ export default function Checkout() {
       icon: (
         <div className="flex items-center gap-1">
           <Smartphone className="h-5 w-5 text-green-600" />
-          <span className="tex-xs font-md text-green-700">M-PESA</span>
+          <span className="text-xs font-medium text-green-700">M-PESA</span>
         </div>
       ),
       description: "Mobile money payment",
       color: "border-green-500 bg-green-50 hover:bg-green-100",
-      activeColor: "border-green-600 bg-green-100 ring-2 ring-green-200"
+      activeColor: "border-green-600 bg-green-100 ring-2 ring-green-200",
     },
     {
       id: "cod",
@@ -94,8 +110,8 @@ export default function Checkout() {
       icon: <Wallet className="h-5 w-5" />,
       description: "Pay when you receive",
       color: "border-purple-500 bg-purple-50 hover:bg-purple-100",
-      activeColor: "border-purple-600 bg-purple-100 ring-2 ring-purple-200"
-    }
+      activeColor: "border-purple-600 bg-purple-100 ring-2 ring-purple-200",
+    },
   ];
 
   if (cart.length === 0) {
@@ -103,8 +119,12 @@ export default function Checkout() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
         <div className="text-center p-8 bg-white rounded-2xl shadow-lg">
           <Truck className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Your cart is empty</h2>
-          <p className="text-gray-600 mb-6">Add items to your cart to checkout</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            Your cart is empty
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Add items to your cart to checkout
+          </p>
           <Button onClick={() => navigate("/")} className="px-8">
             Continue Shopping
           </Button>
@@ -118,14 +138,16 @@ export default function Checkout() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Cart
           </button>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900">Checkout</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+            Checkout
+          </h1>
           <div className="flex items-center gap-4 mt-4">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
@@ -159,9 +181,11 @@ export default function Checkout() {
                 <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                   <Truck className="h-5 w-5 text-blue-600" />
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">Shipping Information</h2>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Shipping Information
+                </h2>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
@@ -202,7 +226,7 @@ export default function Checkout() {
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -258,7 +282,7 @@ export default function Checkout() {
               </div>
             </div>
 
-             {/* Payment Method Card */}
+            {/* Payment Method Card */}
             <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -394,74 +418,163 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Right Column - Order Summary */}
+          {/* Right Column - Order Summary WITH PAGINATION */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 sticky top-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
-              
-              {/* Cart Items */}
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Order Summary
+              </h2>
+
+              {/* Cart Items with Pagination */}
               <div className="space-y-4 mb-6">
-                {cart.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-                    <div className="h-16 w-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                {/* Items Counter */}
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-gray-600">
+                    Items ({cart.length})
+                  </span>
+                  {cart.length > itemsPerPage && (
+                    <span className="text-sm text-gray-600">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                  )}
+                </div>
+
+                {/* Display current page items */}
+                {currentItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div className="h-16 w-16 bg-gray-200 rounded-lg flex-shrink-0">
                       {item.image ? (
-                        <img src={item.image} alt={item.name} className="h-full w-full object-cover rounded-lg" />
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="h-full w-full object-cover rounded-lg"
+                        />
                       ) : (
-                        <span className="text-gray-400 text-xs">IMG</span>
+                        <div className="h-full w-full flex items-center justify-center bg-gray-300 rounded-lg">
+                          <span className="text-gray-400 text-xs">IMG</span>
+                        </div>
                       )}
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{item.name}</h4>
-                      <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-gray-900 truncate">
+                        {item.name}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        Qty: {item.quantity}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        ${(item.price || 0).toFixed(2)} each
+                      </p>
                     </div>
-                    <div className="font-semibold">
-                      ${(item.price * item.quantity).toFixed(2)}
+                    <div className="font-semibold whitespace-nowrap">
+                      ${((item.price || 0) * item.quantity).toFixed(2)}
                     </div>
                   </div>
                 ))}
+
+                {/* Simplified Pagination Controls*/}
+                {cart.length > itemsPerPage && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between gap-2">
+                      {/* Previous Button - Compact */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setCurrentPage((prev) => Math.max(prev - 1, 1))
+                        }
+                        disabled={currentPage === 1}
+                        className="flex items-center gap-1 px-2 py-1 h-8 min-w-[70px] text-sm"
+                      >
+                        <ChevronLeft className="h-3 w-3" />
+                        <span className="truncate">Prev</span>
+                      </Button>
+
+                      {/* Compact Page Indicator */}
+                      <div className="flex-1 text-center min-w-0 px-2">
+                        <div className="text-sm font-medium text-gray-700 truncate">
+                          Page {currentPage} of {totalPages}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          Items {startIndex + 1}-
+                          {Math.min(endIndex, cart.length)} of {cart.length}
+                        </div>
+                      </div>
+
+                      {/* Next Button - Compact */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setCurrentPage((prev) =>
+                            Math.min(prev + 1, totalPages)
+                          )
+                        }
+                        disabled={currentPage === totalPages}
+                        className="flex items-center gap-1 px-2 py-1 h-8 min-w-[70px] text-sm"
+                      >
+                        <span className="truncate">Next</span>
+                        <ChevronRight className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
-              
+
               {/* Price Breakdown */}
               <div className="space-y-3 border-t border-b border-gray-200 py-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">${totals.subtotal.toFixed(2)}</span>
+                  <span className="font-medium">
+                    ${(totals.subtotal || 0).toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
                   <span className="font-medium">
-                    {totals.shipping === 0 ? "Free" : `$${totals.shipping.toFixed(2)}`}
+                    {totals.shipping === 0
+                      ? "Free"
+                      : `$${(totals.shipping || 0).toFixed(2)}`}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tax</span>
-                  <span className="font-medium">${totals.tax.toFixed(2)}</span>
+                  <span className="font-medium">
+                    ${(totals.tax || 0).toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Discount</span>
                   <span className="font-medium text-green-600">$0.00</span>
                 </div>
               </div>
-              
+
               {/* Total */}
               <div className="mt-6">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-lg font-semibold text-gray-900">Total</span>
+                  <span className="text-lg font-semibold text-gray-900">
+                    Total
+                  </span>
                   <span className="text-2xl font-bold text-gray-900">
-                    ${totals.total.toFixed(2)}
+                    ${(totals.total || 0).toFixed(2)}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 mb-6">
                   Including all taxes and fees
                 </p>
-                
+
                 {/* Security Badge */}
                 <div className="flex items-center justify-center gap-2 p-3 bg-gray-50 rounded-lg mb-6">
                   <Lock className="h-4 w-4 text-gray-600" />
                   <ShieldCheck className="h-4 w-4 text-gray-600" />
-                  <span className="text-sm text-gray-600">Secure 256-bit SSL encryption</span>
+                  <span className="text-sm text-gray-600">
+                    Secure 256-bit SSL encryption
+                  </span>
                 </div>
-                
+
                 {/* Place Order Button */}
                 <Button
                   onClick={handlePlaceOrder}
@@ -469,9 +582,10 @@ export default function Checkout() {
                 >
                   Place Order
                 </Button>
-                
+
                 <p className="text-xs text-gray-500 text-center mt-4">
-                  By placing your order, you agree to our Terms of Service and Privacy Policy
+                  By placing your order, you agree to our Terms of Service and
+                  Privacy Policy
                 </p>
               </div>
             </div>

@@ -8,6 +8,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       position="top-center"
       className="toaster group"
+      duration={1000}
       toastOptions={{
         classNames: {
           toast:

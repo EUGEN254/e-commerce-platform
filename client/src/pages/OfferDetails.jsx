@@ -29,11 +29,13 @@ import {
 } from "../utils/offerHelper";
 import { Skeleton } from "../components/ui/Skeleton";
 import { useOffers } from "../context/Offers";
+import { useCart } from "../context/CartContext";
 
 const OfferDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getOfferById, trackOfferClick, loading } = useOffers();
+  const { addToCart } = useCart();
   const [offer, setOffer] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -65,11 +67,28 @@ const OfferDetails = () => {
   }, [id, getOfferById, trackOfferClick, navigate]);
 
   const handleShopNow = () => {
-    if (offer?.product) {
-      navigate(`/product/${offer.product._id || offer.product}`);
-    } else {
-      navigate("/shop");
-    }
+     const isExpired = new Date(offer.endDate) < new Date();
+    // Create a product object from the offer
+    const productData = {
+      id: offer._id || offer.id,
+      name: offer.title,
+      price: offer.offerPrice || offer.price,
+      originalPrice: offer.originalPrice,
+      image: offer.image || (offer.images && offer.images[0]),
+      description: offer.description,
+      category: offer.categories?.[0] || "Limited Offer",
+      discount: offer.discountType,
+      discountValue: offer.discountValue || offer.discount,
+      isLimitedOffer: true,
+      offerId: offer._id,
+      // Add any other required fields from your product structure
+      brand: offer.brand || "Limited Time Offer",
+      inStock: !isExpired, // Use expired status as stock indicator
+      stock: offer.usageLimit ? offer.usageLimit - (offer.usageCount || 0) : 1,
+    };
+
+    // Pass the formatted product data to addToCart
+    addToCart(productData);
   };
 
   const handleShare = async () => {

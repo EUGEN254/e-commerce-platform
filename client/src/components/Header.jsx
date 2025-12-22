@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Flame } from 'lucide-react';
 import { Button } from "./ui/button";
 import { useNavigate } from "react-router-dom";
@@ -10,45 +10,24 @@ import { useOffers } from "../context/Offers";
 const Header = () => {
   const [isHovered, setIsHovered] = useState(false);
   const { 
-    fetchActiveOffers, 
     trackOfferClick, 
     loading: offersLoading, 
     offers: contextOffers 
-  } = useOffers();
+  } = useOffers(); // Remove fetchActiveOffers from destructuring
   
-  const [offers, setOffers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   
-  // Fetch limited offers using context
-  useEffect(() => {
-    const loadOffers = async () => {
-      try {
-        setLoading(true);
-        const activeOffers = await fetchActiveOffers(10);
-        setOffers(activeOffers);
-      } catch (err) {
-        console.error("Error fetching offers:", err);
-        setOffers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadOffers();
-  }, [fetchActiveOffers]);
-
+  // Use context offers directly (limited to 10 for the header)
+  const offers = contextOffers.slice(0, 10);
+  const loading = offersLoading && contextOffers.length === 0;
   
-
   // Duplicate offers for seamless scrolling
   const duplicatedOffers = offers.length > 0 
     ? [...offers, ...offers, ...offers] 
     : [];
 
   const handleOfferClick = async (offer) => {
-    // Track click using context
     await trackOfferClick(offer._id);
-    // Navigate to offer details page
     navigate(`/offers/${offer._id}`);
   };
 
@@ -56,19 +35,17 @@ const Header = () => {
     navigate("/offers");
   };
 
-  // Calculate discount percentage
   const calculateDiscount = (offer) => {
     if (!offer.originalPrice || !offer.offerPrice) return 0;
     return Math.round(((offer.originalPrice - offer.offerPrice) / offer.originalPrice) * 100);
   };
 
-  // If no offers and not loading, only show text section
   const hasOffers = offers.length > 0;
   const showOffersSection = hasOffers || loading;
 
   return (
     <div className={`flex flex-col ${showOffersSection ? 'lg:flex-row' : 'flex-col items-center justify-center'} gap-8 lg:gap-10 items-center lg:items-start mt-2 px-5 lg:px-20 border-2 border-gray-300 rounded-xl p-6 lg:p-10 mx-4`}>
-      {/* Text Section - Always shown, full width if no offers */}
+      {/* Text Section */}
       <div className={`${showOffersSection ? 'lg:w-1/2' : 'w-full text-center max-w-3xl mx-auto'} flex flex-col justify-center items-start w-full`}>
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
           Discover Everything <br />
@@ -97,7 +74,7 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Limited Offers Carousel - Right side (Only show if we have offers or are loading) */}
+      {/* Limited Offers Carousel */}
       {showOffersSection && (
         <div className="lg:w-1/2 w-full">
           <div 
@@ -123,7 +100,6 @@ const Header = () => {
                   ))}
                 </div>
               ) : !hasOffers ? (
-                // No offers message (clean design)
                 <div className="flex flex-col items-center justify-center h-full text-center p-4">
                   <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
                     <Flame className="h-8 w-8 text-gray-400" />
@@ -147,7 +123,7 @@ const Header = () => {
                     
                     return (
                       <motion.div
-                        key={`${offer._id || offer.title}-${index}`}
+                        key={`${offer._id}-${index}`}
                         className="flex-shrink-0 w-32 h-32 rounded-xl overflow-hidden card-shadow hover:card-shadow-hover transition-all duration-300 group cursor-pointer"
                         onClick={() => handleOfferClick(offer)}
                         whileHover={{ scale: 1.05 }}
@@ -162,19 +138,16 @@ const Header = () => {
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                           
-                          {/* Price Overlay */}
                           <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold">
                             ${offer.offerPrice?.toFixed(2) || "0.00"}
                           </div>
                           
-                          {/* Discount Badge */}
                           {discountPercentage > 0 && (
                             <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                               -{discountPercentage}%
                             </div>
                           )}
                           
-                          {/* Days Remaining Badge */}
                           {offer.daysRemaining !== undefined && (
                             <div className={`absolute top-2 left-2 ${getTimeRemainingColor(offer.daysRemaining)} text-white text-[10px] font-bold px-2 py-1 rounded`}>
                               {offer.daysRemaining <= 0 ? "Ends today" : `${offer.daysRemaining}d left`}
@@ -188,7 +161,7 @@ const Header = () => {
               )}
             </div>
 
-            {/* Call to Action - Only show if we have offers */}
+            {/* Call to Action */}
             {hasOffers && (
               <div className="mt-4 text-center">
                 <button 

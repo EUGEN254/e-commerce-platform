@@ -32,6 +32,7 @@ import {
 } from "../utils/offerHelper";
 import { useOffers } from "../context/Offers";
 import { SkeletonCard } from "../components/ui/Skeleton";
+import { useCart } from "../context/CartContext";
 
 // Offer Card Component
 const OfferCard = ({ offer, onClick, onShopNow, viewMode = "grid" }) => {
@@ -560,6 +561,7 @@ const Offers = () => {
   const [filteredOffers, setFilteredOffers] = useState([]);
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [showOfferModal, setShowOfferModal] = useState(false);
+  const{addToCart} = useCart()
 
   // Get categories from context
   const categories = getCategories();
@@ -620,15 +622,32 @@ const Offers = () => {
     await trackOfferClick(offer._id);
   };
 
-  const handleShopNow = (offer) => {
-    if (offer.product) {
-      navigate(`/product/${offer.product._id || offer.product}`);
-    } else {
-      navigate("/shop", {
-        state: { search: offer.title.split(" ")[0] },
-      });
-    }
+ const handleShopNow = (offer) => {
+  // Create a product object from the offer
+  const productData = {
+    id: offer._id || offer.id,
+    name: offer.title,
+    price: offer.offerPrice || offer.price,
+    originalPrice: offer.originalPrice,
+    image: offer.image || (offer.images && offer.images[0]),
+    description: offer.description,
+    category: offer.categories?.[0] || "Limited Offer",
+    discount: offer.discountType,
+    discountValue: offer.discountValue || offer.discount,
+    isLimitedOffer: true,
+    offerId: offer._id,
+    // Add any other required fields from your product structure
+    brand: offer.brand || "Limited Time Offer",
+    inStock: true, // You'll need to calculate this from offer data
+    stock: offer.usageLimit ? offer.usageLimit - (offer.usageCount || 0) : 1,
   };
+
+  // Pass the formatted product data to addToCart
+  addToCart(productData);
+
+  // Optional: Navigate to cart or show confirmation
+  toast.success(`${offer.title} added to cart!`);
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -1058,7 +1077,7 @@ const Offers = () => {
         <OfferModal
           offer={selectedOffer}
           onClose={() => setShowOfferModal(false)}
-          onShopNow={handleShopNow}
+          onShopNow={() => handleShopNow(selectedOffer)}
         />
       )}
     </div>

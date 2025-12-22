@@ -20,30 +20,32 @@ export function CartProvider({ children }) {
   });
 
   const addToCart = (product) => {
+    // First, validate and sanitize the product data
+    const validatedProduct = {
+      ...product,
+      price: Number(product.price) || 0,
+      originalPrice: Number(product.originalPrice) || Number(product.price) || 0,
+      quantity: 1,
+    };
+    
     setItems((prevCart) => {
-      // 1. Check if product already exists in cart
-      const existingItem = prevCart.find((item) => item.id === product.id);
+      // Check if product already exists in cart
+      const existingItem = prevCart.find((item) => item.id === validatedProduct.id);
 
-      // 2. If it exists, increase quantity
+      // If it exists, increase quantity
       if (existingItem) {
-        toast.success(`Updated ${product.name} quantity`);
+        toast.success(`Updated ${validatedProduct.name} quantity`);
         return prevCart.map((item) =>
-          item.id === product.id
+          item.id === validatedProduct.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
 
-      toast.success(`Added ${product.name} to cart`);
+      toast.success(`Added ${validatedProduct.name} to cart`);
 
-      // 3. If it does not exist, add new item
-      return [
-        ...prevCart,
-        {
-          ...product,
-          quantity: 1,
-        },
-      ];
+      // If it does not exist, add new item
+      return [...prevCart, validatedProduct];
     });
   };
 
@@ -69,20 +71,34 @@ export function CartProvider({ children }) {
     toast.info("Cart cleared");
   }, []);
 
-
   // order summary calculations
-  const totalItems = items.reduce((s, i) => s + i.quantity, 0);
-  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-  const shipping = subtotal > 0 ? 0 : 0;
-  const tax = subtotal * 0.16;
-  const total = subtotal + shipping + tax;
+  const getCartTotal = () => {
+    // Ensure we only count items with valid prices
+    const validItems = items.filter(item => 
+      !isNaN(item.price) && item.price !== undefined && item.price !== null
+    );
+    
+    const totalItems = validItems.reduce((s, i) => s + i.quantity, 0);
+    const subtotal = validItems.reduce((s, i) => s + (Number(i.price) || 0) * i.quantity, 0);
+    const shipping = subtotal > 0 ? 0 : 0;
+    const tax = subtotal * 0.16;
+    const total = subtotal + shipping + tax;
 
-  const getCartTotal = () => ({
-    subtotal,
-    shipping,
-    tax,
-    total,
-  });
+    return {
+      totalItems,  
+      subtotal,
+      shipping,
+      tax,
+      total,
+    };
+  };
+
+  // Calculate total items for convenience
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  
+  // Calculate subtotal for convenience
+  const subtotal = items.reduce((sum, item) => 
+    sum + (Number(item.price) || 0) * item.quantity, 0);
 
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(items));
@@ -97,8 +113,8 @@ export function CartProvider({ children }) {
         removeFromCart,
         updateQuantity,
         clearCart,
-        totalItems,
-        totalPrice: subtotal,
+        totalItems, // Now this variable exists
+        subtotal,   // And this one too
         getCartTotal,
       }}
     >

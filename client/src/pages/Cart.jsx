@@ -1,13 +1,14 @@
-import React from 'react';
-import { ShoppingCart, Trash2, Minus, Plus, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '../lib/utils';
-import { Button } from '../components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
+import React from "react";
+import { ShoppingCart, Trash2, Minus, Plus, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "../lib/utils";
+import { Button } from "../components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { useCart } from "../context/CartContext";
 
 export function Cart() {
-  const { cart, removeFromCart, updateQuantity, clearCart, getCartTotal } = useCart();
+  const { cart, removeFromCart, updateQuantity, clearCart, getCartTotal } =
+    useCart();
   const navigate = useNavigate();
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -20,7 +21,7 @@ export function Cart() {
           <p className="text-muted-foreground mb-6">
             Looks like you haven't added anything yet.
           </p>
-          <Button onClick={() => navigate('/shop')} className="gap-2">
+          <Button onClick={() => navigate("/shop")} className="gap-2">
             <ShoppingCart className="h-4 w-4" />
             Start Shopping
           </Button>
@@ -32,7 +33,6 @@ export function Cart() {
   return (
     <div className="min-h-screen bg-background p-6 md:p-8">
       <div className="max-w-6xl mx-auto">
-
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Shopping Cart</h1>
@@ -49,7 +49,6 @@ export function Cart() {
 
         {/* GRID LAYOUT */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
           {/* LEFT — CART ITEMS */}
           <div className="lg:col-span-2">
             <div className="bg-card rounded-2xl shadow-lg overflow-hidden">
@@ -62,8 +61,8 @@ export function Cart() {
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                     className={cn(
-                      'flex items-center p-4 md:p-6 border-b last:border-b-0',
-                      'hover:bg-muted/50 transition-colors'
+                      "flex items-center p-4 md:p-6 border-b last:border-b-0",
+                      "hover:bg-muted/50 transition-colors"
                     )}
                   >
                     {/* Image */}
@@ -72,7 +71,9 @@ export function Cart() {
                         src={item.image}
                         alt={item.name}
                         className="w-full h-full object-cover rounded-lg"
-                        onError={(e) => (e.target.src = '/placeholder-image.jpg')}
+                        onError={(e) =>
+                          (e.target.src = "/placeholder-image.jpg")
+                        }
                       />
                     </div>
 
@@ -86,14 +87,17 @@ export function Cart() {
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <span className="font-bold text-lg">
-                          ${item.price.toFixed(2)}
+                          ${(item.price || 0).toFixed(2)}{" "}
+                          {/* Add fallback to 0 */}
                         </span>
-                        {item.originalPrice > item.price && (
-                          <span className="text-sm text-muted-foreground line-through">
-                            ${item.originalPrice.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
+                        {item.originalPrice &&
+                          item.originalPrice > item.price && (
+                            <span className="text-sm text-muted-foreground line-through">
+                              ${(item.originalPrice || 0).toFixed(2)}{" "}
+                              {/* Add fallback to 0 */}
+                            </span>
+                          )}
+                      </div>{" "}
                     </div>
 
                     {/* Quantity Controls */}
@@ -126,7 +130,7 @@ export function Cart() {
                     {/* Subtotal & Remove */}
                     <div className="ml-4 md:ml-6 text-right">
                       <p className="font-bold text-lg">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        ${((item.price || 0) * item.quantity).toFixed(2)}
                       </p>
                       <Button
                         variant="ghost"
@@ -152,16 +156,14 @@ export function Cart() {
               <div className="space-y-3">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Items ({itemCount})</span>
-                  <span>
-                    ${getCartTotal().subtotal.toFixed(2)}
-                  </span>
+                  <span>${getCartTotal().subtotal.toFixed(2)}</span>
                 </div>
 
                 <div className="flex justify-between text-muted-foreground">
                   <span>Shipping</span>
                   <span>
                     {getCartTotal().shipping === 0
-                      ? 'Free'
+                      ? "Free"
                       : `$${getCartTotal().shipping.toFixed(2)}`}
                   </span>
                 </div>
@@ -179,7 +181,7 @@ export function Cart() {
 
               <Button
                 className="w-full mt-6 text-lg py-6"
-                onClick={() => navigate('/checkout')}
+                onClick={() => navigate("/checkout")}
               >
                 Proceed to Checkout
               </Button>
@@ -191,7 +193,7 @@ export function Cart() {
         <div className="mt-8 text-center">
           <Button
             variant="outline"
-            onClick={() => navigate('/shop')}
+            onClick={() => navigate("/shop")}
             className="gap-2"
           >
             <X className="h-4 w-4" />

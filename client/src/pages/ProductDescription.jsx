@@ -11,10 +11,6 @@ import {
   FaPlus,
   FaMinus,
   FaTag,
-  FaFacebook,
-  FaTwitter,
-  FaPinterest,
-  FaWhatsapp,
   FaCheckCircle,
   FaExpand,
   FaChevronLeft,
@@ -23,6 +19,7 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import { useProducts } from "../context/ProductContext";
 import assets from "../assets/assets";
+import { Skeleton,SkeletonText } from "../components/ui/Skeleton";
 
 const ProductDescription = () => {
   const { id } = useParams();
@@ -39,6 +36,7 @@ const ProductDescription = () => {
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
   const [showZoom, setShowZoom] = useState(false);
   const [activeTab, setActiveTab] = useState("Description");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (id) {
@@ -47,34 +45,49 @@ const ProductDescription = () => {
   }, [id, products]);
 
   const fetchProduct = async () => {
-    if (products.length > 0) {
-      // Find product in loaded products
-      const foundProduct = products.find(p => p._id === id);
-      if (foundProduct) {
-        setProduct(foundProduct);
-        findRelatedProducts(foundProduct);
-        
-        // Set default color if available
-        if (foundProduct.colors && foundProduct.colors.length > 0) {
-          setSelectedColor(foundProduct.colors[0]);
-        }
-        
-        // Set default size if available
-        if (foundProduct.sizes && foundProduct.sizes.length > 0) {
-          setSelectedSize(foundProduct.sizes[0]);
-        }
-      } else {
-        // Try to fetch from API if not in loaded products
-        try {
+    setIsLoading(true);
+    try {
+      if (products.length > 0) {
+        // Find product in loaded products
+        const foundProduct = products.find(p => p._id === id);
+        if (foundProduct) {
+          setProduct(foundProduct);
+          findRelatedProducts(foundProduct);
+          
+          // Set default color if available
+          if (foundProduct.colors && foundProduct.colors.length > 0) {
+            setSelectedColor(foundProduct.colors[0]);
+          }
+          
+          // Set default size if available
+          if (foundProduct.sizes && foundProduct.sizes.length > 0) {
+            setSelectedSize(foundProduct.sizes[0]);
+          }
+        } else {
+          // Try to fetch from API if not in loaded products
           const fetchedProduct = await getProductById(id);
           if (fetchedProduct) {
             setProduct(fetchedProduct);
             findRelatedProducts(fetchedProduct);
+          } else {
+            throw new Error("Product not found");
           }
-        } catch (error) {
-          console.error("Error fetching product:", error);
+        }
+      } else {
+        // Fetch from API if no products in context
+        const fetchedProduct = await getProductById(id);
+        if (fetchedProduct) {
+          setProduct(fetchedProduct);
+          findRelatedProducts(fetchedProduct);
+        } else {
+          throw new Error("Product not found");
         }
       }
+    } catch (error) {
+      console.error("Error fetching product:", error);
+      setProduct(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -89,16 +102,157 @@ const ProductDescription = () => {
     setRelatedProducts(related);
   };
 
-  if (loading && !product) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <h1 className="text-xl font-semibold text-gray-800 mb-2">Loading Product...</h1>
-          <p className="text-gray-600">Please wait while we fetch the product details.</p>
+  // Skeleton Loading Component using your existing Skeleton
+  const renderSkeleton = () => (
+    <div className="min-h-screen bg-gray-50">
+      {/* Breadcrumb Skeleton */}
+      <div className="bg-white border-b">
+        <div className="px-5 lg:px-20 py-4">
+          <div className="max-w-6xl mx-auto">
+            <Skeleton variant="text" className="w-48" />
+          </div>
         </div>
       </div>
-    );
+
+      <div className="px-5 lg:px-10 py-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Main Product Section Skeleton */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 lg:p-8">
+              {/* Left Column - Images Skeleton */}
+              <div className="space-y-4">
+                <Skeleton variant="image" className="h-[400px] w-full rounded-xl" />
+                <div className="grid grid-cols-4 gap-3">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} variant="image" className="h-20 w-full rounded-lg" />
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Column - Product Info Skeleton */}
+              <div className="space-y-6">
+                <div className="flex gap-3">
+                  <Skeleton variant="text" className="h-6 w-24" />
+                  <Skeleton variant="text" className="h-6 w-20" />
+                </div>
+                
+                <div>
+                  <Skeleton variant="title" className="h-8 w-3/4 mb-4" />
+                  <Skeleton variant="text" className="h-4 w-1/2" />
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <Skeleton key={i} variant="circle" className="h-4 w-4" />
+                    ))}
+                  </div>
+                  <Skeleton variant="text" className="h-4 w-32" />
+                </div>
+
+                <div>
+                  <Skeleton variant="title" className="h-8 w-32 mb-2" />
+                  <Skeleton variant="text" className="h-4 w-20" />
+                </div>
+
+                <SkeletonText lines={3} />
+
+                {/* Color Selection Skeleton */}
+                <div>
+                  <Skeleton variant="text" className="h-5 w-32 mb-3" />
+                  <div className="flex gap-3">
+                    {[...Array(4)].map((_, i) => (
+                      <Skeleton key={i} variant="circle" className="h-10 w-10" />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Size Selection Skeleton */}
+                <div>
+                  <Skeleton variant="text" className="h-5 w-24 mb-3" />
+                  <div className="grid grid-cols-6 gap-2">
+                    {[...Array(6)].map((_, i) => (
+                      <Skeleton key={i} variant="text" className="h-12 w-full rounded-lg" />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quantity & Actions Skeleton */}
+                <div>
+                  <div className="flex gap-4">
+                    <Skeleton variant="button" className="h-12 w-36" />
+                    <Skeleton variant="button" className="h-12 flex-1" />
+                  </div>
+                  <div className="flex gap-3 mt-4">
+                    <Skeleton variant="button" className="h-10 w-40" />
+                    <Skeleton variant="button" className="h-10 w-32" />
+                  </div>
+                </div>
+
+                {/* Product Info Skeleton */}
+                <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <Skeleton variant="circle" className="h-5 w-5" />
+                      <div className="space-y-1 flex-1">
+                        <Skeleton variant="text" className="h-4 w-32" />
+                        <Skeleton variant="text" className="h-3 w-40" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs Section Skeleton */}
+          <div className="mt-8 bg-white rounded-2xl border border-gray-200 shadow-sm">
+            {/* Tab Headers Skeleton */}
+            <div className="border-b border-gray-200">
+              <div className="flex overflow-x-auto">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} variant="text" className="h-16 w-32 mx-4" />
+                ))}
+              </div>
+            </div>
+
+            {/* Tab Content Skeleton */}
+            <div className="p-6 lg:p-8">
+              <Skeleton variant="title" className="h-7 w-48 mb-6" />
+              <SkeletonText lines={6} />
+            </div>
+          </div>
+
+          {/* Related Products Skeleton */}
+          <div className="mt-8">
+            <Skeleton variant="title" className="h-8 w-48 mb-6" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="space-y-3">
+                  <Skeleton variant="image" className="h-48 w-full rounded-xl" />
+                  <div className="space-y-2">
+                    <Skeleton variant="text" className="h-5 w-3/4" />
+                    <div className="flex gap-1">
+                      {[...Array(5)].map((_, j) => (
+                        <Skeleton key={j} variant="circle" className="h-4 w-4" />
+                      ))}
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <Skeleton variant="text" className="h-6 w-16" />
+                      <Skeleton variant="circle" className="h-10 w-10" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isLoading) {
+    return renderSkeleton();
   }
 
   if (!product) {
