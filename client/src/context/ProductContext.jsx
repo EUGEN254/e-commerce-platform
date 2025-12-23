@@ -1,12 +1,6 @@
 // contexts/ProductContext.jsx
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-} from "react";
-import axios from "axios";
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 
 const ProductContext = createContext();
 
@@ -27,18 +21,19 @@ export function ProductProvider({ children }) {
       setError(null);
     } catch (err) {
       setError(err.message);
-      console.error("Error fetching products:", err);
+      console.error('Error fetching products:', err);
     } finally {
       setLoading(false);
     }
   }, [backendUrl]);
+
 
   const fetchFeaturedProducts = useCallback(async () => {
     try {
       const response = await axios.get(`${backendUrl}/api/products/featured`);
       setFeaturedProducts(response.data.data || []);
     } catch (err) {
-      console.error("Error fetching featured products:", err);
+      console.error('Error fetching featured products:', err);
     }
   }, [backendUrl]);
 
@@ -47,67 +42,58 @@ export function ProductProvider({ children }) {
       const response = await axios.get(`${backendUrl}/api/categories`);
       setCategories(response.data.data || []);
     } catch (err) {
-      console.error("Error fetching categories:", err);
+      console.error('Error fetching categories:', err);
     }
   }, [backendUrl]);
 
-  const getProductById = useCallback(
-    async (id) => {
-      try {
-        const response = await axios.get(`${backendUrl}/api/products/${id}`);
-        return response.data.data;
-      } catch (err) {
-        console.error("Error fetching product:", err);
-        return null;
-      }
-    },
-    [backendUrl]
-  );
+  const getProductById = useCallback(async (id) => {
+    try {
+      const response = await axios.get(`${backendUrl}/api/products/${id}`);
+      return response.data.data;
+    } catch (err) {
+      console.error('Error fetching product:', err);
+      return null;
+    }
+  }, [backendUrl]);
 
-  const searchProducts = useCallback(
-    async (query) => {
-      try {
-        const response = await axios.get(`${backendUrl}/api/products/search`, {
-          params: { q: query },
-        });
-        return response.data.data || [];
-      } catch (err) {
-        console.error("Error searching products:", err);
-        return [];
-      }
-    },
-    [backendUrl]
-  );
+  const searchProducts = useCallback(async (query) => {
+    try {
+      const response = await axios.get(`${backendUrl}/api/products/search`, {
+        params: { q: query }
+      });
+      return response.data.data || [];
+    } catch (err) {
+      console.error('Error searching products:', err);
+      return [];
+    }
+  }, [backendUrl]);
 
-  const getProductsByCategory = useCallback(
-    async (category) => {
-      try {
-        const response = await axios.get(
-          `${backendUrl}/api/products/category/${category}`
-        );
-        return response.data.data || [];
-      } catch (err) {
-        console.error("Error fetching products by category:", err);
-        return [];
-      }
-    },
-    [backendUrl]
-  );
+  const getProductsByCategory = useCallback(async (category) => {
+    try {
+      const response = await axios.get(`${backendUrl}/api/products/category/${category}`);
+      return response.data.data || [];
+    } catch (err) {
+      console.error('Error fetching products by category:', err);
+      return [];
+    }
+  }, [backendUrl]);
 
-  const getProductsBySubcategory = useCallback(
-    async (category, subcategory) => {
-      try {
-        const response = await axios.get(
-          `${backendUrl}/api/products/category/${category}/subcategory/${subcategory}`
-        );
-        return response.data.data || [];
-      } catch (err) {
-        console.error("Error fetching products by subcategory:", err);
-        return [];
-      }
-    },
-    [backendUrl]
-  );
+// contexts/ProductContext.jsx
+const getProductsBySubcategory = useCallback(async (category, subcategory) => {
+  try {
+    const response = await axios.get(
+      `${backendUrl}/api/categories/category/${category}/subcategory/${subcategory}`
+    );
+    return response.data.data || [];
+  } catch (err) {
+    console.error('Error fetching products by subcategory:', err);
+    
+    // Fallback: Filter from existing products
+    return products.filter(
+      product => product.category === category && product.subcategory === subcategory
+    );
+  }
+}, [backendUrl, products]);
 
   useEffect(() => {
     fetchProducts();
@@ -128,7 +114,7 @@ export function ProductProvider({ children }) {
         getProductById,
         searchProducts,
         getProductsByCategory,
-        refetchProducts: fetchProducts,
+        refetchProducts: fetchProducts
       }}
     >
       {children}
@@ -139,7 +125,7 @@ export function ProductProvider({ children }) {
 export function useProducts() {
   const context = useContext(ProductContext);
   if (context === undefined) {
-    throw new Error("useProducts must be used within a ProductProvider");
+    throw new Error('useProducts must be used within a ProductProvider');
   }
   return context;
 }

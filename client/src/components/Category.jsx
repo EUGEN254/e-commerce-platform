@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   FaTshirt,
   FaLaptop,
@@ -21,21 +21,15 @@ import { useNavigate } from "react-router-dom";
 import { ProductCard } from "./ui/ProductCard";
 import { useProducts } from "../context/ProductContext";
 
-// Map fashion categories to icons
-const categoryIcons = {
-  shoes: <FaShoePrints />,
-  clothing: <FaUserTie />,
-  accessories: <FaShoppingBasket />,
-};
-
 const Categories = () => {
   const navigate = useNavigate();
   const {
     products,
-    loading,
+    loading: initialLoading,
     categories,
     error,
     getProductsByCategory,
+    getProductsBySubcategory,
   } = useProducts();
 
   const [selectedCategory, setSelectedCategory] = useState("fashion");
@@ -58,194 +52,135 @@ const Categories = () => {
     FaBook: FaBook,
   };
 
-  // Load products when category or subcategory changes
-  useEffect(() => {
-    if (!loading) {
-      loadProducts();
-    }
-  }, [selectedCategory, selectedSubcategory, products, loading]);
-
-  const loadProducts = async () => {
-    if (loading) {
-      return (
-        <div className="animate-pulse border rounded-lg p-4">
-          <div className="bg-gray-200 h-48 rounded-md mb-4"></div>
-          <div className="space-y-3">
-            <div className="h-4 bg-gray-200 rounded"></div>
-            <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-            <div className="h-6 bg-gray-200 rounded w-1/4 mt-4"></div>
-          </div>
-        </div>
-      );
-    }
-
-
-    let filteredProducts = [];
-
-    // CASE 1: Specific subcategory selected
-    if (selectedSubcategory !== "All") {
-      
-
-      // First check if we have products with this subcategory in our current context products
-      const contextProducts = products.filter(
-        (product) =>
-          product.category === selectedCategory &&
-          product.subcategory === selectedSubcategory
-      );
-
+  // Optimized product loading function
+  const loadProducts = useCallback(async () => {
+    if (!selectedCategory) return;
     
-      if (contextProducts.length > 0) {
-        filteredProducts = contextProducts;
-      } else {
-        // Fetch from API since we don't have enough products in context
-        try {
-        
-          const categoryProducts = await getProductsByCategory(
-            selectedCategory
-          );
-
-          // Filter by subcategory client-side
-          filteredProducts = categoryProducts.filter(
-            (product) => product.subcategory === selectedSubcategory
-          );
-
-          
-        } catch (error) {
-          // Fallback to products in context (if any)
-          filteredProducts = products.filter(
-            (product) => product.category === selectedCategory
-          );
-        }
-      }
-    }
-    // CASE 2: Fashion category (no specific subcategory)
-    else if (selectedCategory === "fashion") {
-
-      // First try to get featured fashion products
-      filteredProducts = products.filter(
-        (product) => product.category === "fashion" && product.isFeatured
-      );
-
-      // If no featured fashion products, try all fashion products
-      if (filteredProducts.length === 0) {
-        filteredProducts = products.filter(
-          (product) => product.category === "fashion"
+    try {
+      let filteredProducts = [];
+      
+      // CASE 1: Specific subcategory selected
+      if (selectedSubcategory !== "All") {
+        filteredProducts = await getProductsBySubcategory(
+          selectedCategory, 
+          selectedSubcategory
         );
       }
-
-      // If still no products, fetch from API
-      if (filteredProducts.length === 0) {
-        try {
-          filteredProducts = await getProductsByCategory("fashion");
-        } catch (error) {
-          console.error("Error fetching fashion products:", error);
-        }
+      // CASE 2: Category selected (no specific subcategory)
+      else {
+        // First check if we have enough products in context
+        const contextProducts = products.filter(
+          (product) => product.category === selectedCategory
+        );
+        
+        // Use context products if we have at least 4, otherwise fetch fresh
+        filteredProducts = contextProducts.length >= 4 
+          ? contextProducts 
+          : await getProductsByCategory(selectedCategory);
       }
-    }
-    // CASE 3: Other categories (no specific subcategory)
-    else {
+      
+      // Transform the data for ProductCard
+      const transformedProducts = filteredProducts
+        .slice(0, 12)
+        .map((product) => ({
+          id: product._id,
+          name: product.name,
+          price: product.price,
+          originalPrice: product.originalPrice,
+          discount: product.discount,
+          rating: product.rating,
+          reviewCount: product.reviewCount,
+          image: product.mainImage || product.images?.[0] || "/placeholder-image.jpg",
+          isNew: product.isNew || false,
+          isBestSeller: product.isBestSeller || false,
+          isFeatured: product.isFeatured || false,
+          brand: product.brand,
+          category: product.category,
+          subcategory: product.subcategory,
+          description: product.shortDescription || product.description,
+          stock: product.stock,
+          inStock: product.inStock,
+          tags: product.tags || [],
+          features: product.features || [],
+        }));
 
-      // Check if we have products for this category in context
-      filteredProducts = products.filter(
+      setDisplayProducts(transformedProducts);
+    } catch (error) {
+      console.error("Error loading products:", error);
+      // Fallback to products in context
+      const fallbackProducts = products.filter(
         (product) => product.category === selectedCategory
       );
-
-      // If not enough products, fetch from API
-      if (filteredProducts.length < 4) {
-        // You can adjust this threshold
-        try {
-          filteredProducts = await getProductsByCategory(selectedCategory);
-        } catch (error) {
-          console.error(`Error fetching ${selectedCategory} products:`, error);
-        }
-      }
+      
+      const transformedFallback = fallbackProducts
+        .slice(0, 12)
+        .map((product) => ({
+          id: product._id,
+          name: product.name,
+          price: product.price,
+          originalPrice: product.originalPrice,
+          discount: product.discount,
+          rating: product.rating,
+          reviewCount: product.reviewCount,
+          image: product.mainImage || product.images?.[0] || "/placeholder-image.jpg",
+          isNew: product.isNew || false,
+          isBestSeller: product.isBestSeller || false,
+          isFeatured: product.isFeatured || false,
+          brand: product.brand,
+          category: product.category,
+          subcategory: product.subcategory,
+          description: product.shortDescription || product.description,
+          stock: product.stock,
+          inStock: product.inStock,
+          tags: product.tags || [],
+          features: product.features || [],
+        }));
+      
+      setDisplayProducts(transformedFallback);
     }
+  }, [selectedCategory, selectedSubcategory, products, getProductsBySubcategory, getProductsByCategory]);
 
+  // Load products when category or subcategory changes
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
 
-    // Transform the data for ProductCard
-    const transformedProducts = filteredProducts
-      .slice(0, 12)
-      .map((product) => ({
-        id: product._id,
-        name: product.name,
-        price: product.price,
-        originalPrice: product.originalPrice,
-        discount: product.discount,
-        rating: product.rating,
-        reviewCount: product.reviewCount,
-        image:
-          product.mainImage ||
-          (product.images && product.images[0]) ||
-          assets.shoe1,
-        isNew: product.isNew || false,
-        isBestSeller: product.isBestSeller || false,
-        isFeatured: product.isFeatured || false,
-        brand: product.brand,
-        category: product.category,
-        subcategory: product.subcategory,
-        description: product.shortDescription || product.description,
-        stock: product.stock,
-        inStock: product.inStock,
-        tags: product.tags || [],
-        features: product.features || [],
-      }));
-
-    setDisplayProducts(transformedProducts);
-  };
   // Handle category click
-  const handleCategoryClick = async (categoryId) => {
+  const handleCategoryClick = useCallback((categoryId) => {
     setSelectedCategory(categoryId);
-    const selectedCat = categories.find((cat) => cat.id === categoryId);
-    if (
-      !selectedCat ||
-      !selectedCat.subcategories ||
-      !selectedCat.subcategories.includes(selectedSubcategory)
-    ) {
-      setSelectedSubcategory("All");
-    }
-  };
+    setSelectedSubcategory("All");
+    setDisplayProducts([]); // Clear products for immediate feedback
+  }, []);
 
   // Handle subcategory click
-  const handleSubcategoryClick = async (subcategory) => {
+  const handleSubcategoryClick = useCallback((subcategory) => {
     setSelectedSubcategory(subcategory);
-  };
+    setDisplayProducts([]); // Clear products for immediate feedback
+  }, []);
 
   // Clear subcategory filter
-  const clearSubcategoryFilter = () => {
+  const clearSubcategoryFilter = useCallback(() => {
     setSelectedSubcategory("All");
-  };
+    setDisplayProducts([]); // Clear products for immediate feedback
+  }, []);
 
-  const renderStars = (rating) => {
-    return [...Array(5)].map((_, i) => (
-      <FaStar
-        key={i}
-        className={`w-3 h-3 ${
-          i < Math.floor(rating) ? "text-yellow-400" : "text-gray-300"
-        }`}
-      />
-    ));
-  };
-
-  const allCategories = categories;
-
-  const getCategoryDisplayName = (categoryId) => {
-    const category = allCategories.find((cat) => cat.id === categoryId);
+  const getCategoryDisplayName = useCallback((categoryId) => {
+    const category = categories.find((cat) => cat.id === categoryId);
     return category ? category.name : categoryId;
-  };
+  }, [categories]);
 
-  const getCategoryIcon = (categoryId) => {
-    const category = allCategories.find((cat) => cat.id === categoryId);
+  const getCategoryIcon = useCallback((categoryId) => {
+    const category = categories.find((cat) => cat.id === categoryId);
     if (category && category.icon) {
       const IconComponent = iconMap[category.icon];
       return IconComponent ? <IconComponent /> : <FaTshirt />;
     }
     return <FaTshirt />;
-  };
+  }, [categories]);
 
   const checkScrollPosition = () => {
     if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } =
-        scrollContainerRef.current;
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
       setShowLeftArrow(scrollLeft > 0);
       setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
     }
@@ -296,6 +231,8 @@ const Categories = () => {
     );
   }
 
+  const isLoading = initialLoading || displayProducts.length === 0;
+
   return (
     <div className="mt-10 px-5 lg:px-5">
       {/* Header */}
@@ -339,7 +276,7 @@ const Categories = () => {
           className="flex overflow-x-auto scrollbar-hide gap-3 pb-4"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          {allCategories.map((cat) => (
+          {categories.map((cat) => (
             <div
               key={cat.id}
               onClick={() => handleCategoryClick(cat.id)}
@@ -498,7 +435,7 @@ const Categories = () => {
           </button>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
             <p className="text-gray-600 mt-4">Loading products...</p>
@@ -528,7 +465,7 @@ const Categories = () => {
         )}
 
         {/* View All Button for Mobile */}
-        {displayProducts.length > 0 && !loading && (
+        {displayProducts.length > 0 && !isLoading && (
           <div className="mt-8 flex justify-center lg:hidden">
             <button
               onClick={() => navigate(`/shop/${selectedCategory}`)}
