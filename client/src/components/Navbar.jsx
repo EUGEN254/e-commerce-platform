@@ -2,14 +2,13 @@ import React, { useState } from "react";
 import { ShoppingCart, Menu, X, User } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
-import { FaPersonBooth } from "react-icons/fa";
 import { useCart } from "../context/CartContext";
 import { useUser } from "../context/UserContext";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { user,logout } = useUser();
+  const { user, logout } = useUser();
   const { totalItems } = useCart();
 
   const navLinks = [
@@ -22,46 +21,58 @@ const Navbar = () => {
   ];
 
   return (
-    <div className=" mt-2 mb-4">
-      {/* Main Navbar - Stays rounded-full */}
-      <nav className="bg-white shadow-lg p-2 rounded-full">
+    <div className="mt-2 mb-4">
+      {/* Main Navbar */}
+      <nav className="bg-white shadow-lg p-2 sm:p-3 rounded-full">
         <div className="flex justify-between items-center">
           {/* Logo */}
-          <div className="text-xl font-bold text-indigo-600 pl-3">
-            <h1>ShopHub</h1>
+          <div className="text-xl sm:text-2xl font-bold text-indigo-600 pl-3 sm:pl-4">
+            <h1
+              onClick={() => {
+                navigate("/");
+                setMobileMenuOpen(false);
+              }}
+              className="cursor-pointer  p-1"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate("/");
+                  setMobileMenuOpen(false);
+                }
+              }}
+              aria-label="Go to homepage"
+            >
+              ShopHub
+            </h1>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-45">
-            <div className="flex space-x-5">
+          {/* Desktop & Medium Screen Navigation */}
+          <div className="hidden md:flex items-center">
+            <div className="flex space-x-4 lg:space-x-6 xl:space-x-8">
               {navLinks.map((link, index) => (
                 <Link
                   key={index}
                   to={link.path}
-                  className="text-gray-700 hover:text-indigo-600 text-sm font-medium 
-                 relative group"
+                  className="text-gray-700 hover:text-indigo-600 text-sm lg:text-base font-medium relative group whitespace-nowrap"
                 >
                   {link.name}
-                  <span
-                    className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 
-                      transition-all duration-300 group-hover:w-full"
-                  ></span>
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 transition-all duration-300 group-hover:w-full"></span>
                 </Link>
               ))}
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 lg:space-x-4 ml-4 lg:ml-6">
               <button
                 onClick={() => navigate("/cart")}
-                className="relative flex justify-between items-center gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-amber-100 hover:shadow-md"
+                className="relative flex items-center gap-2 lg:gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-amber-100 hover:shadow-md"
               >
                 <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-0 right-19 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                  {" "}
-                  {/* Fixed positioning from right-20 */}
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
                   {totalItems > 99 ? "99+" : totalItems}
                 </span>
-                <span className="text-sm">View Cart</span>
+                <span className="hidden lg:inline text-sm">View Cart</span>
               </button>
 
               {user ? (
@@ -72,7 +83,7 @@ const Navbar = () => {
                         ? user.name.charAt(0).toUpperCase()
                         : user.email.charAt(0).toUpperCase()}
                     </div>
-                    <div className="flex items-center space-x-1">
+                    <div className="hidden lg:flex items-center space-x-1">
                       <span className="text-sm font-medium">Profile</span>
                       <svg
                         className="w-4 h-4 text-gray-400 transition-transform group-hover:rotate-180"
@@ -159,7 +170,7 @@ const Navbar = () => {
                 <Button
                   variant="outline"
                   onClick={() => navigate("/create-account")}
-                  className="text-xs"
+                  className="text-xs lg:text-sm whitespace-nowrap"
                 >
                   <svg
                     className="h-4 w-4 mr-1"
@@ -180,18 +191,18 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* Mobile Header Icons */}
+          {/* Mobile & Medium Screen Header Icons */}
           <div className="md:hidden flex items-center space-x-3">
-            <button className="relative">
+            <button onClick={() => navigate("/cart")} className="relative p-2">
               <ShoppingCart className="w-5 h-5" />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
                 {totalItems > 99 ? "99+" : totalItems}
               </span>
             </button>
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1"
+              className="p-2"
             >
               {mobileMenuOpen ? (
                 <X className="w-6 h-6 text-indigo-600" />
@@ -203,41 +214,81 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu with higher z-index */}
       <div
-        className={`md:hidden transition-all duration-300 ease-in-out ${
+        className={`md:hidden fixed inset-x-0 top-20 z-[9999] transition-all duration-300 ease-in-out ${
           mobileMenuOpen
-            ? "max-h-96 opacity-100 mt-2"
-            : "max-h-0 opacity-0 overflow-hidden"
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 -translate-y-4 pointer-events-none"
         }`}
       >
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 space-y-3">
+        <div className="bg-white rounded-xl shadow-2xl border border-gray-200 mx-4 p-4 space-y-2">
           {navLinks.map((link, index) => (
             <Link
               key={index}
               to={link.path}
-              className="block py-3 px-4 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg text-sm font-medium transition-colors"
+              className="block py-3 px-4 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg text-base font-medium transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
               {link.name}
             </Link>
           ))}
 
-          <div className="border-t border-gray-100 pt-3 space-y-2">
-            <button className="w-full flex items-center justify-center py-3 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              View Cart {totalItems}
+          <div className="border-t border-gray-100 pt-3 space-y-3">
+            <button
+              onClick={() => {
+                navigate("/cart");
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-center py-3 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-base font-medium"
+            >
+              <ShoppingCart className="w-5 h-5 mr-2" />
+              View Cart ({totalItems})
             </button>
 
             {!user ? (
-              <button className="w-full flex items-center justify-center py-3 px-4 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-sm font-medium">
-                <User className="w-4 h-4 mr-2" />
-                Sign In
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    navigate("/");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-center py-3 px-4 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-base font-medium"
+                >
+                  <User className="w-5 h-5 mr-2" />
+                  Sign In
+                </button>
+                <button
+                  onClick={() => {
+                    navigate("/create-account");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full py-3 px-4 bg-white border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-base font-medium"
+                >
+                  Create Account
+                </button>
+              </div>
             ) : (
-              <button className="w-full py-3 px-4 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-sm font-medium">
-                Create Account
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    navigate("/profile");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full py-3 px-4 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-base font-medium"
+                >
+                  My Profile
+                </button>
+                <button
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full py-3 px-4 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-base font-medium"
+                >
+                  Logout
+                </button>
+              </div>
             )}
           </div>
         </div>

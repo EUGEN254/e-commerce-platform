@@ -20,11 +20,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useProducts } from "../context/ProductContext";
 import assets from "../assets/assets";
 import { Skeleton,SkeletonText } from "../components/ui/Skeleton";
+import { useCart } from "../context/CartContext";
 
 const ProductDescription = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { products, loading, getProductById } = useProducts();
+  const { products,getProductById } = useProducts();
+  const {addToCart} = useCart()
 
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -315,16 +317,7 @@ const ProductDescription = () => {
   };
 
   const handleAddToCart = () => {
-    console.log("Added to cart:", {
-      productId: product._id,
-      name: product.name,
-      quantity,
-      size: selectedSize,
-      color: selectedColor,
-      price: product.price,
-      total: (product.price * quantity).toFixed(2)
-    });
-    // Add to cart logic here
+    addToCart(product)
   };
 
   const handleImageHover = (e) => {
