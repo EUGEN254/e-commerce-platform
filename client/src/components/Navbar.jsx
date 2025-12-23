@@ -69,7 +69,7 @@ const Navbar = () => {
                 className="relative flex items-center gap-2 lg:gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-amber-100 hover:shadow-md"
               >
                 <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                <span className="absolute -top-1 right-19 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
                   {totalItems > 99 ? "99+" : totalItems}
                 </span>
                 <span className="hidden lg:inline text-sm">View Cart</span>
