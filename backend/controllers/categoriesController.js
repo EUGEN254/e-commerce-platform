@@ -1,4 +1,5 @@
 import Category from "../models/Category.js";
+import Product from "../models/Product.js";
 
 
 // Get all categories
@@ -60,6 +61,84 @@ const getAllCategories = async (req, res) => {
     });
   } catch (error) {
     console.error("Get All Categories Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+// Get products by category AND subcategory
+const getProductsByCategoryAndSubcategory = async (req, res) => {
+  try {
+    const { category, subcategory } = req.params;
+    
+    // Parse query parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    
+    const minPrice = parseFloat(req.query.minPrice);
+    const maxPrice = parseFloat(req.query.maxPrice);
+    const sortBy = req.query.sortBy || 'createdAt';
+    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+    const inStock = req.query.inStock === 'true';
+    const featured = req.query.featured === 'true';
+    
+    // Build filter
+    const filter = {
+      category: category,
+      subcategory: subcategory,
+      status: 'active'
+    };
+    
+    // Apply price filter if provided
+    if (!isNaN(minPrice) || !isNaN(maxPrice)) {
+      filter.price = {};
+      if (!isNaN(minPrice)) filter.price.$gte = minPrice;
+      if (!isNaN(maxPrice)) filter.price.$lte = maxPrice;
+    }
+    
+    // Apply stock filter if requested
+    if (inStock) {
+      filter.$or = [
+        { stock: { $gt: 0 } },
+        { inStock: true },
+        { stock: { $exists: false } }
+      ];
+    }
+    
+    // Apply featured filter if requested
+    if (featured) {
+      filter.isFeatured = true;
+    }
+    
+    // Build sort
+    const sort = {};
+    sort[sortBy] = sortOrder;
+    
+    // Get products with pagination
+    const products = await Product.find(filter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .select('-__v -updatedAt');
+    
+    // Get total count for pagination
+    const totalProducts = await Product.countDocuments(filter);
+    const totalPages = Math.ceil(totalProducts / limit);
+    
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      total: totalProducts,
+      page,
+      totalPages,
+      data: products,
+    });
+  } catch (error) {
+    console.error("Get Products By Category & Subcategory Error:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -411,4 +490,5 @@ export {
   updateCategory,
   deleteCategory,
   updateCategoryProductCount,
+  getProductsByCategoryAndSubcategory,
 };

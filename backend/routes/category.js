@@ -5,12 +5,17 @@ import {
   getCategoriesByType,
   getMainCategories,
   getFeaturedCategories,
+  getProductsByCategoryAndSubcategory,
 } from "../controllers/categoriesController.js";
 
 const categoryRoutes = express.Router();
 
 // Public routes
 categoryRoutes.get("/", getAllCategories);
+categoryRoutes.get(
+  "/category/:category/subcategory/:subcategory",
+  getProductsByCategoryAndSubcategory
+);
 categoryRoutes.get("/main", getMainCategories);
 categoryRoutes.get("/featured", getFeaturedCategories);
 categoryRoutes.get("/type/:type", getCategoriesByType);
