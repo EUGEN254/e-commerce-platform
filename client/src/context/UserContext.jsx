@@ -7,6 +7,7 @@ import React, {
   useCallback,
 } from "react";
 import axios from "axios";
+import { toast } from "sonner";
 
 const UserContext = createContext();
 
@@ -150,13 +151,16 @@ export function UserProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
-      await axios.post(
+    const res =  await axios.post(
         `${backendUrl}/api/auth/logout`,
         {},
         {
           withCredentials: true,
         }
       );
+      if(res.data.success){
+        toast.success(res.data.message)
+      }
     } catch (error) {
       console.error("Logout error:", error);
     } finally {

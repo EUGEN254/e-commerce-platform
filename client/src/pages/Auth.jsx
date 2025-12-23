@@ -601,7 +601,10 @@ const Auth = () => {
                     : "Don't have an account? "}
                 </span>
                 <button
-                  onClick={toggleAuthMode}
+                  onClick={() => {
+                    toggleAuthMode();
+                    window.scrollTo(0, 0);
+                  }}
                   className="text-primary hover:underline font-medium"
                   disabled={isLoading}
                 >
