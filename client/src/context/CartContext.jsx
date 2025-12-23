@@ -6,10 +6,12 @@ import React, {
   useEffect,
 } from "react";
 import { toast } from "sonner";
+import { useUser } from "./UserContext";
 
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
+  const {user} = useUser()
   const [items, setItems] = useState(() => {
     try {
       const savedCart = localStorage.getItem("cart");
@@ -19,35 +21,49 @@ export function CartProvider({ children }) {
     }
   });
 
-  const addToCart = (product) => {
-    // First, validate and sanitize the product data
-    const validatedProduct = {
-      ...product,
-      price: Number(product.price) || 0,
-      originalPrice: Number(product.originalPrice) || Number(product.price) || 0,
-      quantity: 1,
-    };
-    
-    setItems((prevCart) => {
-      // Check if product already exists in cart
-      const existingItem = prevCart.find((item) => item.id === validatedProduct.id);
-
-      // If it exists, increase quantity
-      if (existingItem) {
-        toast.success(`Updated ${validatedProduct.name} quantity`);
-        return prevCart.map((item) =>
-          item.id === validatedProduct.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-
-      toast.success(`Added ${validatedProduct.name} to cart`);
-
-      // If it does not exist, add new item
-      return [...prevCart, validatedProduct];
-    });
+ const addToCart = (product) => {
+  // Extract selected options from the product
+  const { selectedColor, selectedSize, quantity = 1 } = product;
+  
+  // Create a unique cart ID that includes color and size
+  const cartItemId = `${product.id}-${selectedColor?.value || 'default'}-${selectedSize || 'default'}`;
+  
+  // First, validate and sanitize the product data
+  const validatedProduct = {
+    ...product,
+    id: product.id, 
+    cartItemId,
+    price: Number(product.price) || 0,
+    originalPrice: Number(product.originalPrice) || Number(product.price) || 0,
+    quantity: quantity, 
+    selectedColor: selectedColor || product.colors?.[0] || { value: 'default', name: 'Default', hex: '#000000' },
+    selectedSize: selectedSize || product.sizes?.[0] || 'M'
   };
+
+  
+  
+  setItems((prevCart) => {
+    // Check if product with same ID, color, and size already exists in cart
+    const existingItem = prevCart.find((item) => item.cartItemId === cartItemId);
+
+    // If it exists, increase quantity
+    if (existingItem) {
+      const newQuantity = existingItem.quantity + validatedProduct.quantity;
+      toast.success(`Updated ${validatedProduct.name} (${validatedProduct.selectedColor.name}, ${validatedProduct.selectedSize}) quantity to ${newQuantity}`);
+      
+      return prevCart.map((item) =>
+        item.cartItemId === cartItemId
+          ? { ...item, quantity: newQuantity }
+          : item
+      );
+    }
+
+    toast.success(`Added ${validatedProduct.name} (${validatedProduct.selectedColor.name}, ${validatedProduct.selectedSize}) to cart`);
+
+    // If it does not exist, add new item
+    return [...prevCart, validatedProduct];
+  });
+};
 
   const removeFromCart = useCallback((productId) => {
     setItems((prev)=> {
@@ -113,8 +129,8 @@ export function CartProvider({ children }) {
         removeFromCart,
         updateQuantity,
         clearCart,
-        totalItems, // Now this variable exists
-        subtotal,   // And this one too
+        totalItems, 
+        subtotal,  
         getCartTotal,
       }}
     >

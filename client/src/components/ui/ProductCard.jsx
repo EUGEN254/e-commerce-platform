@@ -45,7 +45,7 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
     discount: discount,
     rating: product.rating || 0,
     reviewCount: product.reviewCount || 0,
-    image: product.image || product.mainImage || (product.images && product.images[0]) || '/placeholder-image.jpg',
+    image: product.image || product.mainImage || (product.images && product.images[0]) || '',
     category: product.category || 'Uncategorized',
     description: product.description || product.shortDescription || 'No description available',
     brand: product.brand || 'Unknown Brand',
@@ -57,7 +57,8 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
     isFeatured: product.isFeatured || false,
     tags: product.tags || [],
     features: product.features || [],
-    // Add other properties with defaults as needed
+    colors: product.colors || [], 
+    sizes: product.sizes || [],
   };
 
   const [imageError, setImageError] = useState(false);

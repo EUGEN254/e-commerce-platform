@@ -456,7 +456,6 @@ const Auth = () => {
                     <div className="flex items-center justify-between text-sm">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <Checkbox
-                          type="checkbox"
                           checked={rememberMe}
                           onChange={(e) => setRememberMe(e.target.checked)}
                           disabled={isLoading}

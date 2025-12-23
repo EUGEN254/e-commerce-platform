@@ -17,6 +17,7 @@ export function ProductProvider({ children }) {
     try {
       setLoading(true);
       const response = await axios.get(`${backendUrl}/api/products`);
+      console.log("here are the products",response.data.data)
       setProducts(response.data.data || []);
       setError(null);
     } catch (err) {
@@ -84,6 +85,7 @@ const getProductsBySubcategory = useCallback(async (category, subcategory) => {
     const response = await axios.get(
       `${backendUrl}/api/categories/category/${category}/subcategory/${subcategory}`
     );
+    console.log(response.data.data)
     return response.data.data || [];
   } catch (err) {
     console.error('Error fetching products by subcategory:', err);

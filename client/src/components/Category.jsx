@@ -64,6 +64,7 @@ const Categories = () => {
         filteredProducts = await getProductsBySubcategory(
           selectedCategory, 
           selectedSubcategory
+          
         );
       }
       // CASE 2: Category selected (no specific subcategory)
@@ -90,7 +91,7 @@ const Categories = () => {
           discount: product.discount,
           rating: product.rating,
           reviewCount: product.reviewCount,
-          image: product.mainImage || product.images?.[0] || "/placeholder-image.jpg",
+          image: product.mainImage || product.images?.[0] || "",
           isNew: product.isNew || false,
           isBestSeller: product.isBestSeller || false,
           isFeatured: product.isFeatured || false,
@@ -122,7 +123,7 @@ const Categories = () => {
           discount: product.discount,
           rating: product.rating,
           reviewCount: product.reviewCount,
-          image: product.mainImage || product.images?.[0] || "/placeholder-image.jpg",
+          image: product.mainImage || product.images?.[0] || "",
           isNew: product.isNew || false,
           isBestSeller: product.isBestSeller || false,
           isFeatured: product.isFeatured || false,
