@@ -23,7 +23,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 
 const App = () => {
   const location = useLocation();
-  
+
   // Scroll to top when route changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -35,7 +35,7 @@ const App = () => {
       <Toaster
         position="top-center"
         toastOptions={{
-          className: 'bg-background text-foreground border-border',
+          className: "bg-background text-foreground border-border",
         }}
       />
 
@@ -47,10 +47,9 @@ const App = () => {
         <main>
           <Routes>
             {/* Authentication routes - No ProtectedRoute to prevent flash */}
-            
-              <Route path="/create-account" element={<Auth />} />
-              <Route path="/reset-password" element={<ForgotPassword/>} />
-           
+
+            <Route path="/create-account" element={<Auth />} />
+            <Route path="/reset-password" element={<ForgotPassword />} />
 
             {/* Main area - Public routes */}
             <Route path="/" element={<Home />} />
@@ -61,24 +60,19 @@ const App = () => {
             <Route path="/cart" element={<Cart />} />
             <Route path="/offers" element={<Offers />} />
             <Route path="/offers/:id" element={<OfferDetails />} />
-            
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/my-orders" element={<MyOrders />} />
+
             {/* Protected routes - Require authentication */}
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            <Route path="/my-orders" element={
-              <ProtectedRoute>
-                <MyOrders />
-              </ProtectedRoute>
-            } />
-            <Route path="/checkout" element={
-              <ProtectedRoute>
-                <Checkout />
-              </ProtectedRoute>
-            } />
-            
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Not found route */}
             <Route path="*" element={<NotFound />} />
           </Routes>

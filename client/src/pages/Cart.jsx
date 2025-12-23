@@ -221,6 +221,7 @@ export function Cart() {
               </div>
 
               <Button
+              type="button"
                 className="w-full mt-6 text-lg py-6"
                 onClick={() => navigate("/checkout")}
               >
