@@ -18,6 +18,8 @@ import Checkout from "./pages/Checkout";
 import Offers from "./pages/Offers";
 import OfferDetails from "./pages/OfferDetails";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
+import ForgotPassword from "./pages/ForgotPassword";
 
 const App = () => {
   const location = useLocation();
@@ -25,7 +27,7 @@ const App = () => {
   // Scroll to top when route changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [location.pathname]); // Runs when URL path changes
+  }, [location.pathname]);
 
   return (
     <div className="flex flex-col min-h-screen max-w-310 mx-auto">
@@ -44,28 +46,41 @@ const App = () => {
         {/* Main Content */}
         <main>
           <Routes>
-            {/* authentication route */}
-            <Route path="/create-account" element={<Auth />} />
+            {/* Authentication routes - No ProtectedRoute to prevent flash */}
+            
+              <Route path="/create-account" element={<Auth />} />
+              <Route path="/reset-password" element={<ForgotPassword/>} />
+           
 
-            {/* main area */}
+            {/* Main area - Public routes */}
             <Route path="/" element={<Home />} />
             <Route path="/shop" element={<Shope />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/my-orders" element={<MyOrders />} />
             <Route path="/product/:id" element={<ProductDescription />} />
             <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            
-            {/* Offer Routes */}
             <Route path="/offers" element={<Offers />} />
             <Route path="/offers/:id" element={<OfferDetails />} />
             
-           
-
-           {/* not found route */}
-           <Route path="*" element={<NotFound />} />
+            {/* Protected routes - Require authentication */}
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/my-orders" element={
+              <ProtectedRoute>
+                <MyOrders />
+              </ProtectedRoute>
+            } />
+            <Route path="/checkout" element={
+              <ProtectedRoute>
+                <Checkout />
+              </ProtectedRoute>
+            } />
+            
+            {/* Not found route */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
 

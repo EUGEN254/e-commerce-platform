@@ -7,6 +7,7 @@ import cors from 'cors';
 import productRouter from './routes/product.js';
 import categoryRoutes from './routes/category.js';
 import limitedOfferRouter from './routes/limitedOffers.js';
+import UserRouter from './routes/user.js';
 
 // load environment variables
 dotenv.config();
@@ -37,6 +38,7 @@ app.get('/', (req, res) => {
 });
 
 // routes
+app.use('/api/auth',UserRouter);
 app.use('/api/products',productRouter);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/limited-offers', limitedOfferRouter);
