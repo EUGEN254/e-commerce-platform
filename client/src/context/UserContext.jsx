@@ -27,8 +27,8 @@ const checkAuth = useCallback(async () => {
       withCredentials: true,
     });
     
-    // Check if response was successful
-    if (response.status === 200) {
+    // Check if response was successful (status 200)
+    if (response.status === 200 && response.data?.user) {
       const userData = response.data.user;
       
       if (userData && userData.isVerified) {
@@ -37,7 +37,7 @@ const checkAuth = useCallback(async () => {
         setUser(null);
       }
     } else {
-      // Non-200 responses indicate user is not authenticated
+      // Non-200 responses or missing user data indicate not authenticated
       setUser(null);
     }
     
@@ -48,10 +48,7 @@ const checkAuth = useCallback(async () => {
     }, 0);
     
   } catch (error) {
-    // Suppress 401 errors as they're expected when user is not logged in
-    if (error.response?.status !== 401) {
-      // Only log unexpected errors
-    }
+    // Suppress expected 401 errors during auth check
     setUser(null);
     setLoading(false);
   }

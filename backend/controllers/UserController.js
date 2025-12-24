@@ -415,11 +415,11 @@ const getCurrentUser = async (req, res) => {
 // Logout user
 const logoutUser = async (req, res) => {
   try {
-    // Clear the cookie
+    // Clear the cookie with same options used when setting it
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       path: "/",
     });
 

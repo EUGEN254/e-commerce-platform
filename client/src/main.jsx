@@ -10,12 +10,18 @@ import { ProductProvider } from "./context/ProductContext.jsx";
 import { UserProvider } from "./context/UserContext.jsx";
 import { OfferProvider } from "./context/Offers.jsx";
 
-// Suppress axios default error handling for specific status codes
-// This prevents console errors from appearing in production
-axios.defaults.validateStatus = (status) => {
-  // Accept all status codes (let the app handle them)
-  return true;
-};
+// Setup axios interceptor to suppress 401 errors during auth check
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Suppress 401 errors only from auth/me endpoint (they're expected when not logged in)
+    if (error.response?.status === 401 && error.config?.url?.includes('/api/auth/me')) {
+      // Return response instead of rejecting to let the app handle it
+      return error.response;
+    }
+    return Promise.reject(error);
+  }
+);
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
