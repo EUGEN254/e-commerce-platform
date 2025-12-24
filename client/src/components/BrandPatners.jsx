@@ -72,8 +72,7 @@ const BrandPartners = () => {
   const duplicatedBrands = [...brands, ...brands, ...brands];
 
   const handleBrandClick = (brandName) => {
-    console.log(`Navigating to ${brandName} products`);
-    // You can implement navigation logic here
+    // TODO: implement navigation to brand-specific product listing
   };
 
   return (

@@ -3,8 +3,7 @@ import { v2 as cloudinary } from "cloudinary";
 
 const createProduct = async (req, res) => {
   try {
-    console.log("Request body:", req.body);
-    console.log("Request files:", req.files);
+    // Request body/files validated below; removed debug logs
 
     const {
       name,
@@ -56,11 +55,8 @@ const createProduct = async (req, res) => {
     const parseArray = (data) => {
       if (!data || data === "") return [];
 
-      console.log("Parsing array data:", data, "Type:", typeof data);
-
       // If it's already an array, return it
       if (Array.isArray(data)) {
-        console.log("Data is already array:", data);
         return data;
       }
 
@@ -69,13 +65,9 @@ const createProduct = async (req, res) => {
         try {
           // Try to parse as JSON first
           const parsed = JSON.parse(data);
-          console.log("Successfully parsed JSON:", parsed);
           return parsed;
         } catch (jsonError) {
-          console.log(
-            "JSON parse failed, trying different formats:",
-            jsonError.message
-          );
+          // Fall back to delimiter parsing
 
           // Try multiple delimiters
           if (data.includes(",")) {
@@ -97,7 +89,7 @@ const createProduct = async (req, res) => {
         }
       }
 
-      console.log("Data is neither array nor string, returning empty array");
+      return [];
       return [];
     };
 
@@ -118,8 +110,6 @@ const createProduct = async (req, res) => {
 
     // Handle image uploads to Cloudinary
     if (req.files && req.files.length > 0) {
-      console.log("Uploading images to Cloudinary...");
-
       const uploads = req.files.map((file, index) =>
         cloudinary.uploader.upload(file.path, {
           folder: "ecommerce/products",
@@ -138,7 +128,7 @@ const createProduct = async (req, res) => {
           mainImageUrl = imageUrls[0];
         }
 
-        console.log(`Successfully uploaded ${imageUrls.length} images`);
+        // Uploaded images to Cloudinary
       } catch (uploadError) {
         console.error("Cloudinary upload error:", uploadError);
         return res.status(500).json({
@@ -170,11 +160,17 @@ const createProduct = async (req, res) => {
       sizes: parseArray(sizes),
       tags: parseArray(tags),
       features: parseArray(features),
-      specs: specs
-        ? typeof specs === "string"
-          ? JSON.parse(specs)
-          : specs
-        : {},
+      // Parse specs safely: accept object or JSON string
+      specs: (() => {
+        if (!specs) return {};
+        if (typeof specs === "object") return specs;
+        try {
+          return JSON.parse(specs);
+        } catch (err) {
+          // If parsing fails, return empty object to avoid crash
+          return {};
+        }
+      })(),
       stock: parseInt(stock),
       inStock: parseInt(stock) > 0,
       isFeatured: isFeatured === "true" || isFeatured === true,
@@ -183,7 +179,7 @@ const createProduct = async (req, res) => {
       reviewCount: 0,
     };
 
-    console.log("Creating product with data:", productData);
+    // Creating product with parsed data
 
     // Create product in database
     const product = await Product.create(productData);

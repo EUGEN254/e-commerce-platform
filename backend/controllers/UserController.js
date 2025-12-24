@@ -45,7 +45,7 @@ const registerUser = async (req, res) => {
 
     // check if user already exists
     const existingUser = await User.findOne({ email });
-    
+
     // If user exists but is not verified, resend verification
     if (existingUser) {
       if (!existingUser.isVerified) {
@@ -54,7 +54,7 @@ const registerUser = async (req, res) => {
           100000 + Math.random() * 900000
         ).toString();
         const verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000);
-        
+
         // Update existing user with new verification code
         existingUser.verificationCode = verificationCode;
         existingUser.verificationCodeExpires = verificationCodeExpires;
@@ -62,16 +62,23 @@ const registerUser = async (req, res) => {
         existingUser.name = name;
         existingUser.password = await bcrypt.hash(password, 10);
         await existingUser.save();
-        
+
         // Send verification email
         await sendVerificationEmail(email, name, verificationCode);
-        
-        const { password: _, verificationCode: vc, ...userWithoutPassword } = existingUser._doc;
-        
+
+        const {
+          password: _,
+          verificationCode: vc,
+          ...userWithoutPassword
+        } = existingUser._doc;
+
         // Calculate remaining seconds
         const now = new Date();
-        const secondsRemaining = Math.max(0, Math.floor((verificationCodeExpires - now) / 1000));
-        
+        const secondsRemaining = Math.max(
+          0,
+          Math.floor((verificationCodeExpires - now) / 1000)
+        );
+
         return res.status(200).json({
           success: true,
           message: "Verification code resent to your email!",
@@ -113,7 +120,10 @@ const registerUser = async (req, res) => {
 
     // Calculate remaining seconds
     const now = new Date();
-    const secondsRemaining = Math.max(0, Math.floor((verificationCodeExpires - now) / 1000));
+    const secondsRemaining = Math.max(
+      0,
+      Math.floor((verificationCodeExpires - now) / 1000)
+    );
 
     // Return response without setting cookie
     const {
@@ -124,7 +134,8 @@ const registerUser = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Registration successful! Please check your email for verification code.",
+      message:
+        "Registration successful! Please check your email for verification code.",
       user: userWithoutPassword,
       requiresVerification: true,
       verificationCodeExpires: verificationCodeExpires,
@@ -274,7 +285,10 @@ const resendVerificationCode = async (req, res) => {
 
     // Calculate remaining seconds
     const now = new Date();
-    const secondsRemaining = Math.max(0, Math.floor((verificationCodeExpires - now) / 1000));
+    const secondsRemaining = Math.max(
+      0,
+      Math.floor((verificationCodeExpires - now) / 1000)
+    );
 
     return res.status(200).json({
       success: true,
@@ -401,7 +415,14 @@ const getCurrentUser = async (req, res) => {
 // Logout user
 const logoutUser = async (req, res) => {
   try {
-    res.clearCookie("token");
+    // Clear the cookie
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+    });
+
     res.status(200).json({
       success: true,
       message: "Logged out successfully",

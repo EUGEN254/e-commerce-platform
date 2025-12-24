@@ -21,9 +21,7 @@ const uploadToCloudinary = async (file, folder = "ecommerce/limited-offers") => 
 // Create Limited Offer
 export const createLimitedOffer = async (req, res) => {
   try {
-    console.log("Creating limited offer...");
-    console.log("Request body:", req.body);
-    console.log("Request files:", req.files);
+    // Debug logs removed; request body/files are validated below
 
     const {
       title,

@@ -340,6 +340,7 @@ const ForgotPassword = () => {
 
   const minutes = Math.floor(countdown / 60);
   const seconds = countdown % 60;
+  
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
@@ -347,7 +348,7 @@ const ForgotPassword = () => {
         {/* Back to login */}
         <div className="mb-6">
           <Link
-            to="/"
+            onClick={()=>navigate(-1)}
             className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />

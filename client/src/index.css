@@ -64,7 +64,8 @@
   --focus-ring: rgba(79, 70, 229, 0.4);
 
   /* ============ BUTTON/CVA VARIABLES ============ */
-  --background: #ffffff;
+  /* Softer overall background to reduce harsh white */
+  --background: var(--bg-main);
   --foreground: #111827;
 
   --primary: #4f46e5;

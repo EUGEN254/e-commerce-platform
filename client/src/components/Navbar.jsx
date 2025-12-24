@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { ShoppingCart, Menu, X, User } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { ShoppingCart, Menu, X, User, Home as HomeIcon, LogIn } from "lucide-react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { useCart } from "../context/CartContext";
 import { useUser } from "../context/UserContext";
@@ -49,16 +49,31 @@ const Navbar = () => {
 
           {/* Desktop & Medium Screen Navigation */}
           <div className="hidden md:flex items-center">
-            <div className="flex space-x-4 lg:space-x-6 xl:space-x-6">
+            <div className="flex items-center space-x-4 lg:space-x-6 xl:space-x-6">
+              
               {navLinks.map((link, index) => (
-                <Link
+                <NavLink
                   key={index}
                   to={link.path}
-                  className="text-gray-700 hover:text-indigo-600 text-sm lg:text-sm font-medium relative group whitespace-nowrap"
+                  className={({ isActive }) =>
+                    `text-sm lg:text-sm font-medium relative group whitespace-nowrap ${
+                      isActive
+                        ? 'bg-indigo-50 text-indigo-600 rounded-md px-3 py-2'
+                        : 'text-gray-700 hover:text-indigo-600'
+                    }`
+                  }
                 >
-                  {link.name}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-600 transition-all duration-300 group-hover:w-full"></span>
-                </Link>
+                  {({ isActive }) => (
+                    <>
+                      {link.name}
+                      <span
+                        className={`absolute -bottom-1 left-0 h-0.5 bg-indigo-600 transition-all duration-300 ${
+                          isActive ? 'w-full' : 'w-0 group-hover:w-full'
+                        }`}
+                      />
+                    </>
+                  )}
+                </NavLink>
               ))}
             </div>
 
@@ -172,26 +187,23 @@ const Navbar = () => {
                   </div>
                 </div>
               ) : (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/create-account")}
-                  className="text-xs lg:text-sm whitespace-nowrap"
-                >
-                  <svg
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => navigate('/create-account', { state: { mode: 'signin' } })}
+                    className="hidden lg:inline-flex items-center px-3 py-2 rounded-md text-sm text-indigo-600 hover:bg-indigo-50"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                  Create Account
-                </Button>
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Sign In
+                  </button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate("/create-account", { state: { mode: 'signup' } })}
+                    className="text-xs lg:text-sm whitespace-nowrap"
+                  >
+                    Create Account
+                  </Button>
+                </div>
               )}
             </div>
           </div>

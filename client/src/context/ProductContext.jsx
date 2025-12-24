@@ -32,7 +32,6 @@ export function ProductProvider({ children }) {
     try {
       setLoading(true);
       const response = await axios.get(`${backendUrl}/api/products`);
-      console.log("here are the products", response.data.data);
       setProducts(response.data.data || []);
       setError(null);
 
@@ -197,7 +196,6 @@ export function ProductProvider({ children }) {
         const response = await axios.get(
           `${backendUrl}/api/categories/category/${category}/subcategory/${subcategory}`
         );
-        console.log(response.data.data);
         const result = response.data.data || [];
 
         // Cache the results

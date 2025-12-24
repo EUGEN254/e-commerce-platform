@@ -19,37 +19,43 @@ export function UserProvider({ children }) {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   // Check if user is logged in AND verified on mount
-  const checkAuth = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`${backendUrl}/api/auth/me`, {
-        withCredentials: true,
-      });
-
+  // In UserContext.jsx
+const checkAuth = useCallback(async () => {
+  try {
+    setLoading(true);
+    const response = await axios.get(`${backendUrl}/api/auth/me`, {
+      withCredentials: true,
+    });
+    
+    // Check if response was successful
+    if (response.status === 200) {
       const userData = response.data.user;
-
-      // CRITICAL FIX: Only set user if they are verified
+      
       if (userData && userData.isVerified) {
         setUser(userData);
-        fetchWishlist();
       } else {
-        // User exists but not verified - log them out from frontend
         setUser(null);
-        // Optionally clear session on backend too
-        await axios.post(
-          `${backendUrl}/api/auth/logout`,
-          {},
-          {
-            withCredentials: true,
-          }
-        );
       }
-    } catch (error) {
+    } else {
+      // Non-200 responses indicate user is not authenticated
       setUser(null);
-    } finally {
-      setLoading(false);
     }
-  }, [backendUrl]);
+    
+    // IMPORTANT: Set user BEFORE setting loading to false
+    // This prevents the race condition
+    setTimeout(() => {
+      setLoading(false);
+    }, 0);
+    
+  } catch (error) {
+    // Suppress 401 errors as they're expected when user is not logged in
+    if (error.response?.status !== 401) {
+      // Only log unexpected errors
+    }
+    setUser(null);
+    setLoading(false);
+  }
+}, [backendUrl]);
 
   useEffect(() => {
     checkAuth();
@@ -202,14 +208,14 @@ const logout = useCallback(async () => {
   setUser(null);
   
   try {
-    await axios.post(
+   const res = await axios.post(
       `${backendUrl}/api/auth/logout`,
       {},
       {
         withCredentials: true,
       }
     );
-    toast.success("Logged out successfully");
+    toast.success(res.data.message);
   } catch (error) {
     console.error("Logout error:", error);
     toast.error("Logout failed");

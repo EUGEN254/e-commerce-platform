@@ -24,10 +24,16 @@ import ForgotPassword from "./pages/ForgotPassword";
 const App = () => {
   const location = useLocation();
 
-  // Scroll to top when route changes
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [location.pathname]);
+  // Optionally hide navbar/footer on auth routes
+  const hideLayoutPaths = [
+    "/create-account",
+    "/reset-password",
+    "/login",
+    "/auth",
+  ];
+  const hideLayout = hideLayoutPaths.some((p) =>
+    location.pathname.startsWith(p)
+  );
 
   return (
     <div className="flex flex-col min-h-screen max-w-310 mx-auto">
@@ -40,11 +46,11 @@ const App = () => {
       />
 
       {/* App Layout */}
-      <div>
-        <Navbar />
+      <div className="flex-1 flex flex-col">
+        {!hideLayout && <Navbar />}
 
         {/* Main Content */}
-        <main>
+        <main className="flex-1">
           <Routes>
             {/* Authentication routes - No ProtectedRoute to prevent flash */}
 
@@ -68,6 +74,7 @@ const App = () => {
             {/* Main area - Public routes */}
             <Route path="/" element={<Home />} />
             <Route path="/shop" element={<Shope />} />
+            <Route path="/shop/:category" element={<Shope />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/product/:id" element={<ProductDescription />} />
@@ -100,7 +107,7 @@ const App = () => {
           </Routes>
         </main>
 
-        <Footer />
+        {!hideLayout && <Footer />}
       </div>
     </div>
   );

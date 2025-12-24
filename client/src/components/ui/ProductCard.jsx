@@ -213,7 +213,7 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
         )}
 
         {/* Quick Add Button */}
-        <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
           <Button
             onClick={handleAddToCartClick}
             className="w-full gap-2"

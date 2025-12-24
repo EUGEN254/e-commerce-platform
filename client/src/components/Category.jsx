@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   FaTshirt,
   FaLaptop,
@@ -45,6 +45,8 @@ const Categories = () => {
   const clickTimeoutRef = useRef(null);
   const lastCategoryRef = useRef("");
   const lastSubcategoryRef = useRef("");
+  const scrollDebounceRef = useRef(null);
+  const scrollTimeoutRef = useRef(null);
 
   const iconMap = {
     FaTshirt: FaTshirt,
@@ -236,13 +238,23 @@ const Categories = () => {
     return <FaTshirt />;
   }, [categories]);
 
-  const checkScrollPosition = () => {
+  const checkScrollPosition = useCallback(() => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
       setShowLeftArrow(scrollLeft > 0);
       setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
     }
-  };
+  }, []);
+
+  // Debounced scroll handler to prevent forced reflows
+  const handleScroll = useCallback(() => {
+    // Cancel pending scroll checks
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    // Schedule a new check after scroll settles (100ms)
+    scrollTimeoutRef.current = setTimeout(checkScrollPosition, 100);
+  }, [checkScrollPosition]);
 
   const scrollLeft = () => {
     if (scrollContainerRef.current) {
@@ -266,8 +278,13 @@ const Categories = () => {
     const handleResize = () => checkScrollPosition();
     window.addEventListener("resize", handleResize);
     checkScrollPosition();
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [checkScrollPosition]);
 
   // Show error state
   if (error) {
@@ -330,7 +347,7 @@ const Categories = () => {
         {/* Scrollable Categories Container */}
         <div
           ref={scrollContainerRef}
-          onScroll={checkScrollPosition}
+          onScroll={handleScroll}
           className="flex overflow-x-auto scrollbar-hide gap-3 pb-4"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
@@ -512,7 +529,7 @@ const Categories = () => {
               No products available in this category yet.
             </p>
             <button
-              onClick={clearSubcategoryFilter}
+              onClick={() => navigate("/shop")}
               className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             >
               View All Products

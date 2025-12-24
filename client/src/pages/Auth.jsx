@@ -5,7 +5,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
-import { CheckCircle2, Circle, ArrowLeft } from "lucide-react";
+import { CheckCircle2, Circle, ArrowLeft, Home as HomeIcon } from "lucide-react";
 import { useUser } from "../context/UserContext";
 
 const Auth = () => {
@@ -54,7 +54,10 @@ const Auth = () => {
 
   // Set sign up mode based on route
   useEffect(() => {
-    setIsSignUp(location.pathname === "/create-account");
+    // Priority: explicit navigation state (mode), then pathname
+    if (location.state?.mode === "signin") setIsSignUp(false);
+    else if (location.state?.mode === "signup") setIsSignUp(true);
+    else setIsSignUp(location.pathname === "/create-account");
     // Reset to step 1 when toggling auth mode
     setStep(1);
     setPendingVerificationEmail("");
@@ -142,7 +145,7 @@ const Auth = () => {
         confirmPassword: formData.confirmPassword,
       });
 
-      console.log("Register result:", result);
+      // Registration result handled via UI toasts; removed debug log
 
       if (result.success) {
         if (result.requiresVerification) {
@@ -380,10 +383,22 @@ const Auth = () => {
   const seconds = countdown % 60;
 
   return (
-    <div>
+    <div >
       <div className="container py-16">
+        {/* Back home button placed left of the auth card (outside the form) */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-primary hover:underline"
+            type="button"
+          >
+            <HomeIcon className="w-4 h-4" />
+            Back home
+          </button>
+        </div>
         <div className="max-w-md mx-auto">
           <div className="bg-card rounded-2xl p-8 card-shadow">
+
             {/* Back button for verification step */}
             {step === 2 && (
               <button

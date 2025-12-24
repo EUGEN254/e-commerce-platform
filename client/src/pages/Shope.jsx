@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Search,
   Filter,
@@ -47,9 +47,14 @@ const Shop = () => {
   // State management
   const location = useLocation();
   const navigate = useNavigate();
+  const { category: categoryParam } = useParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(() => {
-    // Check if we have category in location state
+    // Check URL params first
+    if (categoryParam) {
+      return categoryParam;
+    }
+    // Then check location state
     if (location.state?.selectedCategory) {
       return location.state.selectedCategory;
     }
@@ -148,16 +153,28 @@ const Shop = () => {
     },
   ];
 
-  // Extract unique brands from products
-  const brands = Array.from(
-    new Set(allProducts.map(product => product.brand))
-  )
-    .filter(brand => brand)
-    .map((brand, index) => ({
+  // Extract unique brands from products (memoized for performance)
+  const brands = useMemo(() => {
+    const brandMap = new Map();
+    allProducts.forEach(product => {
+      if (product.brand) {
+        brandMap.set(product.brand, (brandMap.get(product.brand) || 0) + 1);
+      }
+    });
+    return Array.from(brandMap, ([name, count], index) => ({
       id: index + 1,
-      name: brand,
-      productCount: allProducts.filter(p => p.brand === brand).length
+      name,
+      productCount: count
     }));
+  }, [allProducts]);
+
+  // Sync URL category param with selectedCategory state
+  useEffect(() => {
+    if (categoryParam && categoryParam !== selectedCategory) {
+      setSelectedCategory(categoryParam);
+      setCurrentPage(1);
+    }
+  }, [categoryParam]);
 
   // Filter products based on selected category
   useEffect(() => {
@@ -171,7 +188,6 @@ const Shop = () => {
           setProducts(categoryProducts);
           setIsSearching(false);
         } catch (error) {
-          console.error("Error fetching category products:", error);
           // Fallback to filtering from allProducts if API fails
           const filtered = allProducts.filter(
             product => product.category === selectedCategory
@@ -202,8 +218,8 @@ const Shop = () => {
         const searchResults = await searchProducts(searchQuery);
         setProducts(searchResults);
       } catch (error) {
-        console.error("Error searching products:", error);
-        // Fallback to local filtering
+        // Fallback to local filtering (moved after API attempt to minimize runtime in setTimeout)
+        setIsSearching(false);
         const filtered = allProducts.filter(product =>
           product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -213,44 +229,48 @@ const Shop = () => {
       }
     };
 
-    const debounceTimer = setTimeout(handleSearch, 500);
+    const debounceTimer = setTimeout(handleSearch, 300);
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, allProducts, selectedCategory, searchProducts]);
 
-  // Filter products based on filters
-  const filteredProducts = products.filter((product) => {
-    // Price filter
-    if (product.price < priceRange[0] || product.price > priceRange[1])
-      return false;
+  // Filter products based on filters (memoized for performance)
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      // Price filter
+      if (product.price < priceRange[0] || product.price > priceRange[1])
+        return false;
 
-    // Brand filter
-    if (selectedBrands.length > 0 && !selectedBrands.includes(product.brand))
-      return false;
+      // Brand filter
+      if (selectedBrands.length > 0 && !selectedBrands.includes(product.brand))
+        return false;
 
-    // Rating filter
-    if (selectedRating > 0 && (product.rating || 0) < selectedRating) return false;
+      // Rating filter
+      if (selectedRating > 0 && (product.rating || 0) < selectedRating) return false;
 
-    return true;
-  });
+      return true;
+    });
+  }, [products, priceRange, selectedBrands, selectedRating]);
 
-  // Sort products
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case "price-low":
-        return a.price - b.price;
-      case "price-high":
-        return b.price - a.price;
-      case "rating":
-        return (b.rating || 0) - (a.rating || 0);
-      case "newest":
-        // Assuming newer products have higher IDs or createdDate
-        return b._id.localeCompare(a._id); // Use _id as fallback
-      case "featured":
-        return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
-      default:
-        return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
-    }
-  });
+  // Sort products (memoized for performance)
+  const sortedProducts = useMemo(() => {
+    return [...filteredProducts].sort((a, b) => {
+      switch (sortBy) {
+        case "price-low":
+          return a.price - b.price;
+        case "price-high":
+          return b.price - a.price;
+        case "rating":
+          return (b.rating || 0) - (a.rating || 0);
+        case "newest":
+          // Use numeric ID comparison if available, otherwise string comparison
+          return (b.id || 0) - (a.id || 0);
+        case "featured":
+          return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
+        default:
+          return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
+      }
+    });
+  }, [filteredProducts, sortBy]);
 
   // Pagination
   const totalPages = Math.ceil(sortedProducts.length / productsPerPage);
@@ -260,8 +280,8 @@ const Shop = () => {
     startIndex + productsPerPage
   );
 
-  // Handlers
-  const toggleWishlist = (productId) => {
+  // Handlers (memoized to prevent unnecessary re-renders)
+  const toggleWishlist = useCallback((productId) => {
     setWishlist((prev) => ({
       ...prev,
       [productId]: !prev[productId],
@@ -269,17 +289,17 @@ const Shop = () => {
     toast.success(
       wishlist[productId] ? "Removed from wishlist" : "Added to wishlist"
     );
-  };
+  }, [wishlist]);
 
-  const toggleBrand = (brandName) => {
+  const toggleBrand = useCallback((brandName) => {
     setSelectedBrands((prev) =>
       prev.includes(brandName)
         ? prev.filter((b) => b !== brandName)
         : [...prev, brandName]
     );
-  };
+  }, []);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSelectedCategory("all");
     setPriceRange([0, 500]);
     setSelectedBrands([]);
@@ -287,11 +307,11 @@ const Shop = () => {
     setSearchQuery("");
     setCurrentPage(1);
     toast.success("Filters cleared");
-  };
+  }, []);
 
-  const addToCart = (product) => {
+  const addToCart = useCallback((product) => {
     toast.success(`${product.name} added to cart`);
-  };
+  }, []);
 
   const renderStars = (rating) => {
     return [...Array(5)].map((_, i) => (

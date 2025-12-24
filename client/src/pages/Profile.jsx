@@ -154,7 +154,7 @@ const Profile = () => {
   const handleSaveProfile = () => {
     setIsEditing(false);
     // Here you would typically save to backend
-    console.log("Profile saved:", userData);
+    // TODO: send `userData` to backend save endpoint
   };
 
   const renderStars = (rating) => {

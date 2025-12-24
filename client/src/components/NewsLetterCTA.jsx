@@ -35,8 +35,7 @@ const NewsletterCTA = () => {
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // In real app, you would make an API call here
-      console.log("Subscribed email:", email);
+      // In a real app, make an API call here (debug log removed)
       
       // Show success state
       setIsSubscribed(true);
