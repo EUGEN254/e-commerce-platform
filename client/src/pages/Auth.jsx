@@ -7,7 +7,6 @@ import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { CheckCircle2, Circle, ArrowLeft } from "lucide-react";
 import { useUser } from "../context/UserContext";
-import axios from "axios";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -15,11 +14,9 @@ const Auth = () => {
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const { login, user, register, verifyEmail, resendVerificationCode } =
-    useUser();
-
+  const { login, register, verifyEmail, resendVerificationCode } = useUser();
   // Step states
-  const [step, setStep] = useState(1); // 1 = register form, 2 = verification
+  const [step, setStep] = useState(1); // 1 = login/register form, 2 = verification
 
   // Form data
   const [formData, setFormData] = useState({
@@ -39,9 +36,13 @@ const Auth = () => {
     "",
   ]);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [countdown, setCountdown] = useState(900); // 15 minutes
-  const [canResend, setCanResend] = useState(false);
+  const [countdown, setCountdown] = useState(0); // Start at 0
+  const [canResend, setCanResend] = useState(true); // Start as true
+  const [expirationTime, setExpirationTime] = useState(null);
   const otpRefs = useRef([]);
+
+  // Track if we need verification after login attempt
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
 
   const [passwordValidation, setPasswordValidation] = useState({
     minLength: false,
@@ -56,32 +57,36 @@ const Auth = () => {
     setIsSignUp(location.pathname === "/create-account");
     // Reset to step 1 when toggling auth mode
     setStep(1);
+    setPendingVerificationEmail("");
   }, [location.pathname]);
-
-  // Redirect if user exists and is verified
-  useEffect(() => {
-    if (user && user.isVerified) {
-      navigate("/", { replace: true });
-    }
-  }, [user, navigate]);
 
   // Countdown timer for verification code
   useEffect(() => {
     if (step !== 2) return;
 
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setCanResend(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    let timer;
 
-    return () => clearInterval(timer);
-  }, [step]);
+    if (countdown > 0) {
+      setCanResend(false);
+
+      timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      setCanResend(true);
+    }
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [step, countdown]); // Add countdown to dependencies
 
   // OTP input handling
   const handleOtpInput = (e, index) => {
@@ -137,16 +142,55 @@ const Auth = () => {
         confirmPassword: formData.confirmPassword,
       });
 
+      console.log("Register result:", result);
+
       if (result.success) {
         if (result.requiresVerification) {
-          setStep(2); // Move to verification step
-          toast.success("Verification code sent to your email!");
+          // Save the email for verification
+          setPendingVerificationEmail(result.email || formData.email);
+          setStep(2);
+
+          // Set countdown from backend response
+          if (result.countdown !== undefined) {
+            setCountdown(result.countdown);
+            setCanResend(result.countdown <= 0);
+          } else if (result.verificationCodeExpires) {
+            // Calculate from expiration time
+            const expires = new Date(result.verificationCodeExpires);
+            const now = new Date();
+            const secondsRemaining = Math.max(
+              0,
+              Math.floor((expires - now) / 1000)
+            );
+            setCountdown(secondsRemaining);
+            setCanResend(secondsRemaining <= 0);
+            setExpirationTime(expires);
+          }
+
+          // Check if this is a resend vs new registration
+          if (result.message?.includes("resent")) {
+            toast.info(
+              "Account already exists but not verified. Verification code resent!"
+            );
+          } else {
+            toast.success("Verification code sent to your email!");
+          }
         } else {
           toast.success("Account created successfully!");
           navigate("/", { replace: true });
         }
       } else {
-        toast.error(result.message || "Registration failed");
+        // Handle "Email already exists and is verified" case
+        if (result.message?.includes("already exists and is verified")) {
+          toast.error("Email already registered. Please login instead.");
+          setIsSignUp(false);
+          setFormData({
+            ...formData,
+            name: "",
+          });
+        } else {
+          toast.error(result.message || "Registration failed");
+        }
       }
     } catch (error) {
       console.error("Registration error:", error);
@@ -156,7 +200,7 @@ const Auth = () => {
     }
   };
 
-  // Step 1: Login
+  // Step 1: Login - WITH VERIFICATION CHECK
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -168,7 +212,15 @@ const Auth = () => {
         toast.success("Signed in successfully!");
         navigate("/", { replace: true });
       } else {
-        toast.error(result.message || "Login failed");
+        // Check if we need to verify email
+        if (result.requiresVerification) {
+          setPendingVerificationEmail(formData.email);
+          setStep(2);
+          toast.error("Please verify your email first");
+          toast.info("If you didn't receive a code, click 'Resend Code'");
+        } else {
+          toast.error(result.message || "Login failed");
+        }
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -187,7 +239,7 @@ const Auth = () => {
     }
   };
 
-  // Step 2: Verify Email (using UserContext)
+  // Step 2: Verify Email
   const handleVerifyEmail = async () => {
     const code = verificationCode.join("");
 
@@ -198,10 +250,12 @@ const Auth = () => {
 
     setIsVerifying(true);
     try {
-      const result = await verifyEmail(formData.email, code);
+      // Use the pending verification email or the form email
+      const emailToVerify = pendingVerificationEmail || formData.email;
+      const result = await verifyEmail(emailToVerify, code);
 
       if (result.success) {
-        toast.success("Account created successfully!");
+        toast.success("Email verified successfully!");
         navigate("/", { replace: true });
       } else {
         toast.error(result.message || "Verification failed");
@@ -214,18 +268,34 @@ const Auth = () => {
     }
   };
 
-  // Resend verification code (using UserContext)
+  // Resend verification code
   const handleResendVerificationCode = async () => {
     setIsVerifying(true);
     try {
-      const result = await resendVerificationCode(formData.email);
+      const emailToResend = pendingVerificationEmail || formData.email;
+      const result = await resendVerificationCode(emailToResend);
 
       if (result.success) {
         toast.success("New verification code sent!");
-        setCountdown(900); // Reset to 15 minutes
-        setCanResend(false);
         setVerificationCode(["", "", "", "", "", ""]);
-        // Clear all OTP inputs
+
+        // Update countdown from backend response
+        if (result.countdown !== undefined) {
+          setCountdown(result.countdown);
+          setCanResend(result.countdown <= 0);
+        } else if (result.verificationCodeExpires) {
+          const expires = new Date(result.verificationCodeExpires);
+          const now = new Date();
+          const secondsRemaining = Math.max(
+            0,
+            Math.floor((expires - now) / 1000)
+          );
+          setCountdown(secondsRemaining);
+          setCanResend(secondsRemaining <= 0);
+          setExpirationTime(expires);
+        }
+
+        // Clear OTP inputs
         otpRefs.current.forEach((ref) => {
           if (ref) ref.value = "";
         });
@@ -241,9 +311,13 @@ const Auth = () => {
   };
 
   // Go back to registration form
-  const handleBackToRegister = () => {
+  const handleBackToAuth = () => {
     setStep(1);
     setVerificationCode(["", "", "", "", "", ""]);
+    setPendingVerificationEmail("");
+    setCountdown(0); // Reset timer
+    setCanResend(true); // Allow resend
+
     // Clear all OTP inputs
     otpRefs.current.forEach((ref) => {
       if (ref) ref.value = "";
@@ -278,6 +352,7 @@ const Auth = () => {
   const toggleAuthMode = () => {
     setIsSignUp(!isSignUp);
     setStep(1); // Reset to step 1
+    setPendingVerificationEmail("");
     setFormData({
       name: "",
       email: "",
@@ -312,11 +387,11 @@ const Auth = () => {
             {/* Back button for verification step */}
             {step === 2 && (
               <button
-                onClick={handleBackToRegister}
+                onClick={handleBackToAuth}
                 className="flex items-center gap-2 text-primary hover:underline mb-6"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to registration
+                Back to {pendingVerificationEmail ? "Login" : "Registration"}
               </button>
             )}
 
@@ -330,7 +405,9 @@ const Auth = () => {
               </h1>
               <p className="text-muted-foreground">
                 {step === 2
-                  ? "Enter the 6-digit code sent to your email"
+                  ? `Enter the 6-digit code sent to your email ${
+                      pendingVerificationEmail || formData.email
+                    }`
                   : isSignUp
                   ? "Sign up to get started"
                   : "Sign in to your account"}
@@ -512,13 +589,6 @@ const Auth = () => {
             {/* Step 2: Verification Form */}
             {step === 2 && (
               <div className="space-y-6">
-                <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Enter the 6-digit code sent to <br />
-                    <span className="font-semibold">{formData.email}</span>
-                  </p>
-                </div>
-
                 {/* OTP Inputs */}
                 <div
                   className="flex justify-center space-x-2 mb-6"
@@ -552,8 +622,10 @@ const Auth = () => {
                   <p className="text-sm text-gray-600">
                     Code expires in:{" "}
                     <span className="font-semibold">
-                      {minutes.toString().padStart(2, "0")}:
-                      {seconds.toString().padStart(2, "0")}
+                      {Math.floor(countdown / 60)
+                        .toString()
+                        .padStart(2, "0")}
+                      :{(countdown % 60).toString().padStart(2, "0")}
                     </span>
                   </p>
                 </div>
@@ -579,7 +651,9 @@ const Auth = () => {
                   >
                     {canResend
                       ? "Resend Code"
-                      : `Resend available in ${minutes}:${seconds
+                      : `Resend available in ${Math.floor(countdown / 60)}:${(
+                          countdown % 60
+                        )
                           .toString()
                           .padStart(2, "0")}`}
                   </Button>

@@ -8,7 +8,10 @@ import {
   sendVerificationEmail,
 } from "../utils/emailService.js";
 import PasswordReset from "../models/PasswordReset.js";
-import { incrementFailedAttempts, resetAttempts } from "../middleware/otpAttemptsMiddleware.js";
+import {
+  incrementFailedAttempts,
+  resetAttempts,
+} from "../middleware/otpAttemptsMiddleware.js";
 
 const registerUser = async (req, res) => {
   try {
@@ -42,11 +45,48 @@ const registerUser = async (req, res) => {
 
     // check if user already exists
     const existingUser = await User.findOne({ email });
+    
+    // If user exists but is not verified, resend verification
     if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already exists",
-      });
+      if (!existingUser.isVerified) {
+        // Generate new verification code
+        const verificationCode = Math.floor(
+          100000 + Math.random() * 900000
+        ).toString();
+        const verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000);
+        
+        // Update existing user with new verification code
+        existingUser.verificationCode = verificationCode;
+        existingUser.verificationCodeExpires = verificationCodeExpires;
+        existingUser.verificationAttempts = 0;
+        existingUser.name = name;
+        existingUser.password = await bcrypt.hash(password, 10);
+        await existingUser.save();
+        
+        // Send verification email
+        await sendVerificationEmail(email, name, verificationCode);
+        
+        const { password: _, verificationCode: vc, ...userWithoutPassword } = existingUser._doc;
+        
+        // Calculate remaining seconds
+        const now = new Date();
+        const secondsRemaining = Math.max(0, Math.floor((verificationCodeExpires - now) / 1000));
+        
+        return res.status(200).json({
+          success: true,
+          message: "Verification code resent to your email!",
+          user: userWithoutPassword,
+          requiresVerification: true,
+          verificationCodeExpires: verificationCodeExpires,
+          countdown: secondsRemaining,
+        });
+      } else {
+        // User exists AND is verified
+        return res.status(400).json({
+          success: false,
+          message: "Email already exists and is verified",
+        });
+      }
     }
 
     // hash password
@@ -56,7 +96,7 @@ const registerUser = async (req, res) => {
     const verificationCode = Math.floor(
       100000 + Math.random() * 900000
     ).toString();
-    const verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    const verificationCodeExpires = new Date(Date.now() + 15 * 60 * 1000);
 
     // create new user (not verified yet)
     const user = await User.create({
@@ -71,7 +111,11 @@ const registerUser = async (req, res) => {
     // Send verification email
     await sendVerificationEmail(email, name, verificationCode);
 
-    // Return response without setting cookie (user not verified yet)
+    // Calculate remaining seconds
+    const now = new Date();
+    const secondsRemaining = Math.max(0, Math.floor((verificationCodeExpires - now) / 1000));
+
+    // Return response without setting cookie
     const {
       password: _,
       verificationCode: vc,
@@ -80,10 +124,11 @@ const registerUser = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message:
-        "Registration successful! Please check your email for verification code.",
+      message: "Registration successful! Please check your email for verification code.",
       user: userWithoutPassword,
       requiresVerification: true,
+      verificationCodeExpires: verificationCodeExpires,
+      countdown: secondsRemaining,
     });
   } catch (error) {
     console.error("Register Error", error);
@@ -227,9 +272,15 @@ const resendVerificationCode = async (req, res) => {
     // Send new verification email
     await sendVerificationEmail(email, user.name, verificationCode);
 
+    // Calculate remaining seconds
+    const now = new Date();
+    const secondsRemaining = Math.max(0, Math.floor((verificationCodeExpires - now) / 1000));
+
     return res.status(200).json({
       success: true,
       message: "New verification code sent to your email",
+      verificationCodeExpires: verificationCodeExpires,
+      countdown: secondsRemaining,
     });
   } catch (error) {
     console.error("Resend Verification Error", error);

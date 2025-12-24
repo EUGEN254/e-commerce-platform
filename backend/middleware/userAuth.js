@@ -13,10 +13,21 @@ const userAuth = async (req, res, next) => {
 
     const decode = jwt.verify(token, process.env.JWT_SECRET);
 
+    // Check if token has required fields
     if (!decode.id) {
       return res.status(401).json({
         success: false,
         message: "Invalid token",
+      });
+    }
+
+    // Check if token indicates user is verified
+    if (decode.isVerified === false) {
+      res.clearCookie("token");
+      return res.status(403).json({
+        success: false,
+        message: "Please verify your email",
+        requiresVerification: true
       });
     }
 
@@ -29,15 +40,26 @@ const userAuth = async (req, res, next) => {
       });
     }
 
+    // Double check user is verified in database
+    if (!user.isVerified) {
+      res.clearCookie("token");
+      return res.status(403).json({
+        success: false,
+        message: "Please verify your email to access your account",
+        requiresVerification: true,
+        email: user.email
+      });
+    }
+
     req.user = user;
     next();
   } catch (error) {
+    res.clearCookie("token");
     return res.status(401).json({
       success: false,
       message: error.message || "Not Authorised",
     });
   }
 };
-
 
 export default userAuth;

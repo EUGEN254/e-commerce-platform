@@ -30,15 +30,21 @@ const Categories = () => {
     error,
     getProductsByCategory,
     getProductsBySubcategory,
-    
+    preloadCategory,
   } = useProducts();
 
   const [selectedCategory, setSelectedCategory] = useState("fashion");
   const [selectedSubcategory, setSelectedSubcategory] = useState("All");
   const [displayProducts, setDisplayProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const scrollContainerRef = useRef(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+  
+  // Debounce and caching refs
+  const clickTimeoutRef = useRef(null);
+  const lastCategoryRef = useRef("");
+  const lastSubcategoryRef = useRef("");
 
   const iconMap = {
     FaTshirt: FaTshirt,
@@ -53,11 +59,23 @@ const Categories = () => {
     FaBook: FaBook,
   };
 
-  // Optimized product loading function
+  // Optimized product loading with cache check
   const loadProducts = useCallback(async () => {
     if (!selectedCategory) return;
     
+    // Check if we already have the same selection
+    if (selectedCategory === lastCategoryRef.current && 
+        selectedSubcategory === lastSubcategoryRef.current &&
+        displayProducts.length > 0) {
+      return; // Skip if same selection
+    }
+    
+    // Update refs
+    lastCategoryRef.current = selectedCategory;
+    lastSubcategoryRef.current = selectedSubcategory;
+    
     try {
+      setLoadingProducts(true);
       let filteredProducts = [];
       
       // CASE 1: Specific subcategory selected
@@ -65,20 +83,11 @@ const Categories = () => {
         filteredProducts = await getProductsBySubcategory(
           selectedCategory, 
           selectedSubcategory
-          
         );
       }
       // CASE 2: Category selected (no specific subcategory)
       else {
-        // First check if we have enough products in context
-        const contextProducts = products.filter(
-          (product) => product.category === selectedCategory
-        );
-        
-        // Use context products if we have at least 4, otherwise fetch fresh
-        filteredProducts = contextProducts.length >= 4 
-          ? contextProducts 
-          : await getProductsByCategory(selectedCategory);
+        filteredProducts = await getProductsByCategory(selectedCategory);
       }
       
       // Transform the data for ProductCard
@@ -111,7 +120,8 @@ const Categories = () => {
       console.error("Error loading products:", error);
       // Fallback to products in context
       const fallbackProducts = products.filter(
-        (product) => product.category === selectedCategory
+        (product) => product.category === selectedCategory &&
+                   (selectedSubcategory === "All" || product.subcategory === selectedSubcategory)
       );
       
       const transformedFallback = fallbackProducts
@@ -139,31 +149,77 @@ const Categories = () => {
         }));
       
       setDisplayProducts(transformedFallback);
+    } finally {
+      setLoadingProducts(false);
     }
   }, [selectedCategory, selectedSubcategory, products, getProductsBySubcategory, getProductsByCategory]);
+
+  // Debounced category click handler
+  const handleCategoryClick = useCallback((categoryId) => {
+    if (categoryId === selectedCategory) return; // Skip if already selected
+    
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+    
+    clickTimeoutRef.current = setTimeout(() => {
+      setSelectedCategory(categoryId);
+      setSelectedSubcategory("All");
+      // Don't clear products immediately - show loading state instead
+    }, 150); // 150ms debounce
+  }, [selectedCategory]);
+
+  // Debounced subcategory click handler
+  const handleSubcategoryClick = useCallback((subcategory) => {
+    if (subcategory === selectedSubcategory) return; // Skip if already selected
+    
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+    
+    clickTimeoutRef.current = setTimeout(() => {
+      setSelectedSubcategory(subcategory);
+    }, 150);
+  }, [selectedSubcategory]);
+
+  // Clear subcategory filter
+  const clearSubcategoryFilter = useCallback(() => {
+    setSelectedSubcategory("All");
+  }, []);
+
+  // Preload next category on hover
+  const handleCategoryHover = useCallback((categoryId) => {
+    if (categoryId !== selectedCategory) {
+      // Preload the category data in background
+      preloadCategory(categoryId);
+    }
+  }, [selectedCategory, preloadCategory]);
 
   // Load products when category or subcategory changes
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
 
-  // Handle category click
-  const handleCategoryClick = useCallback((categoryId) => {
-    setSelectedCategory(categoryId);
-    setSelectedSubcategory("All");
-    setDisplayProducts([]); // Clear products for immediate feedback
-  }, []);
+  // Preload first few categories on initial mount
+  useEffect(() => {
+    if (categories.length > 0) {
+      // Preload first 3 categories for instant switching
+      const firstThreeCategories = categories.slice(0, 3);
+      firstThreeCategories.forEach(cat => {
+        if (cat.id !== selectedCategory) {
+          preloadCategory(cat.id);
+        }
+      });
+    }
+  }, [categories, selectedCategory, preloadCategory]);
 
-  // Handle subcategory click
-  const handleSubcategoryClick = useCallback((subcategory) => {
-    setSelectedSubcategory(subcategory);
-    setDisplayProducts([]); // Clear products for immediate feedback
-  }, []);
-
-  // Clear subcategory filter
-  const clearSubcategoryFilter = useCallback(() => {
-    setSelectedSubcategory("All");
-    setDisplayProducts([]); // Clear products for immediate feedback
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+    };
   }, []);
 
   const getCategoryDisplayName = useCallback((categoryId) => {
@@ -233,7 +289,7 @@ const Categories = () => {
     );
   }
 
-  const isLoading = initialLoading || displayProducts.length === 0;
+  const isLoading = initialLoading || loadingProducts;
 
   return (
     <div className="mt-10 px-5 lg:px-5">
@@ -282,9 +338,10 @@ const Categories = () => {
             <div
               key={cat.id}
               onClick={() => handleCategoryClick(cat.id)}
+              onMouseEnter={() => handleCategoryHover(cat.id)}
               className={`shrink-0 w-32 md:w-36 group relative cursor-pointer p-4 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 hover:shadow-xl border-2 ${
                 selectedCategory === cat.id
-                  ? "border-indigo-500 bg-linear-to-b from-indigo-50 to-white"
+                  ? "border-indigo-500 bg-gradient-to-b from-indigo-50 to-white"
                   : "border-gray-100 bg-white hover:border-gray-200"
               }`}
             >
@@ -318,6 +375,13 @@ const Categories = () => {
                 <span className="text-xs text-gray-500 mt-1 text-center">
                   {cat.totalProducts} items
                 </span>
+              )}
+
+              {/* Loading indicator for selected category */}
+              {selectedCategory === cat.id && isLoading && (
+                <div className="absolute inset-0 bg-white/70 rounded-2xl flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                </div>
               )}
 
               <div
@@ -356,7 +420,7 @@ const Categories = () => {
                     <span>{selectedSubcategory}</span>
                     <button
                       onClick={clearSubcategoryFilter}
-                      className="hover:text-indigo-900"
+                      className="hover:text-indigo-900 transition-colors"
                       aria-label="Clear filter"
                     >
                       <FaTimes className="w-3 h-3" />
@@ -367,7 +431,7 @@ const Categories = () => {
 
               <button
                 onClick={() => navigate(`/shop/${selectedCategory}`)}
-                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
               >
                 View all
               </button>
@@ -421,7 +485,7 @@ const Categories = () => {
               )}
             </h2>
             <p className="text-gray-600 mt-1">
-              {displayProducts.length}{" "}
+              {!isLoading ? `${displayProducts.length} ` : ""}
               {selectedSubcategory !== "All"
                 ? selectedSubcategory.toLowerCase()
                 : "handpicked"}{" "}
@@ -449,7 +513,7 @@ const Categories = () => {
             </p>
             <button
               onClick={clearSubcategoryFilter}
-              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             >
               View All Products
             </button>

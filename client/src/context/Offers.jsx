@@ -17,13 +17,14 @@ export const OfferProvider = ({ children }) => {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
     endingSoon: 0,
     featured: 0,
   });
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+ 
 
 
   // Fetch all offers
@@ -262,10 +263,3 @@ export const OfferProvider = ({ children }) => {
 };
 
 
-export function useOffer() {
-  const context = useContext(OfferContext);
-  if (context === undefined) {
-    throw new Error("useOffer must be used within a CartProvider");
-  }
-  return context;
-}

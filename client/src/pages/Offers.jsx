@@ -62,7 +62,7 @@ const OfferCard = ({ offer, onClick, onShopNow, viewMode = "grid" }) => {
 
           {/* Featured Badge */}
           {offer.isFeatured && (
-            <div className="absolute top-4 left-4 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
+            <div className="absolute top-4 left-4 bg-linear-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1">
               <Star className="h-3 w-3" />
               Featured
             </div>

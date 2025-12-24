@@ -1,4 +1,4 @@
-// contexts/UserContext.jsx
+// contexts/UserContext.jsx - FIXED VERSION
 import React, {
   createContext,
   useContext,
@@ -18,22 +18,31 @@ export function UserProvider({ children }) {
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  // Check if user is logged in on mount
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
+  // Check if user is logged in AND verified on mount
   const checkAuth = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${backendUrl}/api/auth/me`, {
         withCredentials: true,
       });
-      setUser(response.data.user);
 
-      // Fetch wishlist if user is logged in
-      if (response.data.user) {
+      const userData = response.data.user;
+
+      // CRITICAL FIX: Only set user if they are verified
+      if (userData && userData.isVerified) {
+        setUser(userData);
         fetchWishlist();
+      } else {
+        // User exists but not verified - log them out from frontend
+        setUser(null);
+        // Optionally clear session on backend too
+        await axios.post(
+          `${backendUrl}/api/auth/logout`,
+          {},
+          {
+            withCredentials: true,
+          }
+        );
       }
     } catch (error) {
       setUser(null);
@@ -42,56 +51,83 @@ export function UserProvider({ children }) {
     }
   }, [backendUrl]);
 
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
   const login = useCallback(
-    async (email, password, rememberMe = false) => {
-      try {
-        const response = await axios.post(
-          `${backendUrl}/api/auth/login`,
-          { email, password, rememberMe },
-          { withCredentials: true }
-        );
-        setUser(response.data.user);
+  async (email, password, rememberMe = false) => {
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/auth/login`,
+        { email, password, rememberMe },
+        { withCredentials: true }
+      );
+
+      const data = response.data;
+
+      if (data.success) {
+        setUser(data.user);
         return { success: true };
-      } catch (error) {
+      } else {
+        // Return the backend's response directly
         return {
           success: false,
-          message: error.response?.data?.message || "Login failed",
+          message: data.message,
+          requiresVerification: data.requiresVerification || false,
+          email: data.email
         };
       }
-    },
-    [backendUrl]
-  );
+    } catch (error) {
+      // Handle 403 error specifically
+      if (error.response?.status === 403) {
+        return {
+          success: false,
+          message: error.response.data.message,
+          requiresVerification: error.response.data.requiresVerification || false,
+          email: error.response.data.email
+        };
+      }
+      
+      return {
+        success: false,
+        message: error.response?.data?.message || "Login failed",
+        requiresVerification: false,
+      };
+    }
+  },
+  [backendUrl]
+);
 
   const register = useCallback(
-    async (userData) => {
-      try {
-        const response = await axios.post(
-          `${backendUrl}/api/auth/register`,
-          userData,
-          { withCredentials: true }
-        );
-        
-        const data = response.data;
-        
-        // Don't set user yet if verification is required
-        return {
-          success: data.success,
-          requiresVerification: data.requiresVerification || false,
-          message: data.message,
-          user: data.user
-        };
-        
-      } catch (error) {
-        return {
-          success: false,
-          message: error.response?.data?.message || "Registration failed",
-          requiresVerification: false
-        };
-      }
-    },
-    [backendUrl]
-  );
+  async (userData) => {
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/auth/register`,
+        userData,
+        { withCredentials: true }
+      );
 
+      const data = response.data;
+
+      return {
+        success: data.success,
+        requiresVerification: data.requiresVerification || false,
+        message: data.message,
+        email: data.email || userData.email,
+        verificationCodeExpires: data.verificationCodeExpires, 
+        countdown: data.countdown, 
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Registration failed",
+        requiresVerification: false,
+      };
+    }
+  },
+  [backendUrl]
+);
   const verifyEmail = useCallback(
     async (email, verificationCode) => {
       try {
@@ -103,20 +139,27 @@ export function UserProvider({ children }) {
 
         const data = response.data;
 
-        if (data.success) {
-          setUser(data.user); // Set user after successful verification
+        if (data.success && data.user && data.user.isVerified) {
+          // NOW we can set the user
+          setUser(data.user);
+          return {
+            success: true,
+            message: data.message || "Email verified successfully!",
+            user: data.user,
+          };
+        } else {
+          return {
+            success: false,
+            message: "Verification failed - user not verified",
+          };
         }
-
-        return {
-          success: data.success,
-          message: data.message || "Verification failed",
-          user: data.user
-        };
       } catch (error) {
         console.error("Verification error:", error);
         return {
           success: false,
-          message: error.response?.data?.message || "An error occurred during verification"
+          message:
+            error.response?.data?.message ||
+            "An error occurred during verification",
         };
       }
     },
@@ -124,42 +167,46 @@ export function UserProvider({ children }) {
   );
 
   const resendVerificationCode = useCallback(
-    async (email) => {
-      try {
-        const response = await axios.post(
-          `${backendUrl}/api/auth/resend-verification`,
-          { email },
-          { withCredentials: true }
-        );
+  async (email) => {
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/auth/resend-verification`,
+        { email },
+        { withCredentials: true }
+      );
 
-        const data = response.data;
+      const data = response.data;
 
-        return {
-          success: data.success,
-          message: data.message || "Failed to resend verification code"
-        };
-      } catch (error) {
-        console.error("Resend error:", error);
-        return {
-          success: false,
-          message: error.response?.data?.message || "An error occurred. Please try again."
-        };
-      }
-    },
-    [backendUrl]
-  );
+      return {
+        success: data.success,
+        message: data.message || "Failed to resend verification code",
+        verificationCodeExpires: data.verificationCodeExpires, // ADD THIS
+        countdown: data.countdown, // ADD THIS
+      };
+    } catch (error) {
+      console.error("Resend error:", error);
+      return {
+        success: false,
+        message:
+          error.response?.data?.message ||
+          "An error occurred. Please try again.",
+      };
+    }
+  },
+  [backendUrl]
+);
 
   const logout = useCallback(async () => {
     try {
-    const res =  await axios.post(
+      const res = await axios.post(
         `${backendUrl}/api/auth/logout`,
         {},
         {
           withCredentials: true,
         }
       );
-      if(res.data.success){
-        toast.success(res.data.message)
+      if (res.data.success) {
+        toast.success(res.data.message);
       }
     } catch (error) {
       console.error("Logout error:", error);
@@ -212,7 +259,7 @@ export function UserProvider({ children }) {
         backendUrl,
         toggleWishlist,
         checkAuth,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user && user.isVerified,
       }}
     >
       {children}
