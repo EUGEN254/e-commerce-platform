@@ -35,7 +35,7 @@ const OfferDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getOfferById, trackOfferClick, loading } = useOffers();
-  const { addToCart } = useCart();
+  const { addToCart ,currSymbol} = useCart();
   const [offer, setOffer] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -264,15 +264,15 @@ const OfferDetails = () => {
             <div className="space-y-3">
               <div className="flex items-baseline gap-3">
                 <span className="text-4xl font-bold text-gray-900">
-                  ${offer.offerPrice?.toFixed(2) || "0.00"}
+                  {currSymbol}{offer.offerPrice?.toFixed(2) || "0.00"}
                 </span>
                 {offer.originalPrice && (
                   <>
                     <span className="text-2xl text-gray-500 line-through">
-                      ${offer.originalPrice?.toFixed(2)}
+                      {currSymbol}{offer.originalPrice?.toFixed(2)}
                     </span>
                     <span className="text-lg font-bold text-red-600">
-                      Save ${savings.toFixed(2)}
+                      Save {currSymbol}{savings.toFixed(2)}
                     </span>
                   </>
                 )}

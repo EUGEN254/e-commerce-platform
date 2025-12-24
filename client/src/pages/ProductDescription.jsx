@@ -26,7 +26,7 @@ const ProductDescription = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { products, getProductById } = useProducts();
-  const { addToCart } = useCart();
+  const { addToCart,currSymbol } = useCart();
 
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -622,16 +622,16 @@ const ProductDescription = () => {
                 <div className="mb-6">
                   <div className="flex items-baseline gap-3">
                     <span className="text-3xl font-bold text-gray-800">
-                      ${product.price?.toFixed(2) || "0.00"}
+                      {currSymbol}{product.price?.toFixed(2) || "0.00"}
                     </span>
                     {product.originalPrice &&
                       product.originalPrice > product.price && (
                         <>
                           <span className="text-xl text-gray-500 line-through">
-                            ${product.originalPrice.toFixed(2)}
+                            {currSymbol}{product.originalPrice.toFixed(2)}
                           </span>
                           <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-sm font-bold">
-                            Save $
+                            Save {currSymbol}
                             {(product.originalPrice - product.price).toFixed(2)}
                           </span>
                         </>
@@ -746,7 +746,7 @@ const ProductDescription = () => {
                     >
                       <FaShoppingCart className="w-5 h-5" />
                       {product.inStock
-                        ? `Add to Cart - $${(
+                        ? `Add to Cart - ${currSymbol}${(
                             (product.price || 0) * quantity
                           ).toFixed(2)}`
                         : "Out of Stock"}
@@ -1091,7 +1091,7 @@ const ProductDescription = () => {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-lg font-bold text-gray-800">
-                          ${relatedProduct.price?.toFixed(2) || "0.00"}
+                          {currSymbol}{relatedProduct.price?.toFixed(2) || "0.00"}
                         </span>
                         <button className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
                           <FaShoppingCart className="w-5 h-5" />

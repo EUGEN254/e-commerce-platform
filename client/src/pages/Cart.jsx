@@ -17,7 +17,7 @@ import { Badge } from "../components/ui/badge";
 import truncateToThreeWords from "../utils/truncateToThreeWords.js";
 
 export function Cart() {
-  const { cart, removeFromCart, updateQuantity, clearCart, getCartTotal } =
+  const { cart, removeFromCart, updateQuantity, clearCart, getCartTotal,currSymbol } =
     useCart();
   const navigate = useNavigate();
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -190,12 +190,12 @@ export function Cart() {
                           {/* Price - Mobile layout */}
                           <div className="flex items-center gap-2 mt-2">
                             <span className="font-bold text-base sm:text-lg">
-                              ${(item.price || 0).toFixed(2)}
+                              {currSymbol}{(item.price || 0).toFixed(2)}
                             </span>
                             {item.originalPrice &&
                               item.originalPrice > item.price && (
                                 <span className="text-xs sm:text-sm text-muted-foreground line-through">
-                                  ${(item.originalPrice || 0).toFixed(2)}
+                                  {currSymbol}{(item.originalPrice || 0).toFixed(2)}
                                 </span>
                               )}
                           </div>
@@ -289,7 +289,7 @@ export function Cart() {
                         {/* Subtotal & Remove */}
                         <div className="ml-4 md:ml-6 text-right flex-shrink-0 min-w-[100px]">
                           <p className="font-bold text-base md:text-lg">
-                            ${((item.price || 0) * item.quantity).toFixed(2)}
+                            {currSymbol} {((item.price || 0) * item.quantity).toFixed(2)}
                           </p>
                           <Button
                             variant="ghost"
@@ -320,7 +320,7 @@ export function Cart() {
                               Subtotal:
                             </p>
                             <p className="font-bold">
-                              ${((item.price || 0) * item.quantity).toFixed(2)}
+                              {currSymbol}{((item.price || 0) * item.quantity).toFixed(2)}
                             </p>
                           </div>
                         </div>
@@ -345,7 +345,7 @@ export function Cart() {
                     Items ({itemCount})
                   </span>
                   <span className="font-medium">
-                    ${getCartTotal().subtotal.toFixed(2)}
+                    {currSymbol}{getCartTotal().subtotal.toFixed(2)}
                   </span>
                 </div>
 
@@ -354,20 +354,20 @@ export function Cart() {
                   <span className="font-medium">
                     {getCartTotal().shipping === 0
                       ? "Free"
-                      : `$${getCartTotal().shipping.toFixed(2)}`}
+                      : `${currSymbol} ${getCartTotal().shipping.toFixed(2)}`}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-sm sm:text-base">
                   <span className="text-muted-foreground">Tax</span>
                   <span className="font-medium">
-                    ${getCartTotal().tax.toFixed(2)}
+                    {currSymbol}{getCartTotal().tax.toFixed(2)}
                   </span>
                 </div>
 
                 <div className="border-t pt-3 mt-3 flex justify-between font-bold text-base sm:text-lg">
                   <span>Total</span>
-                  <span>${getCartTotal().total.toFixed(2)}</span>
+                  <span>{currSymbol}{getCartTotal().total.toFixed(2)}</span>
                 </div>
               </div>
 

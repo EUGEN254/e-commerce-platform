@@ -68,10 +68,17 @@ const Navbar = () => {
                 onClick={() => navigate("/cart")}
                 className="relative flex items-center gap-2 lg:gap-3 p-2 rounded-lg transition-all duration-200 hover:bg-amber-100 hover:shadow-md"
               >
-                <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-1 right-19 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                  {totalItems > 99 ? "99+" : totalItems}
-                </span>
+                <div className="relative">
+                  <ShoppingCart className="w-5 h-5" />
+                  <span
+                    className="absolute -top-2 -right-2 
+                     min-[768px]:-top-2 min-[768px]:-right-1
+                     min-[832px]:-top-3 min-[832px]:-right-2
+                     bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full"
+                  >
+                    {totalItems > 99 ? "99+" : totalItems}
+                  </span>
+                </div>
                 <span className="hidden lg:inline text-sm">View Cart</span>
               </button>
               {user ? (

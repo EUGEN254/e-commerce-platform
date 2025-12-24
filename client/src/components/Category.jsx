@@ -30,6 +30,7 @@ const Categories = () => {
     error,
     getProductsByCategory,
     getProductsBySubcategory,
+    
   } = useProducts();
 
   const [selectedCategory, setSelectedCategory] = useState("fashion");

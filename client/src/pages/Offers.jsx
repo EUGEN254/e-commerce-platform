@@ -36,6 +36,7 @@ import { useCart } from "../context/CartContext";
 
 // Offer Card Component
 const OfferCard = ({ offer, onClick, onShopNow, viewMode = "grid" }) => {
+  const{currSymbol} = useCart()
   if (viewMode === "grid") {
     return (
       <div className="group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-200 overflow-hidden cursor-pointer">
@@ -100,12 +101,12 @@ const OfferCard = ({ offer, onClick, onShopNow, viewMode = "grid" }) => {
             {/* Price */}
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-2xl font-bold text-gray-900">
-                  ${offer.offerPrice?.toFixed(2) || "0.00"}
+                <span className="text-xl font-bold text-gray-900">
+                  {currSymbol} {offer.offerPrice?.toFixed(2) || "0.00"}
                 </span>
                 {offer.originalPrice && (
                   <span className="ml-2 text-sm text-gray-500 line-through">
-                    ${offer.originalPrice?.toFixed(2)}
+                     {currSymbol} {offer.originalPrice?.toFixed(2)}
                   </span>
                 )}
               </div>
@@ -299,6 +300,7 @@ const OfferCard = ({ offer, onClick, onShopNow, viewMode = "grid" }) => {
 // Offer Modal Component
 const OfferModal = ({ offer, onClose, onShopNow }) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const{currSymbol} = useCart()
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -342,9 +344,9 @@ const OfferModal = ({ offer, onClose, onShopNow }) => {
                   )} text-white text-sm font-bold px-4 py-2 rounded-full`}
                 >
                   {offer.discountType === "percentage"
-                    ? `SAVE ${offer.discountPercentage || offer.discountValue}%`
+                    ? `SAVE ${currSymbol} ${offer.discountPercentage || offer.discountValue}%`
                     : offer.discountType === "fixed"
-                    ? `SAVE $${offer.discountValue}`
+                    ? `SAVE ${currSymbol} ${offer.discountValue}`
                     : offer.discountType === "buy_x_get_y"
                     ? "BUY X GET Y FREE"
                     : "FREE SHIPPING"}
@@ -385,15 +387,15 @@ const OfferModal = ({ offer, onClose, onShopNow }) => {
                 {/* Price */}
                 <div className="flex items-baseline gap-3">
                   <span className="text-4xl font-bold text-gray-900">
-                    ${offer.offerPrice?.toFixed(2) || "0.00"}
+                    {currSymbol} {offer.offerPrice?.toFixed(2) || "0.00"}
                   </span>
                   {offer.originalPrice && (
                     <>
                       <span className="text-2xl text-gray-500 line-through">
-                        ${offer.originalPrice?.toFixed(2)}
+                        {currSymbol} {offer.originalPrice?.toFixed(2)}
                       </span>
                       <span className="text-lg font-bold text-red-600">
-                        Save $
+                        Save {currSymbol}
                         {(offer.originalPrice - offer.offerPrice).toFixed(2)}
                       </span>
                     </>

@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
 export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
-  const { addToCart } = useCart();
+  const { addToCart ,currSymbol} = useCart();
   const navigate = useNavigate();
   
   // Calculate discount if originalPrice exists
@@ -60,6 +60,7 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
     colors: product.colors || [], 
     sizes: product.sizes || [],
   };
+
 
   const [imageError, setImageError] = useState(false);
 
@@ -153,11 +154,11 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
           <div className="flex items-center justify-between mt-auto pt-4">
             <div className="flex items-center gap-2">
               <span className="font-display font-bold text-lg text-foreground">
-                ${safeProduct.price.toFixed(2)}
+                {currSymbol} {safeProduct.price.toFixed(2)}
               </span>
               {safeProduct.originalPrice && safeProduct.originalPrice > safeProduct.price && (
                 <span className="text-sm text-muted-foreground line-through">
-                  ${safeProduct.originalPrice.toFixed(2)}
+                  {currSymbol} {safeProduct.originalPrice.toFixed(2)}
                 </span>
               )}
             </div>
@@ -250,11 +251,11 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
         {/* Price */}
         <div className="flex items-center gap-2">
           <span className="font-display font-bold text-lg text-foreground">
-            ${safeProduct.price.toFixed(2)}
+           { currSymbol}{safeProduct.price.toFixed(2)}
           </span>
           {safeProduct.originalPrice && safeProduct.originalPrice > safeProduct.price && (
             <span className="text-sm text-muted-foreground line-through">
-              ${safeProduct.originalPrice.toFixed(2)}
+              {currSymbol}{safeProduct.originalPrice.toFixed(2)}
             </span>
           )}
         </div>

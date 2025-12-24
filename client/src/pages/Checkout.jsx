@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 export default function Checkout() {
-  const { cart, getCartTotal, clearCart } = useCart();
+  const { cart, getCartTotal, clearCart,currSymbol } = useCart();
   const navigate = useNavigate();
 
   // Add pagination state
@@ -466,11 +466,11 @@ export default function Checkout() {
                         Qty: {item.quantity}
                       </p>
                       <p className="text-sm text-gray-600">
-                        ${(item.price || 0).toFixed(2)} each
+                        {currSymbol} {(item.price || 0).toFixed(2)} each
                       </p>
                     </div>
                     <div className="font-semibold whitespace-nowrap">
-                      ${((item.price || 0) * item.quantity).toFixed(2)}
+                      {currSymbol} {((item.price || 0) * item.quantity).toFixed(2)}
                     </div>
                   </div>
                 ))}
@@ -529,7 +529,7 @@ export default function Checkout() {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">
-                    ${(totals.subtotal || 0).toFixed(2)}
+                    {currSymbol} {(totals.subtotal || 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -543,7 +543,7 @@ export default function Checkout() {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tax</span>
                   <span className="font-medium">
-                    ${(totals.tax || 0).toFixed(2)}
+                    {currSymbol} {(totals.tax || 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -559,7 +559,7 @@ export default function Checkout() {
                     Total
                   </span>
                   <span className="text-2xl font-bold text-gray-900">
-                    ${(totals.total || 0).toFixed(2)}
+                    {currSymbol} {(totals.total || 0).toFixed(2)}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 mb-6">
