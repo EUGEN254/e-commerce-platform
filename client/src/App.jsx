@@ -48,8 +48,22 @@ const App = () => {
           <Routes>
             {/* Authentication routes - No ProtectedRoute to prevent flash */}
 
-            <Route path="/create-account" element={<Auth />} />
-            <Route path="/reset-password" element={<ForgotPassword />} />
+            <Route
+              path="/create-account"
+              element={
+                <ProtectedRoute requireAuth={false}>
+                  <Auth />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <ProtectedRoute requireAuth={false}>
+                  <ForgotPassword />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Main area - Public routes */}
             <Route path="/" element={<Home />} />
@@ -61,7 +75,6 @@ const App = () => {
             <Route path="/offers" element={<Offers />} />
             <Route path="/offers/:id" element={<OfferDetails />} />
             <Route path="/checkout" element={<Checkout />} />
-            <Route path="/my-orders" element={<MyOrders />} />
 
             {/* Protected routes - Require authentication */}
             <Route
@@ -69,6 +82,15 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/my-orders"
+              element={
+                <ProtectedRoute>
+                  <MyOrders />
                 </ProtectedRoute>
               }
             />

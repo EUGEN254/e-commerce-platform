@@ -196,24 +196,25 @@ export function UserProvider({ children }) {
   [backendUrl]
 );
 
-  const logout = useCallback(async () => {
-    try {
-      const res = await axios.post(
-        `${backendUrl}/api/auth/logout`,
-        {},
-        {
-          withCredentials: true,
-        }
-      );
-      if (res.data.success) {
-        toast.success(res.data.message);
+  
+const logout = useCallback(async () => {
+  // Clear user immediately
+  setUser(null);
+  
+  try {
+    await axios.post(
+      `${backendUrl}/api/auth/logout`,
+      {},
+      {
+        withCredentials: true,
       }
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      setUser(null);
-    }
-  }, [backendUrl]);
+    );
+    toast.success("Logged out successfully");
+  } catch (error) {
+    console.error("Logout error:", error);
+    toast.error("Logout failed");
+  }
+}, [backendUrl]);
 
   const fetchWishlist = useCallback(async () => {
     try {

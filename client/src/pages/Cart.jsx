@@ -29,7 +29,7 @@ export function Cart() {
           {/* Mobile-friendly back button */}
           <Button
             variant="ghost"
-            onClick={() => navigate(-1)}
+              onClick={() => navigate('/shop')}
             className="gap-2 mb-4 sm:mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -77,7 +77,7 @@ export function Cart() {
           <div>
             <Button
               variant="ghost"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/shop')}
               className="gap-2 mb-2 sm:mb-0 sm:hidden"
               size="sm"
             >
