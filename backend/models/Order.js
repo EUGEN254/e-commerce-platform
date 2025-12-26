@@ -1,63 +1,63 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
+const orderSchema = new mongoose.Schema(
+  {
+    // public order number (safe to show user)
+    orderNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
 
-const orderSchema = new mongoose.Schema({
-  // public order number (safe to show user)
-  orderNumber:{
-    type:String,
-    required:true,
-    unique:true,
-    index:true
-  },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
 
-  userId:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"User",
-    required:true,
-    index:true
-  },
-
-  items:[
-    {
-      productId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Product",
-        required:true,
+    items: [
+      {
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        name: String,
+        price: Number,
+        quantity: Number,
+        Subtotal: Number,
       },
-      name:String,
-      price:Number,
-      quantity:Number,
-      Subtotal:Number,
-    }
-  ],
+    ],
 
-  // amounts are computed in backend only
-  subtotal:{
-    type:Number,
-    required:true,
-  },
+    // amounts are computed in backend only
+    subtotal: {
+      type: Number,
+      required: true,
+    },
 
-  tax:{
-    type:Number,
-    default:0,
-  },
+    tax: {
+      type: Number,
+      default: 0,
+    },
 
-  shippingFee:{
-    type:Number,
-    default:0
-  },
+    shippingFee: {
+      type: Number,
+      default: 0,
+    },
 
-  totalAmount:{
-    type:Number,
-    required:true,
-  },
+    totalAmount: {
+      type: Number,
+      required: true,
+    },
 
-  currency:{
-    type:String,
-    default:"KES"
-  },
-  
-  status: {
+    currency: {
+      type: String,
+      default: "KES",
+    },
+
+    status: {
       type: String,
       enum: [
         "CREATED",
@@ -97,7 +97,5 @@ const orderSchema = new mongoose.Schema({
   },
   { timestamps: true }
 );
-
-
 
 export default mongoose.model("Order", orderSchema);

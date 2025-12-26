@@ -15,12 +15,16 @@ import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
+  AlertCircle,
 } from "lucide-react";
 
 export default function Checkout() {
   const { cart, getCartTotal, clearCart, currSymbol, backendUrl } = useCart();
   const navigate = useNavigate();
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [orderCompleted, setOrderCompleted] = useState(false); // New state to track if order completed
 
   // Add pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,7 +53,8 @@ export default function Checkout() {
     setShippingInfo((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePlaceOrder = async () => {
+  const handleConfirmOrder = () => {
+    // Validate all fields before showing confirmation
     const emptyField = Object.entries(shippingInfo).find(
       ([key, value]) => value.trim() === ""
     );
@@ -62,9 +67,18 @@ export default function Checkout() {
       return;
     }
 
+    // Show confirmation dialog
+    setShowConfirmationDialog(true);
+  };
+
+  const handlePlaceOrder = async () => {
+    // Close confirmation dialog
+    setShowConfirmationDialog(false);
+
     try {
       setIsPlacingOrder(true);
-      // create order
+
+      // Create order
       const { data: orderData } = await axios.post(
         `${backendUrl}/api/orders`,
         {
@@ -72,22 +86,25 @@ export default function Checkout() {
           paymentMethod: selectedPayment,
           items: cart.map((item) => ({
             productId: item.id,
+            name: item.name,
             quantity: item.quantity,
             price: item.price,
           })),
         },
         { withCredentials: true }
       );
+
       if (!orderData.success) {
+        setIsPlacingOrder(false);
         return toast.error(orderData.message);
       }
 
       const orderId = orderData.order._id;
 
-      // if payment is M-PESA initiate payment
+      // If payment is M-PESA initiate payment
       if (selectedPayment === "mpesa") {
         const { data: mpesaData } = await axios.post(
-          `${backendUrl}/api/transactions/mpesa/initiate`,
+          `${backendUrl}/api/mpesa/initiate`,
           {
             orderId,
             phoneNumber: shippingInfo.phone,
@@ -96,6 +113,7 @@ export default function Checkout() {
         );
 
         if (!mpesaData.success) {
+          setIsPlacingOrder(false);
           return toast.error(mpesaData.message || "M-Pesa payment failed");
         }
 
@@ -104,7 +122,7 @@ export default function Checkout() {
         const pollTransactionStatus = async (transactionId) => {
           try {
             const { data } = await axios.get(
-              `${backendUrl}/api/transactions/mpesa/${transactionId}`,
+              `${backendUrl}/api/mpesa/${transactionId}`,
               { withCredentials: true }
             );
             return data;
@@ -117,29 +135,54 @@ export default function Checkout() {
         let interval = setInterval(async () => {
           const data = await pollTransactionStatus(transactionId);
 
-          if (data?.transaction?.status === "COMPLETED") {
+          if (data?.transaction?.status === "SUCCESS") {
             clearInterval(interval);
-            toast.success("M-Pesa payment completed!");
-            clearCart();
-            navigate("/my-orders");
+            // Don't clear cart yet - just mark order as completed
+            setOrderCompleted(true);
+            setShowSuccessModal(true);
+
+            // Clear cart and navigate after modal timeout
+            setTimeout(() => {
+              clearCart();
+              setShowSuccessModal(false);
+              setIsPlacingOrder(false);
+              navigate("/my-orders");
+            }, 3000);
           } else if (data?.transaction?.status === "FAILED") {
             clearInterval(interval);
-            toast.error("M-Pesa payment failed!");
+            setIsPlacingOrder(false);
+
+            const reason =
+              data?.transaction?.failureReason ||
+              "Payment failed. Please try again.";
+
+            toast.error(reason);
           }
         }, 5000);
       } else {
-        // Non-M-Pesa payments
-        toast.success(
-          `Order placed successfully! Payment: ${selectedPayment.toUpperCase()}`
-        );
-        clearCart();
-        setIsPlacingOrder(false);
-        navigate("/my-orders");
+        // For non-M-Pesa payments
+        // Mark order as completed and show success modal
+        setOrderCompleted(true);
+        setShowSuccessModal(true);
+
+        // Clear cart and navigate after modal timeout
+        setTimeout(() => {
+          clearCart();
+          setShowSuccessModal(false);
+          setIsPlacingOrder(false);
+          navigate("/my-orders");
+        }, 3000);
       }
     } catch (error) {
       console.error(error);
+      setIsPlacingOrder(false);
       toast.error(error.response?.data?.message || "Something went wrong!");
     }
+  };
+
+  const getPaymentMethodName = () => {
+    const method = paymentMethods.find((m) => m.id === selectedPayment);
+    return method ? method.name : selectedPayment.toUpperCase();
   };
 
   const totals = getCartTotal();
@@ -189,7 +232,8 @@ export default function Checkout() {
     },
   ];
 
-  if (cart.length === 0) {
+  // Show empty cart page only if cart is empty AND no order was just completed
+  if (cart.length === 0 && !orderCompleted) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
         <div className="text-center p-8 bg-white rounded-2xl shadow-lg">
@@ -653,7 +697,7 @@ export default function Checkout() {
 
                 {/* Place Order Button */}
                 <Button
-                  onClick={handlePlaceOrder}
+                  onClick={handleConfirmOrder}
                   disabled={isPlacingOrder}
                   className="w-full py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-shadow duration-200 flex items-center justify-center gap-2"
                 >
@@ -676,6 +720,119 @@ export default function Checkout() {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {showConfirmationDialog && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 md:p-8 shadow-lg max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-yellow-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">
+                Confirm Your Order
+              </h2>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-700 mb-2">
+                You are about to place an order using:
+              </p>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="font-medium text-gray-900">
+                  {getPaymentMethodName()}
+                </div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Total: {currSymbol} {(totals.total || 0).toFixed(2)}
+                </div>
+              </div>
+
+              {selectedPayment === "mpesa" && (
+                <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                  <p className="text-sm text-green-700">
+                    <strong>Note:</strong> You will receive an M-Pesa prompt on{" "}
+                    <strong>{shippingInfo.phone}</strong>
+                  </p>
+                </div>
+              )}
+
+              <p className="text-sm text-gray-600 mt-4">
+                Are you sure you want to proceed with this payment method?
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowConfirmationDialog(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button onClick={handlePlaceOrder} className="flex-1">
+                Yes, Place Order
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[100] p-4">
+          <div className="bg-white rounded-2xl p-8 md:p-12 text-center shadow-2xl max-w-sm w-full mx-auto animate-in fade-in zoom-in duration-300">
+            <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6 animate-pulse">
+              <ShieldCheck className="h-10 w-10 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              🎉 Order Successful!
+            </h2>
+            <p className="text-gray-700 mb-4">
+              Your order has been confirmed and is being processed.
+              {selectedPayment === "mpesa"
+                ? " M-Pesa payment was successful."
+                : selectedPayment === "stripe"
+                ? " Your card payment was successful."
+                : selectedPayment === "paypal"
+                ? " Your PayPal payment was successful."
+                : " Your payment was successful."}
+            </p>
+            <div className="bg-gray-50 rounded-lg p-3 mb-6">
+              <p className="text-sm text-gray-600">
+                Order Total:{" "}
+                <span className="font-bold text-gray-900">
+                  {currSymbol} {(totals.total || 0).toFixed(2)}
+                </span>
+              </p>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  clearCart();
+                  navigate("/my-orders");
+                }}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition w-full"
+              >
+                View My Orders
+              </button>
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  clearCart();
+                  navigate("/");
+                }}
+                className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition w-full"
+              >
+                Continue Shopping
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-4">
+              Redirecting to orders in 3 seconds...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

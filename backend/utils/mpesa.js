@@ -88,6 +88,7 @@ console.log("STK Password:", password);
 
   console.log("Shortcode:", process.env.MPESA_SHORTCODE);
 console.log("Passkey:", process.env.MPESA_PASSKEY);
+console.log("callback:", process.env.MPESA_CALLBACK_URL);
 
 
   try {

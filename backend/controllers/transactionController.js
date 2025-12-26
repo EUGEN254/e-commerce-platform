@@ -13,7 +13,12 @@ export const initiateMpesaPayment = async (req, res) => {
     const { orderId, phoneNumber } = req.body;
     const userId = req.user._id;
 
-    console.log("Initiating M-Pesa payment for order:", orderId, "user:", userId);
+    console.log(
+      "Initiating M-Pesa payment for order:",
+      orderId,
+      "user:",
+      userId
+    );
 
     // validate order
     const order = await Order.findById(orderId);
@@ -64,7 +69,7 @@ export const initiateMpesaPayment = async (req, res) => {
       phoneNumber,
       amount: order.totalAmount,
       provider: "MPESA",
-      ipAddress: req.ip,//available whenever the client makes a request
+      ipAddress: req.ip, //available whenever the client makes a request
       userAgent: req.get("User-Agent"),
       status: "PENDING",
     });
@@ -80,7 +85,7 @@ export const initiateMpesaPayment = async (req, res) => {
       phoneNumber,
       amount: Math.round(order.totalAmount),
       orderId: order._id.toString(),
-    }); 
+    });
 
     console.log("STK Push Response:", stkResponse);
 
@@ -112,27 +117,39 @@ export const mpesaCallback = async (req, res) => {
 
     const callbackData = req.body.Body.stkCallback;
 
-
     // Always respond to Safaricom immediately
     res.json({ ResultCode: 0, ResultDesc: "Accepted" });
 
-    const { CheckoutRequestID, MerchantRequestID, ResultCode, ResultDesc, CallbackMetadata } = callbackData;
+    const {
+      CheckoutRequestID,
+      MerchantRequestID,
+      ResultCode,
+      ResultDesc,
+      CallbackMetadata,
+    } = callbackData;
 
     // Find the transaction using CheckoutRequestID
-    const transaction = await Transaction.findOne({ checkoutRequestID: CheckoutRequestID });
+    const transaction = await Transaction.findOne({
+      checkoutRequestID: CheckoutRequestID,
+    });
     if (!transaction) {
-      console.error("Transaction not found for CheckoutRequestID:", CheckoutRequestID);
+      console.error(
+        "Transaction not found for CheckoutRequestID:",
+        CheckoutRequestID
+      );
       return;
     }
 
     // Update transaction status based on ResultCode
     if (ResultCode === 0) {
-      transaction.status = "COMPLETED";
+      transaction.status = "SUCCESS";
 
       // Extract payment amount and Mpesa receipt number
       const items = CallbackMetadata.Item;
-      const amountItem = items.find(i => i.Name === "Amount");
-      const mpesaReceiptItem = items.find(i => i.Name === "MpesaReceiptNumber");
+      const amountItem = items.find((i) => i.Name === "Amount");
+      const mpesaReceiptItem = items.find(
+        (i) => i.Name === "MpesaReceiptNumber"
+      );
 
       transaction.amountPaid = amountItem?.Value || transaction.amount;
       transaction.mpesaReceiptNumber = mpesaReceiptItem?.Value || "";
@@ -142,6 +159,7 @@ export const mpesaCallback = async (req, res) => {
       const order = await Order.findById(transaction.orderId);
       if (order) {
         order.status = "PAID";
+        order.paymentStatus = "PAID";
         await order.save();
       }
 
@@ -156,7 +174,6 @@ export const mpesaCallback = async (req, res) => {
     console.error("Error processing M-Pesa callback:", error);
   }
 };
-
 
 // Get transaction status
 export const getTransactionStatus = async (req, res) => {

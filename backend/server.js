@@ -45,7 +45,7 @@ app.use('/api/products',productRouter);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/limited-offers', limitedOfferRouter);
 app.use('/api/orders', orderRouter);
-app.use("/api/transactions", mpesaRouter);
+app.use("/api/mpesa", mpesaRouter);
 
 
 // connect to database
