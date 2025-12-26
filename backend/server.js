@@ -8,6 +8,8 @@ import productRouter from './routes/product.js';
 import categoryRoutes from './routes/category.js';
 import limitedOfferRouter from './routes/limitedOffers.js';
 import UserRouter from './routes/user.js';
+import mpesaRouter from './routes/mpesa.js';
+import orderRouter from './routes/order.js';
 
 // load environment variables
 dotenv.config();
@@ -42,6 +44,8 @@ app.use('/api/auth',UserRouter);
 app.use('/api/products',productRouter);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/limited-offers', limitedOfferRouter);
+app.use('/api/orders', orderRouter);
+app.use("/api/transactions", mpesaRouter);
 
 
 // connect to database

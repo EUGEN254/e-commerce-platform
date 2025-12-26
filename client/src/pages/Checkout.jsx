@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { toast } from "sonner";
+import axios from "axios";
 import {
   CreditCard,
   Smartphone,
@@ -17,8 +18,9 @@ import {
 } from "lucide-react";
 
 export default function Checkout() {
-  const { cart, getCartTotal, clearCart,currSymbol } = useCart();
+  const { cart, getCartTotal, clearCart, currSymbol, backendUrl } = useCart();
   const navigate = useNavigate();
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   // Add pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,7 +49,7 @@ export default function Checkout() {
     setShippingInfo((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     const emptyField = Object.entries(shippingInfo).find(
       ([key, value]) => value.trim() === ""
     );
@@ -60,11 +62,84 @@ export default function Checkout() {
       return;
     }
 
-    toast.success(
-      `Order placed successfully! Payment method: ${selectedPayment.toUpperCase()}`
-    );
-    clearCart();
-    navigate("/order-confirmation");
+    try {
+      setIsPlacingOrder(true);
+      // create order
+      const { data: orderData } = await axios.post(
+        `${backendUrl}/api/orders`,
+        {
+          shippingInfo,
+          paymentMethod: selectedPayment,
+          items: cart.map((item) => ({
+            productId: item.id,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+        },
+        { withCredentials: true }
+      );
+      if (!orderData.success) {
+        return toast.error(orderData.message);
+      }
+
+      const orderId = orderData.order._id;
+
+      // if payment is M-PESA initiate payment
+      if (selectedPayment === "mpesa") {
+        const { data: mpesaData } = await axios.post(
+          `${backendUrl}/api/transactions/mpesa/initiate`,
+          {
+            orderId,
+            phoneNumber: shippingInfo.phone,
+          },
+          { withCredentials: true }
+        );
+
+        if (!mpesaData.success) {
+          return toast.error(mpesaData.message || "M-Pesa payment failed");
+        }
+
+        const transactionId = mpesaData.transaction._id;
+
+        const pollTransactionStatus = async (transactionId) => {
+          try {
+            const { data } = await axios.get(
+              `${backendUrl}/api/transactions/mpesa/${transactionId}`,
+              { withCredentials: true }
+            );
+            return data;
+          } catch (error) {
+            console.error(error);
+            return null;
+          }
+        };
+
+        let interval = setInterval(async () => {
+          const data = await pollTransactionStatus(transactionId);
+
+          if (data?.transaction?.status === "COMPLETED") {
+            clearInterval(interval);
+            toast.success("M-Pesa payment completed!");
+            clearCart();
+            navigate("/my-orders");
+          } else if (data?.transaction?.status === "FAILED") {
+            clearInterval(interval);
+            toast.error("M-Pesa payment failed!");
+          }
+        }, 5000);
+      } else {
+        // Non-M-Pesa payments
+        toast.success(
+          `Order placed successfully! Payment: ${selectedPayment.toUpperCase()}`
+        );
+        clearCart();
+        setIsPlacingOrder(false);
+        navigate("/my-orders");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Something went wrong!");
+    }
   };
 
   const totals = getCartTotal();
@@ -470,7 +545,8 @@ export default function Checkout() {
                       </p>
                     </div>
                     <div className="font-semibold whitespace-nowrap">
-                      {currSymbol} {((item.price || 0) * item.quantity).toFixed(2)}
+                      {currSymbol}{" "}
+                      {((item.price || 0) * item.quantity).toFixed(2)}
                     </div>
                   </div>
                 ))}
@@ -578,9 +654,17 @@ export default function Checkout() {
                 {/* Place Order Button */}
                 <Button
                   onClick={handlePlaceOrder}
-                  className="w-full py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-shadow duration-200"
+                  disabled={isPlacingOrder}
+                  className="w-full py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-shadow duration-200 flex items-center justify-center gap-2"
                 >
-                  Place Order
+                  {isPlacingOrder ? (
+                    <>
+                      <span className="loader h-5 w-5 border-2 border-t-2 border-gray-200 rounded-full animate-spin"></span>
+                      Processing...
+                    </>
+                  ) : (
+                    "Place Order"
+                  )}
                 </Button>
 
                 <p className="text-xs text-gray-500 text-center mt-4">

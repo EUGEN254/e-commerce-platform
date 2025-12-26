@@ -12,6 +12,8 @@ const CartContext = createContext();
 
 export function CartProvider({ children }) {
   const { user } = useUser();
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
 
   const currSymbol = "KES";
   const [items, setItems] = useState(() => {
@@ -149,6 +151,7 @@ export function CartProvider({ children }) {
         removeFromCart,
         updateQuantity,
         clearCart,
+        backendUrl,
         currSymbol,
         totalItems,
         subtotal,
