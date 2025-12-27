@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaUser,
   FaEnvelope,
@@ -143,6 +143,10 @@ const Profile = () => {
     { label: "Reviews", value: "8", icon: <FaStar />, color: "bg-amber-500" },
     { label: "Loyalty Points", value: "1,250", icon: <FaGift />, color: "bg-purple-500" },
   ];
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   // Payment methods
   const paymentMethods = [

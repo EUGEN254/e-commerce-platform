@@ -40,6 +40,13 @@ const MyOrders = () => {
     inProgress: 0,
   });
 
+  useEffect(() => {
+    // Scroll to top when MyOrders mounts or when loading finishes
+    if (!loading) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [loading]);
+
   // Fetch orders from database
   useEffect(() => {
     fetchOrders();

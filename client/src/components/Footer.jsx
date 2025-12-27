@@ -17,6 +17,8 @@ const Footer = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Footer has no debug logs
+
   return (
     <footer className="bg-foreground pl-10 pr-10 rounded-t-2xl text-background mt-auto">
       <div className="container py-16">

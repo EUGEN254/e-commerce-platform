@@ -4,7 +4,6 @@ import Category from '../components/Category'
 import Featured from '../components/Featured'
 import BrandPatners from '../components/BrandPatners'
 import TestimonialReviews from '../components/TestimonialReviews'
-import NewsletterCTA from '../components/NewsLetterCTA'
 
 const Home = () => {
   return (

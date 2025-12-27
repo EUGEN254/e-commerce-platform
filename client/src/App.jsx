@@ -1,6 +1,4 @@
 import React, { useEffect } from "react";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { Route, Routes, useLocation } from "react-router-dom";
@@ -24,6 +22,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 const App = () => {
   const location = useLocation();
 
+ 
+
   // Optionally hide navbar/footer on auth routes
   const hideLayoutPaths = [
     "/create-account",
@@ -38,19 +38,14 @@ const App = () => {
   return (
     <div className="flex flex-col min-h-screen max-w-310 mx-auto">
       {/* Toast Notifications */}
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          className: "bg-background text-foreground border-border",
-        }}
-      />
+       <Toaster/>
 
       {/* App Layout */}
       <div className="flex-1 flex flex-col">
         {!hideLayout && <Navbar />}
 
         {/* Main Content */}
-        <main className="flex-1">
+        <main className="flex-1 flex flex-col">
           <Routes>
             {/* Authentication routes - No ProtectedRoute to prevent flash */}
 
