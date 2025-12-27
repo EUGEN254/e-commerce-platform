@@ -1,6 +1,7 @@
 
 import { v2 as cloudinary } from "cloudinary";
 import LimitedOffer from "../models/LimitedOffer.js";
+import logger from "../utils/logger.js";
 
 
 // Helper function for image upload
@@ -13,7 +14,7 @@ const uploadToCloudinary = async (file, folder = "ecommerce/limited-offers") => 
     });
     return result.secure_url;
   } catch (error) {
-    console.error("Cloudinary upload error:", error);
+    logger.error("Cloudinary upload error", error.message || error);
     throw new Error("Failed to upload image");
   }
 };
@@ -174,7 +175,7 @@ export const createLimitedOffer = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Create Limited Offer Error:", error);
+    logger.error("Create Limited Offer Error,", error);
 
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(val => val.message);
@@ -279,7 +280,7 @@ export const getLimitedOffers = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Get Limited Offers Error:", error);
+    logger.error("Get Limited Offers Error,", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -315,7 +316,7 @@ export const getActiveOffers = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Get Active Offers Error:", error);
+    logger.error("Get Active Offers Error,", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -348,7 +349,7 @@ export const getLimitedOffer = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Get Limited Offer Error:", error);
+    logger.error("Get Limited Offer Error,", error);
     
     if (error.name === "CastError") {
       return res.status(400).json({
@@ -413,7 +414,7 @@ export const updateLimitedOffer = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Update Limited Offer Error:", error);
+    logger.error("Update Limited Offer Error,", error);
     
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map(val => val.message);
@@ -453,7 +454,7 @@ export const deleteLimitedOffer = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Delete Limited Offer Error:", error);
+    logger.error("Delete Limited Offer Error,", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -486,7 +487,7 @@ export const incrementClicks = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Track Click Error:", error);
+    logger.error("Track Click Error,", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -522,7 +523,7 @@ export const getOffersStats = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Get Offers Stats Error:", error);
+    logger.error("Get Offers Stats Error,", error);
     res.status(500).json({
       success: false,
       message: "Server Error",

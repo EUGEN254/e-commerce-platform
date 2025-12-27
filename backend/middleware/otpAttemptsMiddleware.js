@@ -1,5 +1,6 @@
 // middleware/otpAttemptsMiddleware.js
 import PasswordReset from "../models/PasswordReset.js";
+import logger from "../utils/logger.js";
 
 const OTP_ATTEMPTS_LIMIT = 5;
 const OTP_LOCKOUT_TIME = 15 * 60 * 1000; // 15 minutes
@@ -50,7 +51,7 @@ export const otpAttemptsMiddleware = async (req, res, next) => {
     req.otpRecord = otpRecord;
     next();
   } catch (error) {
-    console.error("OTP attempts middleware error:", error);
+    logger.error("OTP attempts middleware error", error.message || error);
     return res.status(500).json({
       success: false,
       message: "Server error",
@@ -68,7 +69,7 @@ export const incrementFailedAttempts = async (email) => {
       await otpRecord.save();
     }
   } catch (error) {
-    console.error("Failed to increment OTP attempts:", error);
+    logger.error("Failed to increment OTP attempts", error.message || error);
   }
 };
 
@@ -82,6 +83,6 @@ export const resetAttempts = async (email) => {
       await otpRecord.save();
     }
   } catch (error) {
-    console.error("Failed to reset OTP attempts:", error);
+    logger.error("Failed to reset OTP attempts", error.message || error);
   }
 };

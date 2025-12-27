@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import logger from "../utils/logger.js";
 import bcrypt from "bcrypt";
 import generateToken from "../utils/generateToken.js";
 import validatePassword from "../utils/validatePassword.js";
@@ -142,7 +143,7 @@ const registerUser = async (req, res) => {
       countdown: secondsRemaining,
     });
   } catch (error) {
-    console.error("Register Error", error);
+    logger.error("Register Error", error);
     return res.status(500).json({
       success: false,
       message: "Server Error",
@@ -232,7 +233,7 @@ const verifyEmail = async (req, res) => {
       user: userWithoutPassword,
     });
   } catch (error) {
-    console.error("Verification Error", error);
+    logger.error("Verification Error", error);
     return res.status(500).json({
       success: false,
       message: "Server Error",
@@ -297,7 +298,7 @@ const resendVerificationCode = async (req, res) => {
       countdown: secondsRemaining,
     });
   } catch (error) {
-    console.error("Resend Verification Error", error);
+    logger.error("Resend Verification Error", error);
     return res.status(500).json({
       success: false,
       message: "Server Error",
@@ -379,7 +380,7 @@ const loginUser = async (req, res) => {
       user: userWithoutPassword,
     });
   } catch (error) {
-    console.error("Login Error", error);
+    logger.error("Login Error", error);
     return res.status(500).json({
       success: false,
       message: "Server Error",
@@ -404,7 +405,7 @@ const getCurrentUser = async (req, res) => {
       user: safeUser,
     });
   } catch (error) {
-    console.error("Error in getCurrentUser", error);
+    logger.error("Error in getCurrentUser", error);
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -428,7 +429,7 @@ const logoutUser = async (req, res) => {
       message: "Logged out successfully",
     });
   } catch (error) {
-    console.error("Logout Error", error);
+    logger.error("Logout Error", error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -475,7 +476,7 @@ const sendResetOtp = async (req, res) => {
       expiresAt: expiresAt,
     });
   } catch (error) {
-    console.error("sendResetOtp error:", error);
+    logger.error("sendResetOtp error,", error);
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -512,7 +513,7 @@ const verifyResetOtp = async (req, res) => {
       message: "OTP verified successfully",
     });
   } catch (error) {
-    console.error("verifyResetOtp error:", error);
+    logger.error("verifyResetOtp error,", error);
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -559,7 +560,7 @@ const resendResetOtp = async (req, res) => {
       expiresAt: expiresAt,
     });
   } catch (error) {
-    console.error("resendResetOtp error:", error);
+    logger.error("resendResetOtp error,", error);
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -642,7 +643,7 @@ const resetPassword = async (req, res) => {
       user: userWithoutPassword,
     });
   } catch (error) {
-    console.error("resetPassword error:", error);
+    logger.error("resetPassword error,", error);
     res.status(500).json({
       success: false,
       message: "Server error",

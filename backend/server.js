@@ -53,6 +53,8 @@ await connectDB();
 
 
 // start server
+import logger from "./utils/logger.js";
+
 app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });

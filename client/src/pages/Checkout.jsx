@@ -16,7 +16,10 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
+  MapPin,
+  Check,
 } from "lucide-react";
+import { useShipping } from "../hooks/userShipping";
 
 export default function Checkout() {
   const { cart, getCartTotal, clearCart, currSymbol, backendUrl } = useCart();
@@ -24,23 +27,24 @@ export default function Checkout() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
-  const [orderCompleted, setOrderCompleted] = useState(false); // New state to track if order completed
-
-  // Add pagination state
+  const [orderCompleted, setOrderCompleted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 3; // Show 3 items per page
+  const itemsPerPage = 3;
 
-  const [shippingInfo, setShippingInfo] = useState({
-    fullName: "",
-    email: "",
-    address: "",
-    city: "",
-    country: "",
-    postalCode: "",
-    phone: "",
-  });
+  const {
+    shippingInfo,
+    countyData,
+    handleShippingInfoChange,
+    validateShipping,
+    getShippingSuggestions,
+  } = useShipping();
 
   const [selectedPayment, setSelectedPayment] = useState("stripe");
+  const [showCountySuggestions, setShowCountySuggestions] = useState(false);
+  const [countySuggestions, setCountySuggestions] = useState([]);
+
+  // Calculate totals with shipping based on city/county
+  const totals = getCartTotal(shippingInfo.city);
 
   // Pagination calculations
   const totalPages = Math.ceil(cart.length / itemsPerPage);
@@ -48,9 +52,27 @@ export default function Checkout() {
   const endIndex = startIndex + itemsPerPage;
   const currentItems = cart.slice(startIndex, endIndex);
 
-  const handleInputChange = (e) => {
+  // Handle city input with suggestions
+  const handleCityChange = (e) => {
     const { name, value } = e.target;
-    setShippingInfo((prev) => ({ ...prev, [name]: value }));
+    handleShippingInfoChange(e);
+
+    if (shippingInfo.country.toLowerCase() === "kenya" && value.length >= 2) {
+      const suggestions = getShippingSuggestions(value);
+      setCountySuggestions(suggestions);
+      setShowCountySuggestions(suggestions.length > 0);
+    } else {
+      setShowCountySuggestions(false);
+    }
+  };
+
+  // Select a county suggestion
+  const selectCountySuggestion = (county) => {
+    handleShippingInfoChange({
+      target: { name: "city", value: county },
+    });
+    setShowCountySuggestions(false);
+    toast.success(`Selected ${county}`);
   };
 
   const handleConfirmOrder = () => {
@@ -67,6 +89,12 @@ export default function Checkout() {
       return;
     }
 
+    // Validate shipping info specifically
+    const shippingValidation = validateShipping();
+    if (!shippingValidation.valid) {
+      return;
+    }
+
     // Show confirmation dialog
     setShowConfirmationDialog(true);
   };
@@ -78,7 +106,7 @@ export default function Checkout() {
     try {
       setIsPlacingOrder(true);
 
-      // Create order
+      // Create order with proper totals from cart calculation
       const { data: orderData } = await axios.post(
         `${backendUrl}/api/orders`,
         {
@@ -90,6 +118,8 @@ export default function Checkout() {
             quantity: item.quantity,
             price: item.price,
           })),
+          // Send calculated totals to backend for validation
+          cartTotals: totals,
         },
         { withCredentials: true }
       );
@@ -103,13 +133,17 @@ export default function Checkout() {
 
       // If payment is M-PESA initiate payment
       if (selectedPayment === "mpesa") {
+        const idempotencyKey = crypto.randomUUID();
         const { data: mpesaData } = await axios.post(
           `${backendUrl}/api/mpesa/initiate`,
           {
             orderId,
             phoneNumber: shippingInfo.phone,
           },
-          { withCredentials: true }
+          {
+            withCredentials: true,
+            headers: { "Idempotency-Key": idempotencyKey },
+          }
         );
 
         if (!mpesaData.success) {
@@ -118,6 +152,9 @@ export default function Checkout() {
         }
 
         const transactionId = mpesaData.transaction._id;
+        const pollStartTime = Date.now();
+        const POLL_TIMEOUT_MS = 2 * 60 * 1000; // 3 minutes
+        const POLL_INTERVAL_MS = 5000; // 5 seconds
 
         const pollTransactionStatus = async (transactionId) => {
           try {
@@ -127,21 +164,29 @@ export default function Checkout() {
             );
             return data;
           } catch (error) {
-            console.error(error);
+            console.error("Poll error:", error);
             return null;
           }
         };
 
         let interval = setInterval(async () => {
+          const elapsedTime = Date.now() - pollStartTime;
+
+          // Stop polling if timeout reached
+          if (elapsedTime > POLL_TIMEOUT_MS) {
+            clearInterval(interval);
+            setIsPlacingOrder(false);
+            toast.error("Payment request timed out. Please try again.");
+            return;
+          }
+
           const data = await pollTransactionStatus(transactionId);
 
           if (data?.transaction?.status === "SUCCESS") {
             clearInterval(interval);
-            // Don't clear cart yet - just mark order as completed
             setOrderCompleted(true);
             setShowSuccessModal(true);
 
-            // Clear cart and navigate after modal timeout
             setTimeout(() => {
               clearCart();
               setShowSuccessModal(false);
@@ -157,8 +202,14 @@ export default function Checkout() {
               "Payment failed. Please try again.";
 
             toast.error(reason);
+          } else if (data?.transaction?.status === "TIMEOUT") {
+            clearInterval(interval);
+            setIsPlacingOrder(false);
+            toast.error(
+              "Payment request expired. Please initiate a new payment."
+            );
           }
-        }, 5000);
+        }, POLL_INTERVAL_MS);
       } else {
         // For non-M-Pesa payments
         // Mark order as completed and show success modal
@@ -184,8 +235,6 @@ export default function Checkout() {
     const method = paymentMethods.find((m) => m.id === selectedPayment);
     return method ? method.name : selectedPayment.toUpperCase();
   };
-
-  const totals = getCartTotal();
 
   const paymentMethods = [
     {
@@ -315,7 +364,7 @@ export default function Checkout() {
                       placeholder="John Doe"
                       name="fullName"
                       value={shippingInfo.fullName}
-                      onChange={handleInputChange}
+                      onChange={handleShippingInfoChange}
                       className="w-full"
                     />
                   </div>
@@ -328,7 +377,7 @@ export default function Checkout() {
                       placeholder="john@example.com"
                       name="email"
                       value={shippingInfo.email}
-                      onChange={handleInputChange}
+                      onChange={handleShippingInfoChange}
                       className="w-full"
                     />
                   </div>
@@ -340,7 +389,7 @@ export default function Checkout() {
                       placeholder="+254 700 000 000"
                       name="phone"
                       value={shippingInfo.phone}
-                      onChange={handleInputChange}
+                      onChange={handleShippingInfoChange}
                       className="w-full"
                     />
                   </div>
@@ -355,22 +404,98 @@ export default function Checkout() {
                       placeholder="Street address"
                       name="address"
                       value={shippingInfo.address}
-                      onChange={handleInputChange}
+                      onChange={handleShippingInfoChange}
                       className="w-full"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        City *
+                        City / County *
                       </label>
-                      <Input
-                        placeholder="Nairobi"
-                        name="city"
-                        value={shippingInfo.city}
-                        onChange={handleInputChange}
-                        className="w-full"
-                      />
+                      <div className="relative">
+                        <Input
+                          placeholder={
+                            shippingInfo.country === "Kenya"
+                              ? "Nairobi, Mombasa, Kisumu..."
+                              : "Enter your city"
+                          }
+                          name="city"
+                          value={shippingInfo.city}
+                          onChange={handleCityChange}
+                          className="w-full"
+                          onFocus={() => {
+                            if (
+                              shippingInfo.country.toLowerCase() === "kenya" &&
+                              shippingInfo.city.length >= 2
+                            ) {
+                              const suggestions = getShippingSuggestions(
+                                shippingInfo.city
+                              );
+                              setCountySuggestions(suggestions);
+                              setShowCountySuggestions(suggestions.length > 0);
+                            }
+                          }}
+                          onBlur={() =>
+                            setTimeout(
+                              () => setShowCountySuggestions(false),
+                              200
+                            )
+                          }
+                        />
+                        {countyData && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                              <Check className="h-3 w-3" />
+                              <span>
+                                {countyData.price} {currSymbol}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* County Suggestions Dropdown */}
+                      {showCountySuggestions &&
+                        countySuggestions.length > 0 && (
+                          <div className="absolute z-10 w-full max-w-sm bg-white border border-gray-200 rounded-lg shadow-lg mt-1">
+                            <div className="py-1">
+                              <div className="px-3 py-2 text-xs font-medium text-gray-500 bg-gray-50">
+                                Suggested Counties
+                              </div>
+                              {countySuggestions.map((county) => (
+                                <button
+                                  key={county}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    selectCountySuggestion(county);
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center justify-between"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4 text-gray-400" />
+                                    <span className="font-medium">
+                                      {county}
+                                    </span>
+                                  </div>
+                                  <span className="text-sm text-gray-600">
+                                    {countyData?.price || 0} {currSymbol}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                      {shippingInfo.country === "Kenya" &&
+                        !countyData &&
+                        shippingInfo.city.length > 0 && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            Enter a Kenyan county for accurate shipping
+                            calculation
+                          </p>
+                        )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -380,7 +505,7 @@ export default function Checkout() {
                         placeholder="00100"
                         name="postalCode"
                         value={shippingInfo.postalCode}
-                        onChange={handleInputChange}
+                        onChange={handleShippingInfoChange}
                         className="w-full"
                       />
                     </div>
@@ -389,14 +514,50 @@ export default function Checkout() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Country *
                     </label>
-                    <Input
-                      placeholder="Kenya"
+                    <select
                       name="country"
                       value={shippingInfo.country}
-                      onChange={handleInputChange}
-                      className="w-full"
-                    />
+                      onChange={handleShippingInfoChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="Kenya">Kenya</option>
+                      <option value="Uganda">Uganda</option>
+                      <option value="Tanzania">Tanzania</option>
+                      <option value="Other">Other International</option>
+                    </select>
                   </div>
+
+                  {/* Shipping Cost Preview */}
+                  {shippingInfo.city && shippingInfo.country && (
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-medium text-blue-900">
+                            Shipping Cost:
+                          </span>
+                          {countyData && (
+                            <p className="text-xs text-blue-700 mt-1">
+                              Zone: {countyData.zone}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <span className="text-lg font-bold text-blue-900">
+                            {totals.shipping === 0
+                              ? "FREE"
+                              : `${currSymbol} ${(totals.shipping || 0).toFixed(
+                                  2
+                                )}`}
+                          </span>
+                          {totals.subtotal >= 5000 && (
+                            <p className="text-xs text-green-600 mt-1">
+                              Free shipping applied! 🎉
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -525,8 +686,7 @@ export default function Checkout() {
                             4
                           </span>
                           <span className="text-green-700">
-                            Wait for confirmation message (usually within 30
-                            seconds)
+                            Wait for confirmation message 
                           </span>
                         </li>
                       </ol>
@@ -545,9 +705,9 @@ export default function Checkout() {
               </h2>
 
               {/* Cart Items with Pagination */}
-              <div className="space-y-4 mb-6">
+              <div className="mb-6">
                 {/* Items Counter */}
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-3">
                   <span className="text-sm text-gray-600">
                     Items ({cart.length})
                   </span>
@@ -558,48 +718,116 @@ export default function Checkout() {
                   )}
                 </div>
 
-                {/* Display current page items */}
-                {currentItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div className="h-16 w-16 bg-gray-200 rounded-lg flex-shrink-0">
-                      {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="h-full w-full object-cover rounded-lg"
-                        />
-                      ) : (
-                        <div className="h-full w-full flex items-center justify-center bg-gray-300 rounded-lg">
-                          <span className="text-gray-400 text-xs">IMG</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900 truncate">
-                        {item.name}
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        Qty: {item.quantity}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {currSymbol} {(item.price || 0).toFixed(2)} each
-                      </p>
-                    </div>
-                    <div className="font-semibold whitespace-nowrap">
-                      {currSymbol}{" "}
-                      {((item.price || 0) * item.quantity).toFixed(2)}
-                    </div>
-                  </div>
-                ))}
+                {/* Display current page items - IMPROVED LAYOUT */}
+                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                  {currentItems.map((item) => {
+                    const itemOriginalPrice =
+                      Number(item.originalPrice) || Number(item.price) || 0;
+                    const itemCurrentPrice = Number(item.price) || 0;
+                    const itemSavings =
+                      (itemOriginalPrice - itemCurrentPrice) * item.quantity;
+                    const hasDiscount = itemSavings > 0;
+                    const discountPercentage = hasDiscount
+                      ? Math.round(
+                          ((itemOriginalPrice - itemCurrentPrice) /
+                            itemOriginalPrice) *
+                            100
+                        )
+                      : 0;
 
-                {/* Simplified Pagination Controls*/}
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
+                      >
+                        {/* Product Image */}
+                        <div className="h-20 w-20 bg-gray-200 rounded-lg flex-shrink-0">
+                          {item.image ? (
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="h-full w-full object-cover rounded-lg"
+                            />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center bg-gray-300 rounded-lg">
+                              <span className="text-gray-400 text-xs">IMG</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Product Details */}
+                        <div className="flex-1 min-w-0">
+                          {/* Product Name */}
+                          <h4 className="font-medium text-gray-900 text-sm mb-1 truncate">
+                            {item.name}
+                          </h4>
+
+                          {/* Variants */}
+                          <p className="text-xs text-gray-500 mb-1">
+                            {item.selectedColor?.name &&
+                              `${item.selectedColor.name}, `}
+                            {item.selectedSize}
+                          </p>
+
+                          {/* Quantity */}
+                          <p className="text-xs text-gray-600 mb-2">
+                            Qty: {item.quantity}
+                          </p>
+
+                          {/* Pricing - Stacked Layout */}
+                          <div className="space-y-1">
+                            {hasDiscount ? (
+                              <>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
+                                    Save {discountPercentage}%
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs line-through text-gray-400">
+                                    {currSymbol} {itemOriginalPrice.toFixed(2)}
+                                  </span>
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {currSymbol} {itemCurrentPrice.toFixed(2)}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-green-600">
+                                  Save {currSymbol}{" "}
+                                  {(
+                                    itemOriginalPrice - itemCurrentPrice
+                                  ).toFixed(2)}{" "}
+                                  each
+                                </p>
+                              </>
+                            ) : (
+                              <span className="text-sm font-medium text-gray-900">
+                                {currSymbol} {itemCurrentPrice.toFixed(2)} each
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Item Total - Right Aligned */}
+                        <div className="text-right">
+                          <div className="font-semibold text-gray-900">
+                            {currSymbol}{" "}
+                            {((item.price || 0) * item.quantity).toFixed(2)}
+                          </div>
+                          {hasDiscount && (
+                            <p className="text-xs text-green-600 mt-1">
+                              Saved {currSymbol} {itemSavings.toFixed(2)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Simplified Pagination Controls */}
                 {cart.length > itemsPerPage && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <div className="flex items-center justify-between gap-2">
-                      {/* Previous Button - Compact */}
                       <Button
                         variant="outline"
                         size="sm"
@@ -613,7 +841,6 @@ export default function Checkout() {
                         <span className="truncate">Prev</span>
                       </Button>
 
-                      {/* Compact Page Indicator */}
                       <div className="flex-1 text-center min-w-0 px-2">
                         <div className="text-sm font-medium text-gray-700 truncate">
                           Page {currentPage} of {totalPages}
@@ -624,7 +851,6 @@ export default function Checkout() {
                         </div>
                       </div>
 
-                      {/* Next Button - Compact */}
                       <Button
                         variant="outline"
                         size="sm"
@@ -644,47 +870,128 @@ export default function Checkout() {
                 )}
               </div>
 
-              {/* Price Breakdown */}
-              <div className="space-y-3 border-t border-b border-gray-200 py-6">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">
-                    {currSymbol} {(totals.subtotal || 0).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Shipping</span>
-                  <span className="font-medium">
-                    {totals.shipping === 0
-                      ? "Free"
-                      : `$${(totals.shipping || 0).toFixed(2)}`}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax</span>
-                  <span className="font-medium">
-                    {currSymbol} {(totals.tax || 0).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Discount</span>
-                  <span className="font-medium text-green-600">$0.00</span>
+              {/* Price Breakdown - IMPROVED LAYOUT */}
+              <div className="border-t border-b border-gray-200 py-6">
+                <h3 className="font-medium text-gray-900 mb-4">
+                  Price Breakdown
+                </h3>
+
+                <div className="space-y-3">
+                  {/* Original Price */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">
+                      Original Price
+                    </span>
+                    <div className="text-right">
+                      <span className="text-sm font-medium text-gray-900">
+                        {currSymbol} {(totals.originalSubtotal || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Product Discounts */}
+                  {totals.productDiscounts > 0 && (
+                    <div className="flex justify-between items-center py-2 px-3 bg-green-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-green-800">
+                          Product Discounts
+                        </span>
+                        <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full">
+                          You saved!
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold text-green-700">
+                        -{currSymbol}{" "}
+                        {(totals.productDiscounts || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Subtotal after discounts */}
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                    <span className="text-gray-700 font-medium">Subtotal</span>
+                    <span className="font-medium text-gray-900">
+                      {currSymbol} {(totals.subtotal || 0).toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* Shipping */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Shipping</span>
+                    <span className="font-medium">
+                      {totals.shipping === 0 ? (
+                        <span className="text-green-600 font-medium">FREE</span>
+                      ) : (
+                        <span>
+                          {currSymbol} {(totals.shipping || 0).toFixed(2)}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Tax */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Tax (16%)</span>
+                    <span className="font-medium text-gray-900">
+                      {currSymbol} {(totals.tax || 0).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Total */}
-              <div className="mt-6">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-lg font-semibold text-gray-900">
-                    Total
-                  </span>
-                  <span className="text-2xl font-bold text-gray-900">
-                    {currSymbol} {(totals.total || 0).toFixed(2)}
-                  </span>
+              {/* Total - IMPROVED LAYOUT */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <span className="text-lg font-semibold text-gray-900">
+                      Total
+                    </span>
+                    {totals.productDiscounts > 0 && (
+                      <p className="text-sm text-green-600 mt-1">
+                        You saved {currSymbol}{" "}
+                        {(totals.productDiscounts || 0).toFixed(2)}!
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold text-gray-900">
+                      {currSymbol} {(totals.total || 0).toFixed(2)}
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Including all taxes and fees
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-600 mb-6">
-                  Including all taxes and fees
-                </p>
+
+                {/* Savings Summary */}
+                {totals.productDiscounts > 0 && (
+                  <div className="mb-6 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                          <span className="text-green-700 font-bold">✓</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-green-800">
+                            Great Savings!
+                          </p>
+                          <p className="text-xs text-green-600">
+                            You saved{" "}
+                            {Math.round(
+                              (totals.productDiscounts /
+                                totals.originalSubtotal) *
+                                100
+                            )}
+                            % on products
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-lg font-bold text-green-700">
+                        {currSymbol} {(totals.productDiscounts || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Security Badge */}
                 <div className="flex items-center justify-center gap-2 p-3 bg-gray-50 rounded-lg mb-6">
@@ -707,7 +1014,10 @@ export default function Checkout() {
                       Processing...
                     </>
                   ) : (
-                    "Place Order"
+                    <>
+                      Place Order • {currSymbol}{" "}
+                      {(totals.total || 0).toFixed(2)}
+                    </>
                   )}
                 </Button>
 
@@ -746,6 +1056,21 @@ export default function Checkout() {
                   Total: {currSymbol} {(totals.total || 0).toFixed(2)}
                 </div>
               </div>
+
+              {countyData && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-blue-700">
+                      Shipping to {countyData.county}
+                    </span>
+                    <span className="text-sm font-medium text-blue-900">
+                      {totals.shipping === 0
+                        ? "FREE"
+                        : `${currSymbol} ${countyData.price}`}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {selectedPayment === "mpesa" && (
                 <div className="mt-4 p-3 bg-green-50 rounded-lg">

@@ -43,6 +43,13 @@ const transactionSchema = new mongoose.Schema(
       min: 1,
     },
 
+    // amount actually paid as reported by gateway/callback
+    amountPaid: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     currency: {
       type: String,
       default: "KES",
@@ -68,6 +75,12 @@ const transactionSchema = new mongoose.Schema(
     merchantRequestID: String,
     mpesaReceiptNumber: String,
 
+    // Idempotency key to prevent duplicate transactions
+    idempotencyKey: {
+      type: String,
+      index: true,
+    },
+
     // gateway raw response for audits
     // Gateway raw response (for audits)
     gatewayResponse: {
@@ -88,13 +101,17 @@ const transactionSchema = new mongoose.Schema(
     ipAddress: String,
     userAgent: String,
 
-    // Callback verification
+    // Callback verification (replay protection)
     callbackReceived: {
       type: Boolean,
       default: false,
+      index: true,
     },
 
-    paidAt: Date,
+    paidAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

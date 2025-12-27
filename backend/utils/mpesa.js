@@ -1,4 +1,5 @@
 import axios from "axios";
+import logger from "./logger.js";
 
 /**
  * Generate timestamp in YYYYMMDDHHMMSS format
@@ -44,10 +45,7 @@ export const getAccessToken = async () => {
     );
     return data.access_token;
   } catch (err) {
-    console.error(
-      "Failed to get access token:",
-      err.response?.data || err.message
-    );
+    logger.error("Failed to get access token", err.response?.data || err.message);
     throw new Error("M-Pesa auth failed");
   }
 };
@@ -61,22 +59,34 @@ export const stkPush = async ({ phoneNumber, amount, orderId }) => {
   const password = generatePassword();
   const timeStamp = getTimestamp();
 
-  console.log("Access token:", token);
-console.log("STK Password:", password);
+  // Validate phone number format
+  if (!phoneNumber || phoneNumber.trim().length < 9) {
+    throw new Error("Invalid phone number format");
+  }
 
-  // ensure phoen is in 254xxxxxxxx fromat
+  // Validate amount
+  if (!amount || amount < 1 || amount > 999999) {
+    throw new Error("Invalid amount. Must be between 1 and 999999");
+  }
+
+  // Ensure phone is in 254xxxxxxxx format
   let formattedPhone = phoneNumber.startsWith("0")
     ? `254${phoneNumber.slice(1)}`
     : phoneNumber.startsWith("+254")
     ? phoneNumber.slice(1)
     : phoneNumber;
 
+  // Validate formatted phone has correct length
+  if (!/^254\d{9}$/.test(formattedPhone)) {
+    throw new Error("Invalid Kenyan phone number format");
+  }
+
   const payload = {
     BusinessShortCode: process.env.MPESA_SHORTCODE,
     Password: password,
     Timestamp: timeStamp,
     TransactionType: "CustomerPayBillOnline",
-    Amount: amount,
+    Amount: Math.round(amount), // Must be integer
     PartyA: formattedPhone,
     PartyB: process.env.MPESA_SHORTCODE,
     PhoneNumber: formattedPhone,
@@ -84,11 +94,6 @@ console.log("STK Password:", password);
     AccountReference: orderId,
     TransactionDesc: `Payment for order ${orderId}`,
   };
-
-
-  console.log("Shortcode:", process.env.MPESA_SHORTCODE);
-console.log("Passkey:", process.env.MPESA_PASSKEY);
-console.log("callback:", process.env.MPESA_CALLBACK_URL);
 
 
   try {
@@ -99,7 +104,7 @@ console.log("callback:", process.env.MPESA_CALLBACK_URL);
     );
     return data;
   } catch (error) {
-    console.error("STK Push failed:", error.response?.data || error.message);
+    logger.error("STK Push failed", error.response?.data || error.message);
     throw new Error("STK Push request failed");
   }
 };

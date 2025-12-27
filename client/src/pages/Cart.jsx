@@ -22,6 +22,32 @@ export function Cart() {
   const navigate = useNavigate();
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  // Calculate estimates without shipping (or with default/estimated shipping)
+  const getEstimatedTotals = () => {
+    const subtotal = cart.reduce(
+      (sum, item) => sum + (Number(item.price) || 0) * item.quantity,
+      0
+    );
+    const tax = subtotal * 0.16;
+    
+    // For cart page, either:
+    // 1. Show no shipping cost (0) with explanation
+    // 2. Show estimated shipping range
+    // 3. Show "Calculated at checkout"
+    
+    const shippingEstimate = 0; // Show 0 with explanation
+    const total = subtotal + shippingEstimate + tax;
+    
+    return {
+      subtotal: subtotal.toFixed(2),
+      shipping: shippingEstimate.toFixed(2),
+      tax: tax.toFixed(2),
+      total: total.toFixed(2),
+    };
+  };
+
+  const estimatedTotals = getEstimatedTotals();
+
   if (cart.length === 0) {
     return (
       <div className="min-h-screen bg-background p-4 md:p-6">
@@ -29,7 +55,7 @@ export function Cart() {
           {/* Mobile-friendly back button */}
           <Button
             variant="ghost"
-              onClick={() => navigate('/shop')}
+            onClick={() => navigate('/shop')}
             className="gap-2 mb-4 sm:mb-6"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -345,42 +371,78 @@ export function Cart() {
                     Items ({itemCount})
                   </span>
                   <span className="font-medium">
-                    {currSymbol}{getCartTotal().subtotal.toFixed(2)}
+                    {currSymbol}{estimatedTotals.subtotal}
                   </span>
                 </div>
 
+                {/* Option 1: Show shipping as "Calculated at checkout" */}
                 <div className="flex justify-between text-sm sm:text-base">
                   <span className="text-muted-foreground">Shipping</span>
-                  <span className="font-medium">
-                    {getCartTotal().shipping === 0
-                      ? "Free"
-                      : `${currSymbol} ${getCartTotal().shipping.toFixed(2)}`}
-                  </span>
+                  <div className="text-right">
+                    <span className="font-medium">
+                      {currSymbol}{estimatedTotals.shipping}
+                    </span>
+                    <p className="text-xs text-muted-foreground">
+                      Calculated at checkout
+                    </p>
+                  </div>
                 </div>
+
+                {/* Option 2: Show estimated range (uncomment if preferred)
+                <div className="flex justify-between text-sm sm:text-base">
+                  <span className="text-muted-foreground">Shipping</span>
+                  <div className="text-right">
+                    <span className="font-medium">
+                      {currSymbol}300 - {currSymbol}700
+                    </span>
+                    <p className="text-xs text-muted-foreground">
+                      Estimated range
+                    </p>
+                  </div>
+                </div> */}
 
                 <div className="flex justify-between text-sm sm:text-base">
-                  <span className="text-muted-foreground">Tax</span>
+                  <span className="text-muted-foreground">Estimated Tax (16%)</span>
                   <span className="font-medium">
-                    {currSymbol}{getCartTotal().tax.toFixed(2)}
+                    {currSymbol}{estimatedTotals.tax}
                   </span>
                 </div>
 
-                <div className="border-t pt-3 mt-3 flex justify-between font-bold text-base sm:text-lg">
-                  <span>Total</span>
-                  <span>{currSymbol}{getCartTotal().total.toFixed(2)}</span>
+                <div className="border-t pt-3 mt-3">
+                  <div className="flex justify-between font-bold text-base sm:text-lg mb-2">
+                    <span>Estimated Total</span>
+                    <span>{currSymbol}{estimatedTotals.total}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    *Final total calculated after shipping address
+                  </p>
                 </div>
               </div>
 
-              {/* Shipping Info */}
-              <div className="mt-4 pt-4 border-t text-xs sm:text-sm text-muted-foreground">
-                <p className="flex items-center gap-2 mb-1">
-                  <span className="text-green-600">✓</span>
-                  Free shipping on orders over $50
-                </p>
-                <p className="flex items-center gap-2">
-                  <span className="text-green-600">✓</span>
-                  Delivery in 3-5 business days
-                </p>
+              {/* Shipping Info Section - More transparent */}
+              <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+                <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <span className="text-green-600">ℹ️</span>
+                  Shipping Information
+                </h3>
+                <ul className="text-xs sm:text-sm text-muted-foreground space-y-1">
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">•</span>
+                    <span>Free shipping on orders over {currSymbol}5,000</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">•</span>
+                    <span>Shipping cost varies by location (county)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">•</span>
+                    <span>Delivery in 3-5 business days</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 mt-0.5">•</span>
+                    <span>Exact cost calculated at checkout</span>
+                  </li>
+                </ul>
               </div>
 
               <Button
@@ -393,9 +455,21 @@ export function Cart() {
               </Button>
 
               {/* Secure Payment Info */}
-              <div className="mt-4 text-center text-xs text-muted-foreground">
-                <p>Secure SSL Encryption</p>
-                <p>100% Secure Payment</p>
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground mb-2">
+                  <span className="flex items-center gap-1">
+                    <span className="text-green-600">🔒</span>
+                    Secure SSL
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <span className="text-blue-600">✓</span>
+                    100% Secure
+                  </span>
+                </div>
+                <p className="text-center text-xs text-muted-foreground">
+                  Add shipping address for exact total
+                </p>
               </div>
             </div>
 

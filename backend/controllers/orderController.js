@@ -4,9 +4,9 @@ import { v4 as uuidv4 } from "uuid";
 export const createOrder = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { shippingInfo, paymentMethod, items } = req.body;
+    const { shippingInfo, paymentMethod, items, cartTotals } = req.body;
 
-
+    // Validate required fields
     if (!shippingInfo || !items || items.length === 0) {
       return res.status(400).json({
         success: false,
@@ -14,42 +14,118 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Calculate subtotal and totalAmount
+    if (!cartTotals) {
+      return res.status(400).json({
+        success: false,
+        message: "Cart totals are required",
+      });
+    }
+
+    // Validate items array
+    if (!Array.isArray(items) || items.some(item => !item.productId || item.price === undefined)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid items format",
+      });
+    }
+
+    // Additional validation: ensure numeric/non-negative prices and integer quantities
+    for (const item of items) {
+      const price = Number(item.price);
+      const qty = Number(item.quantity);
+      if (!isFinite(price) || price < 0) {
+        return res.status(400).json({ success: false, message: "Invalid item price" });
+      }
+      if (!isFinite(qty) || qty < 1 || !Number.isInteger(qty)) {
+        return res.status(400).json({ success: false, message: "Invalid item quantity" });
+      }
+    }
+
+    // ========== SECURITY: Recalculate totals server-side ==========
+    // NEVER trust client-sent prices - recalculate to prevent fraud
+
+    // 1. Calculate subtotal from items (after product discounts)
     const subtotal = items.reduce(
       (acc, item) => acc + (item.price || 0) * (item.quantity || 1),
       0
     );
 
-    const shippingFee = 0; // you can compute this dynamically
-    const tax = 0; // compute if needed
-    const totalAmount = subtotal + shippingFee + tax;
+    // 2. Validate subtotal matches client calculation (within 1 cent tolerance)
+    const clientSubtotal = cartTotals.subtotal || 0;
+    if (Math.abs(subtotal - clientSubtotal) > 0.01) {
+      return res.status(400).json({
+        success: false,
+        message: "Subtotal mismatch. Please refresh and try again.",
+      });
+    }
 
-    // Map items to schema format
+    // 3. Get shipping fee from county data (from frontend)
+    // shippingInfo.city contains the county selected
+    const shippingFee = cartTotals.shipping || 0;
+    if (shippingFee < 0 || shippingFee > 5000) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid shipping fee",
+      });
+    }
+
+    // 4. Calculate tax (16% of subtotal only, not on shipping)
+    const TAX_RATE = 0.16;
+    const tax = Number((subtotal * TAX_RATE).toFixed(2));
+
+    // 5. Validate tax matches client calculation (within 1 cent)
+    const clientTax = cartTotals.tax || 0;
+    if (Math.abs(tax - clientTax) > 0.01) {
+      return res.status(400).json({
+        success: false,
+        message: "Tax calculation mismatch. Please refresh.",
+      });
+    }
+
+    // 6. Calculate total amount
+    const totalAmount = Number((subtotal + shippingFee + tax).toFixed(2));
+
+    // 7. Validate total matches client (within 1 cent)
+    const clientTotal = cartTotals.total || 0;
+    if (Math.abs(totalAmount - clientTotal) > 0.01) {
+      return res.status(400).json({
+        success: false,
+        message: "Total amount mismatch. Please refresh and try again.",
+      });
+    }
+
+    // 8. Validate amount is reasonable
+    if (totalAmount < 1 || totalAmount > 999999) {
+      return res.status(400).json({
+        success: false,
+        message: "Order amount is invalid",
+      });
+    }
+
+    // Map items to schema format with validation
     const formattedItems = items.map((item) => ({
-      productId: item.productId, // required
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      Subtotal: (item.price || 0) * (item.quantity || 1),
+      productId: item.productId,
+      name: item.name || "Unknown Product",
+      price: Number(item.price),
+      quantity: Number(item.quantity),
+      Subtotal: Number((item.price * item.quantity).toFixed(2)),
     }));
 
-    // Create order in DB
+    // Create order in database
     const order = await Order.create({
-      orderNumber: uuidv4(), // generate unique order number
+      orderNumber: uuidv4(),
       userId,
       items: formattedItems,
-      shippingAddress: shippingInfo, // matches schema
-      subtotal,
+      shippingAddress: shippingInfo,
+      subtotal: Number(subtotal.toFixed(2)),
       tax,
       shippingFee,
       totalAmount,
       status: paymentMethod === "cod" ? "CREATED" : "PAYMENT_PENDING",
-      paymentStatus: paymentMethod === "cod" ? "UNPAID" : "UNPAID",
+      paymentStatus: "UNPAID",
       ipAddress: req.ip,
       userAgent: req.get("User-Agent"),
     });
-
-  
 
     return res.status(201).json({
       success: true,
@@ -58,11 +134,10 @@ export const createOrder = async (req, res) => {
     });
     
   } catch (error) {
-    console.error("Create Order Error:", error);
+    console.error("Create Order Error - sanitized");
     return res.status(500).json({
       success: false,
-      message: "Server error",
-      error: error.message,
+      message: "Failed to create order",
     });
   }
 };
