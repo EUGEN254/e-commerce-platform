@@ -1,10 +1,11 @@
 // src/pages/products/ProductCreate.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  FaBox, 
-  FaArrowLeft, 
-  FaImage, 
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import {
+  FaBox,
+  FaArrowLeft,
+  FaImage,
   FaTag,
   FaLayerGroup,
   FaDollarSign,
@@ -19,196 +20,281 @@ import {
   FaTrash,
   FaStar,
   FaFire,
-  FaSave
-} from 'react-icons/fa';
+  FaSave,
+} from "react-icons/fa";
+import { createProduct } from "../../services/productService";
 
 const ProductCreate = () => {
   const navigate = useNavigate();
-  
+
   // Categories based on your model
   const categories = [
-    { value: 'shoes', label: '👟 Shoes' },
-    { value: 'clothing', label: '👕 Clothing' },
-    { value: 'electronics', label: '💻 Electronics' },
-    { value: 'accessories', label: '🕶️ Accessories' },
-    { value: 'home', label: '🏠 Home' },
-    { value: 'mobile', label: '📱 Mobile' },
-    { value: 'beauty', label: '💄 Beauty' },
-    { value: 'sports', label: '⚽ Sports' },
-    { value: 'books', label: '📚 Books' },
-    { value: 'fashion', label: '👗 Fashion' }
+    { value: "shoes", label: "👟 Shoes" },
+    { value: "clothing", label: "👕 Clothing" },
+    { value: "electronics", label: "💻 Electronics" },
+    { value: "accessories", label: "🕶️ Accessories" },
+    { value: "home", label: "🏠 Home" },
+    { value: "mobile", label: "📱 Mobile" },
+    { value: "beauty", label: "💄 Beauty" },
+    { value: "sports", label: "⚽ Sports" },
+    { value: "books", label: "📚 Books" },
+    { value: "fashion", label: "👗 Fashion" },
   ];
 
   // Common subcategories for each category
   const subcategories = {
-    shoes: ['Running', 'Casual', 'Sports', 'Formal', 'Sneakers'],
-    clothing: ['T-Shirts', 'Shirts', 'Pants', 'Jackets', 'Dresses'],
-    electronics: ['TVs', 'Audio', 'Computers', 'Gaming', 'Smart Home'],
-    accessories: ['Watches', 'Bags', 'Jewelry', 'Sunglasses', 'Belts'],
-    home: ['Furniture', 'Decor', 'Kitchen', 'Bedding', 'Lighting'],
-    mobile: ['Smartphones', 'Tablets', 'Wearables', 'Accessories'],
-    beauty: ['Skincare', 'Makeup', 'Haircare', 'Fragrance'],
-    sports: ['Equipment', 'Apparel', 'Footwear', 'Accessories'],
-    books: ['Fiction', 'Non-Fiction', 'Educational', 'Children'],
-    fashion: ['Women', 'Men', 'Kids', 'Unisex']
+    shoes: ["Running", "Casual", "Sports", "Formal", "Sneakers"],
+    clothing: ["T-Shirts", "Shirts", "Pants", "Jackets", "Dresses"],
+    electronics: ["TVs", "Audio", "Computers", "Gaming", "Smart Home"],
+    accessories: ["Watches", "Bags", "Jewelry", "Sunglasses", "Belts"],
+    home: ["Furniture", "Decor", "Kitchen", "Bedding", "Lighting"],
+    mobile: ["Smartphones", "Tablets", "Wearables", "Accessories"],
+    beauty: ["Skincare", "Makeup", "Haircare", "Fragrance"],
+    sports: ["Equipment", "Apparel", "Footwear", "Accessories"],
+    books: ["Fiction", "Non-Fiction", "Educational", "Children"],
+    fashion: ["Women", "Men", "Kids", "Unisex"],
   };
 
   // Common sizes
   const commonSizes = {
-    clothing: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-    shoes: ['7', '8', '9', '10', '11', '12'],
-    default: ['One Size']
+    clothing: ["XS", "S", "M", "L", "XL", "XXL"],
+    shoes: ["7", "8", "9", "10", "11", "12"],
+    default: ["One Size"],
   };
 
   // Common colors
   const commonColors = [
-    { name: 'Black', hex: '#000000', value: 'black' },
-    { name: 'White', hex: '#FFFFFF', value: 'white' },
-    { name: 'Red', hex: '#DC2626', value: 'red' },
-    { name: 'Blue', hex: '#2563EB', value: 'blue' },
-    { name: 'Green', hex: '#059669', value: 'green' },
-    { name: 'Yellow', hex: '#D97706', value: 'yellow' },
-    { name: 'Purple', hex: '#7C3AED', value: 'purple' },
-    { name: 'Gray', hex: '#6B7280', value: 'gray' },
-    { name: 'Brown', hex: '#92400E', value: 'brown' },
-    { name: 'Pink', hex: '#DB2777', value: 'pink' }
+    { name: "Black", hex: "#000000", value: "black" },
+    { name: "White", hex: "#FFFFFF", value: "white" },
+    { name: "Red", hex: "#DC2626", value: "red" },
+    { name: "Blue", hex: "#2563EB", value: "blue" },
+    { name: "Green", hex: "#059669", value: "green" },
+    { name: "Yellow", hex: "#D97706", value: "yellow" },
+    { name: "Purple", hex: "#7C3AED", value: "purple" },
+    { name: "Gray", hex: "#6B7280", value: "gray" },
+    { name: "Brown", hex: "#92400E", value: "brown" },
+    { name: "Pink", hex: "#DB2777", value: "pink" },
   ];
 
   // Form state
   const [formData, setFormData] = useState({
     // Basic Info
-    name: '',
-    description: '',
-    shortDescription: '',
-    
+    name: "",
+    description: "",
+    shortDescription: "",
+
     // Pricing
-    price: '',
-    originalPrice: '',
-    discount: '',
-    
+    price: "",
+    originalPrice: "",
+    discount: "",
+
     // Categorization
-    category: '',
-    subcategory: '',
-    brand: '',
-    
-    // Images
-    mainImage: '',
+    category: "",
+    subcategory: "",
+    brand: "",
+
+    // Images - will store URLs for preview
+    mainImage: "",
     images: [],
-    
+
     // Variants
     colors: [],
     sizes: [],
-    
+
     // Details
     tags: [],
     features: [],
-    specs: [{ key: '', value: '' }],
-    
+    specs: [{ key: "", value: "" }],
+
     // Stock & Status
-    stock: '',
+    stock: "",
     inStock: true,
     isFeatured: false,
-    status: 'active'
+    status: "active",
   });
-  
+
   // Form errors
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // File states
+  const [mainImageFile, setMainImageFile] = useState(null);
+  const [additionalImageFiles, setAdditionalImageFiles] = useState([]);
+  const [mainImagePreview, setMainImagePreview] = useState("");
+  const [additionalImagePreviews, setAdditionalImagePreviews] = useState([]);
+
   // Temporary states for tags and features
-  const [tagInput, setTagInput] = useState('');
-  const [featureInput, setFeatureInput] = useState('');
-  const [imageUrls, setImageUrls] = useState(['', '', '', '']);
+  const [tagInput, setTagInput] = useState("");
+  const [featureInput, setFeatureInput] = useState("");
 
   // Handle input changes
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
-    
+
     // Clear error for this field
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
-    
+
     // Auto-calculate discount if both prices are provided
-    if (name === 'price' || name === 'originalPrice') {
+    if (name === "price" || name === "originalPrice") {
       const price = parseFloat(formData.price) || 0;
       const originalPrice = parseFloat(formData.originalPrice) || 0;
-      
+
       if (originalPrice > 0 && price > 0) {
-        const discount = ((originalPrice - price) / originalPrice * 100).toFixed(1);
-        setFormData(prev => ({ ...prev, discount: discount > 0 ? discount : '0' }));
+        const discount = (
+          ((originalPrice - price) / originalPrice) *
+          100
+        ).toFixed(1);
+        setFormData((prev) => ({
+          ...prev,
+          discount: discount > 0 ? discount : "0",
+        }));
       }
     }
-    
+
     // Auto-calculate price if discount is provided
-    if (name === 'discount' && formData.originalPrice) {
+    if (name === "discount" && formData.originalPrice) {
       const originalPrice = parseFloat(formData.originalPrice);
       const discount = parseFloat(value) || 0;
       if (originalPrice > 0 && discount >= 0 && discount <= 100) {
         const price = originalPrice * (1 - discount / 100);
-        setFormData(prev => ({ ...prev, price: price.toFixed(2) }));
+        setFormData((prev) => ({ ...prev, price: price.toFixed(2) }));
       }
     }
+  };
+
+  // Handle main image file selection
+  const handleMainImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setMainImageFile(file);
+      
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setMainImagePreview(previewUrl);
+      
+      // Update form data with preview URL for display
+      setFormData(prev => ({ ...prev, mainImage: previewUrl }));
+      
+      // Clear any previous error
+      if (errors.mainImage) {
+        setErrors(prev => ({ ...prev, mainImage: "" }));
+      }
+    }
+  };
+
+  // Handle additional images file selection
+  const handleAdditionalImagesChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      // Create preview URLs
+      const previewUrls = files.map(file => URL.createObjectURL(file));
+      
+      // Update state
+      setAdditionalImageFiles(prev => [...prev, ...files]);
+      setAdditionalImagePreviews(prev => [...prev, ...previewUrls]);
+      
+      // Update form data with preview URLs
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...previewUrls]
+      }));
+    }
+  };
+
+  // Remove additional image
+  const handleRemoveAdditionalImage = (index) => {
+    const newFiles = [...additionalImageFiles];
+    const newPreviews = [...additionalImagePreviews];
+    
+    // Revoke the object URL to prevent memory leak
+    URL.revokeObjectURL(newPreviews[index]);
+    
+    newFiles.splice(index, 1);
+    newPreviews.splice(index, 1);
+    
+    setAdditionalImageFiles(newFiles);
+    setAdditionalImagePreviews(newPreviews);
+    
+    // Update form data
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
+  // Clear main image
+  const handleClearMainImage = () => {
+    if (mainImagePreview) {
+      URL.revokeObjectURL(mainImagePreview);
+    }
+    setMainImageFile(null);
+    setMainImagePreview("");
+    setFormData(prev => ({ ...prev, mainImage: "" }));
   };
 
   // Handle array fields
   const handleAddTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        tags: [...prev.tags, tagInput.trim()]
+        tags: [...prev.tags, tagInput.trim()],
       }));
-      setTagInput('');
+      setTagInput("");
     }
   };
 
   const handleRemoveTag = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      tags: prev.tags.filter((_, i) => i !== index)
+      tags: prev.tags.filter((_, i) => i !== index),
     }));
   };
 
   const handleAddFeature = () => {
-    if (featureInput.trim() && !formData.features.includes(featureInput.trim())) {
-      setFormData(prev => ({
+    if (
+      featureInput.trim() &&
+      !formData.features.includes(featureInput.trim())
+    ) {
+      setFormData((prev) => ({
         ...prev,
-        features: [...prev.features, featureInput.trim()]
+        features: [...prev.features, featureInput.trim()],
       }));
-      setFeatureInput('');
+      setFeatureInput("");
     }
   };
 
   const handleRemoveFeature = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      features: prev.features.filter((_, i) => i !== index)
+      features: prev.features.filter((_, i) => i !== index),
     }));
   };
 
   // Handle colors
   const handleColorToggle = (color) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      colors: prev.colors.find(c => c.value === color.value)
-        ? prev.colors.filter(c => c.value !== color.value)
-        : [...prev.colors, color]
+      colors: prev.colors.find((c) => c.value === color.value)
+        ? prev.colors.filter((c) => c.value !== color.value)
+        : [...prev.colors, color],
     }));
   };
 
   // Handle sizes
   const handleSizeToggle = (size) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       sizes: prev.sizes.includes(size)
-        ? prev.sizes.filter(s => s !== size)
-        : [...prev.sizes, size]
+        ? prev.sizes.filter((s) => s !== size)
+        : [...prev.sizes, size],
     }));
   };
 
@@ -216,133 +302,135 @@ const ProductCreate = () => {
   const handleSpecChange = (index, field, value) => {
     const newSpecs = [...formData.specs];
     newSpecs[index][field] = value;
-    setFormData(prev => ({ ...prev, specs: newSpecs }));
+    setFormData((prev) => ({ ...prev, specs: newSpecs }));
   };
 
   const handleAddSpec = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      specs: [...prev.specs, { key: '', value: '' }]
+      specs: [...prev.specs, { key: "", value: "" }],
     }));
   };
 
   const handleRemoveSpec = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      specs: prev.specs.filter((_, i) => i !== index)
+      specs: prev.specs.filter((_, i) => i !== index),
     }));
-  };
-
-  // Handle images
-  const handleImageUrlChange = (index, url) => {
-    const newImageUrls = [...imageUrls];
-    newImageUrls[index] = url;
-    setImageUrls(newImageUrls);
-    
-    if (url.trim()) {
-      const allImages = newImageUrls.filter(img => img.trim());
-      setFormData(prev => ({ ...prev, images: allImages }));
-      
-      // Set first image as main image if not set
-      if (!formData.mainImage && index === 0) {
-        setFormData(prev => ({ ...prev, mainImage: url.trim() }));
-      }
-    }
   };
 
   // Validate form
   const validateForm = () => {
     const newErrors = {};
-    
-    if (!formData.name.trim()) newErrors.name = 'Product name is required';
-    if (!formData.description.trim()) newErrors.description = 'Description is required';
-    if (!formData.price) newErrors.price = 'Price is required';
-    if (!formData.category) newErrors.category = 'Category is required';
-    if (!formData.subcategory) newErrors.subcategory = 'Subcategory is required';
-    if (!formData.brand.trim()) newErrors.brand = 'Brand is required';
-    if (!formData.mainImage.trim()) newErrors.mainImage = 'Main image is required';
-    if (!formData.stock && formData.stock !== 0) newErrors.stock = 'Stock quantity is required';
-    
-    // Validate URLs
-    if (formData.mainImage && !isValidUrl(formData.mainImage)) {
-      newErrors.mainImage = 'Please enter a valid image URL';
-    }
-    
+
+    if (!formData.name.trim()) newErrors.name = "Product name is required";
+    if (!formData.description.trim())
+      newErrors.description = "Description is required";
+    if (!formData.price) newErrors.price = "Price is required";
+    if (!formData.category) newErrors.category = "Category is required";
+    if (!formData.subcategory)
+      newErrors.subcategory = "Subcategory is required";
+    if (!formData.brand.trim()) newErrors.brand = "Brand is required";
+    if (!mainImageFile) newErrors.mainImage = "Main image is required";
+    if (!formData.stock && formData.stock !== 0)
+      newErrors.stock = "Stock quantity is required";
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const isValidUrl = (url) => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  // Handle form submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Prepare product data based on your model
-      const productData = {
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        shortDescription: formData.shortDescription.trim(),
-        price: parseFloat(formData.price),
-        originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : parseFloat(formData.price),
-        discount: formData.discount ? parseFloat(formData.discount) : 0,
-        category: formData.category,
-        subcategory: formData.subcategory,
-        brand: formData.brand.trim(),
-        mainImage: formData.mainImage.trim(),
-        images: formData.images.filter(img => img.trim()),
-        colors: formData.colors,
-        sizes: formData.sizes,
-        tags: formData.tags,
-        features: formData.features,
-        specs: formData.specs.reduce((acc, spec) => {
-          if (spec.key && spec.value) {
-            acc[spec.key] = spec.value;
-          }
+  e.preventDefault();
+
+  if (!validateForm()) return;
+
+  setIsSubmitting(true);
+
+  try {
+    // Create FormData for multipart/form-data
+    const productFormData = new FormData();
+
+    // Append basic fields
+    productFormData.append("name", formData.name.trim());
+    productFormData.append("description", formData.description.trim());
+    productFormData.append(
+      "shortDescription",
+      formData.shortDescription.trim()
+    );
+    productFormData.append("price", parseFloat(formData.price));
+    productFormData.append(
+      "originalPrice",
+      formData.originalPrice
+        ? parseFloat(formData.originalPrice)
+        : parseFloat(formData.price)
+    );
+    productFormData.append(
+      "discount",
+      formData.discount ? parseFloat(formData.discount) : 0
+    );
+    productFormData.append("category", formData.category);
+    productFormData.append("subcategory", formData.subcategory);
+    productFormData.append("brand", formData.brand.trim());
+    productFormData.append("stock", parseInt(formData.stock) || 0);
+    productFormData.append("inStock", formData.inStock);
+    productFormData.append("isFeatured", formData.isFeatured);
+    productFormData.append("status", formData.status);
+
+    // Append arrays and objects as JSON strings
+    productFormData.append("colors", JSON.stringify(formData.colors));
+    productFormData.append("sizes", JSON.stringify(formData.sizes));
+    productFormData.append("tags", JSON.stringify(formData.tags));
+    productFormData.append("features", JSON.stringify(formData.features));
+    productFormData.append(
+      "specs",
+      JSON.stringify(
+        formData.specs.reduce((acc, spec) => {
+          if (spec.key && spec.value) acc[spec.key] = spec.value;
           return acc;
-        }, {}),
-        stock: parseInt(formData.stock) || 0,
-        inStock: formData.inStock,
-        rating: 0,
-        reviewCount: 0,
-        isFeatured: formData.isFeatured,
-        status: formData.status
-      };
-      
-      console.log('Creating product:', productData);
-      
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Show success message
-      setSuccessMessage(`Product "${formData.name}" created successfully!`);
-      
-      // Reset form after 2 seconds and redirect
-      setTimeout(() => {
-        navigate('/products');
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Error creating product:', error);
-      setErrors({ submit: 'Failed to create product. Please try again.' });
-    } finally {
-      setIsSubmitting(false);
+        }, {})
+      )
+    );
+
+    // Append main image (field name: 'mainImage')
+    if (mainImageFile) {
+      productFormData.append("mainImage", mainImageFile);
     }
-  };
+
+    // Append additional images (field name: 'images')
+    additionalImageFiles.forEach((file, index) => {
+      productFormData.append("images", file);
+    });
+
+    // Debug: Log FormData contents
+    console.log("FormData contents:");
+    for (let pair of productFormData.entries()) {
+      console.log(pair[0], pair[1]);
+    }
+
+    // Call service
+    const res = await createProduct(productFormData);
+
+    toast.success(res.data.message || "Product created successfully!");
+    setSuccessMessage(`Product "${formData.name}" created successfully!`);
+
+    // Clean up object URLs
+    if (mainImagePreview) {
+      URL.revokeObjectURL(mainImagePreview);
+    }
+    additionalImagePreviews.forEach(url => URL.revokeObjectURL(url));
+
+    // Redirect after 2 seconds
+    setTimeout(() => {
+      navigate("/products");
+    }, 2000);
+  } catch (error) {
+    console.error("Error creating product:", error);
+    toast.error(error.response?.data?.message || "Failed to create product.");
+    setErrors({ submit: "Failed to create product. Please try again." });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   // Get available sizes based on category
   const getAvailableSizes = () => {
@@ -360,14 +448,16 @@ const ProductCreate = () => {
           <div>
             <div className="flex items-center space-x-3 mb-2">
               <button
-                onClick={() => navigate('/products')}
+                onClick={() => navigate("/products")}
                 className="p-2 rounded-full hover:bg-blue-600 transition-colors"
               >
                 <FaArrowLeft />
               </button>
               <h2 className="text-2xl font-bold">Add New Product</h2>
             </div>
-            <p className="text-blue-100">Create a new product for your catalog</p>
+            <p className="text-blue-100">
+              Create a new product for your catalog
+            </p>
           </div>
           <div className="mt-4 lg:mt-0">
             <div className="flex items-center space-x-2">
@@ -384,7 +474,9 @@ const ProductCreate = () => {
             <FaCheck className="text-green-600" />
             <div>
               <p className="text-green-800 font-medium">{successMessage}</p>
-              <p className="text-green-600 text-sm">Redirecting to products list...</p>
+              <p className="text-green-600 text-sm">
+                Redirecting to products list...
+              </p>
             </div>
           </div>
         </div>
@@ -407,7 +499,7 @@ const ProductCreate = () => {
             <FaBox className="text-blue-500" />
             <span>Basic Information</span>
           </h3>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -419,7 +511,7 @@ const ProductCreate = () => {
                 value={formData.name}
                 onChange={handleChange}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.name ? 'border-red-300' : 'border-gray-300'
+                  errors.name ? "border-red-300" : "border-gray-300"
                 }`}
                 placeholder="Enter product name"
               />
@@ -438,7 +530,7 @@ const ProductCreate = () => {
                 value={formData.brand}
                 onChange={handleChange}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.brand ? 'border-red-300' : 'border-gray-300'
+                  errors.brand ? "border-red-300" : "border-gray-300"
                 }`}
                 placeholder="Enter brand name"
               />
@@ -475,12 +567,14 @@ const ProductCreate = () => {
                 onChange={handleChange}
                 rows={4}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.description ? 'border-red-300' : 'border-gray-300'
+                  errors.description ? "border-red-300" : "border-gray-300"
                 }`}
                 placeholder="Detailed product description"
               />
               {errors.description && (
-                <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.description}
+                </p>
               )}
             </div>
           </div>
@@ -492,7 +586,7 @@ const ProductCreate = () => {
             <FaDollarSign className="text-blue-500" />
             <span>Pricing</span>
           </h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -527,7 +621,7 @@ const ProductCreate = () => {
                   min="0"
                   step="0.01"
                   className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.price ? 'border-red-300' : 'border-gray-300'
+                    errors.price ? "border-red-300" : "border-gray-300"
                   }`}
                   placeholder="Selling price"
                 />
@@ -557,7 +651,14 @@ const ProductCreate = () => {
               </div>
               {formData.originalPrice && formData.price && (
                 <p className="mt-2 text-sm text-green-600">
-                  Discount: {((parseFloat(formData.originalPrice) - parseFloat(formData.price)) / parseFloat(formData.originalPrice) * 100).toFixed(1)}%
+                  Discount:{" "}
+                  {(
+                    ((parseFloat(formData.originalPrice) -
+                      parseFloat(formData.price)) /
+                      parseFloat(formData.originalPrice)) *
+                    100
+                  ).toFixed(1)}
+                  %
                 </p>
               )}
             </div>
@@ -570,7 +671,7 @@ const ProductCreate = () => {
             <FaLayerGroup className="text-blue-500" />
             <span>Categorization</span>
           </h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -581,12 +682,14 @@ const ProductCreate = () => {
                 value={formData.category}
                 onChange={handleChange}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.category ? 'border-red-300' : 'border-gray-300'
+                  errors.category ? "border-red-300" : "border-gray-300"
                 }`}
               >
                 <option value="">Select Category</option>
-                {categories.map(cat => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
+                {categories.map((cat) => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </option>
                 ))}
               </select>
               {errors.category && (
@@ -604,91 +707,155 @@ const ProductCreate = () => {
                 onChange={handleChange}
                 disabled={!formData.category}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.subcategory ? 'border-red-300' : 'border-gray-300'
+                  errors.subcategory ? "border-red-300" : "border-gray-300"
                 }`}
               >
                 <option value="">Select Subcategory</option>
-                {formData.category && subcategories[formData.category]?.map(sub => (
-                  <option key={sub} value={sub.toLowerCase()}>{sub}</option>
-                ))}
+                {formData.category &&
+                  subcategories[formData.category]?.map((sub) => (
+                    <option key={sub} value={sub.toLowerCase()}>
+                      {sub}
+                    </option>
+                  ))}
               </select>
               {errors.subcategory && (
-                <p className="mt-1 text-sm text-red-600">{errors.subcategory}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.subcategory}
+                </p>
               )}
             </div>
           </div>
         </div>
 
-        {/* Images */}
+        {/* Images Section - UPDATED for file uploads */}
         <div className="bg-white rounded-xl shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center space-x-2">
             <FaImage className="text-blue-500" />
             <span>Product Images</span>
           </h3>
-          
-          <div className="space-y-6">
+
+          <div className="space-y-8">
+            {/* Main Image */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Main Image URL *
+                Main Image *
               </label>
-              <div className="flex items-center space-x-4">
-                <input
-                  type="url"
-                  name="mainImage"
-                  value={formData.mainImage}
-                  onChange={handleChange}
-                  className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.mainImage ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                  placeholder="https://example.com/image.jpg"
-                />
-                {formData.mainImage && (
-                  <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden border">
-                    <img 
-                      src={formData.mainImage} 
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/150?text=Invalid+URL';
-                      }}
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                <div className="flex-1">
+                  <div className={`border-2 border-dashed rounded-lg p-6 text-center ${errors.mainImage ? 'border-red-300' : 'border-gray-300'}`}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleMainImageChange}
+                      className="hidden"
+                      id="main-image-upload"
                     />
+                    <label htmlFor="main-image-upload" className="cursor-pointer">
+                      <div className="flex flex-col items-center justify-center space-y-3">
+                        <FaUpload className="text-3xl text-gray-400" />
+                        <div>
+                          <p className="text-gray-700 font-medium">Click to upload main image</p>
+                          <p className="text-gray-500 text-sm">Recommended: 800x800px, max 5MB</p>
+                        </div>
+                        <button
+                          type="button"
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Choose File
+                        </button>
+                      </div>
+                    </label>
+                  </div>
+                  {errors.mainImage && (
+                    <p className="mt-1 text-sm text-red-600">{errors.mainImage}</p>
+                  )}
+                </div>
+                
+                {/* Main Image Preview */}
+                {mainImagePreview && (
+                  <div className="relative w-40 h-40">
+                    <div className="w-full h-full bg-gray-100 rounded-lg overflow-hidden border">
+                      <img
+                        src={mainImagePreview}
+                        alt="Main product preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearMainImage}
+                      className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    >
+                      <FaTimes className="text-sm" />
+                    </button>
+                    <p className="mt-2 text-xs text-gray-500 text-center">
+                      Main Image
+                    </p>
                   </div>
                 )}
               </div>
-              {errors.mainImage && (
-                <p className="mt-1 text-sm text-red-600">{errors.mainImage}</p>
-              )}
             </div>
 
+            {/* Additional Images */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 Additional Images (Optional)
               </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[0, 1, 2, 3].map((index) => (
-                  <div key={index} className="space-y-2">
-                    <input
-                      type="url"
-                      value={imageUrls[index]}
-                      onChange={(e) => handleImageUrlChange(index, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      placeholder={`Image ${index + 2} URL`}
-                    />
-                    {imageUrls[index] && (
-                      <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden border">
-                        <img 
-                          src={imageUrls[index]} 
-                          alt={`Preview ${index + 2}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/150?text=Invalid+URL';
-                          }}
-                        />
-                      </div>
-                    )}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAdditionalImagesChange}
+                  className="hidden"
+                  id="additional-images-upload"
+                  multiple
+                />
+                <label htmlFor="additional-images-upload" className="cursor-pointer">
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <FaUpload className="text-3xl text-gray-400" />
+                    <div>
+                      <p className="text-gray-700 font-medium">Click to upload additional images</p>
+                      <p className="text-gray-500 text-sm">Upload up to 4 images (optional)</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                    >
+                      Choose Files
+                    </button>
                   </div>
-                ))}
+                </label>
               </div>
+
+              {/* Additional Images Preview */}
+              {additionalImagePreviews.length > 0 && (
+                <div className="mt-6">
+                  <p className="text-sm text-gray-600 mb-3">Additional Images:</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {additionalImagePreviews.map((preview, index) => (
+                      <div key={index} className="relative">
+                        <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden border">
+                          <img
+                            src={preview}
+                            alt={`Additional product ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAdditionalImage(index)}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors text-xs"
+                        >
+                          <FaTimes />
+                        </button>
+                        <p className="mt-1 text-xs text-gray-500 text-center">
+                          Image {index + 1}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -699,7 +866,7 @@ const ProductCreate = () => {
             <FaPalette className="text-blue-500" />
             <span>Variants</span>
           </h3>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Colors */}
             <div>
@@ -713,16 +880,18 @@ const ProductCreate = () => {
                     type="button"
                     onClick={() => handleColorToggle(color)}
                     className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                      formData.colors.find(c => c.value === color.value)
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                      formData.colors.find((c) => c.value === color.value)
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
-                    <div 
+                    <div
                       className="w-10 h-10 rounded-full mb-2 border border-gray-300"
                       style={{ backgroundColor: color.hex }}
                     />
-                    <span className="text-xs font-medium text-gray-700">{color.name}</span>
+                    <span className="text-xs font-medium text-gray-700">
+                      {color.name}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -735,11 +904,13 @@ const ProductCreate = () => {
                         key={index}
                         className="flex items-center space-x-2 px-3 py-1 bg-gray-100 rounded-full"
                       >
-                        <div 
+                        <div
                           className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: color.hex }}
                         />
-                        <span className="text-sm text-gray-700">{color.name}</span>
+                        <span className="text-sm text-gray-700">
+                          {color.name}
+                        </span>
                         <button
                           type="button"
                           onClick={() => handleColorToggle(color)}
@@ -768,18 +939,20 @@ const ProductCreate = () => {
                       onClick={() => handleSizeToggle(size)}
                       className={`px-4 py-2 rounded-lg border-2 transition-all ${
                         formData.sizes.includes(size)
-                          ? 'border-blue-500 bg-blue-500 text-white'
-                          : 'border-gray-300 text-gray-700 hover:border-blue-300'
+                          ? "border-blue-500 bg-blue-500 text-white"
+                          : "border-gray-300 text-gray-700 hover:border-blue-300"
                       }`}
                     >
                       {size}
                     </button>
                   ))}
                 </div>
-                
+
                 {formData.sizes.length > 0 && (
                   <div>
-                    <p className="text-sm text-gray-600 mb-2">Selected Sizes:</p>
+                    <p className="text-sm text-gray-600 mb-2">
+                      Selected Sizes:
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {formData.sizes.map((size, index) => (
                         <div
@@ -810,7 +983,7 @@ const ProductCreate = () => {
             <FaTag className="text-blue-500" />
             <span>Tags & Features</span>
           </h3>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Tags */}
             <div>
@@ -824,7 +997,9 @@ const ProductCreate = () => {
                   onChange={(e) => setTagInput(e.target.value)}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Add a tag"
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                  onKeyPress={(e) =>
+                    e.key === "Enter" && (e.preventDefault(), handleAddTag())
+                  }
                 />
                 <button
                   type="button"
@@ -834,7 +1009,7 @@ const ProductCreate = () => {
                   Add
                 </button>
               </div>
-              
+
               {formData.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {formData.tags.map((tag, index) => (
@@ -868,7 +1043,10 @@ const ProductCreate = () => {
                   onChange={(e) => setFeatureInput(e.target.value)}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Add a feature"
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddFeature())}
+                  onKeyPress={(e) =>
+                    e.key === "Enter" &&
+                    (e.preventDefault(), handleAddFeature())
+                  }
                 />
                 <button
                   type="button"
@@ -878,7 +1056,7 @@ const ProductCreate = () => {
                   Add
                 </button>
               </div>
-              
+
               {formData.features.length > 0 && (
                 <div className="space-y-2">
                   {formData.features.map((feature, index) => (
@@ -911,21 +1089,25 @@ const ProductCreate = () => {
             <FaList className="text-blue-500" />
             <span>Specifications</span>
           </h3>
-          
+
           <div className="space-y-4">
             {formData.specs.map((spec, index) => (
               <div key={index} className="flex items-center space-x-4">
                 <input
                   type="text"
                   value={spec.key}
-                  onChange={(e) => handleSpecChange(index, 'key', e.target.value)}
+                  onChange={(e) =>
+                    handleSpecChange(index, "key", e.target.value)
+                  }
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Specification name"
                 />
                 <input
                   type="text"
                   value={spec.value}
-                  onChange={(e) => handleSpecChange(index, 'value', e.target.value)}
+                  onChange={(e) =>
+                    handleSpecChange(index, "value", e.target.value)
+                  }
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Specification value"
                 />
@@ -940,7 +1122,7 @@ const ProductCreate = () => {
                 )}
               </div>
             ))}
-            
+
             <button
               type="button"
               onClick={handleAddSpec}
@@ -957,7 +1139,7 @@ const ProductCreate = () => {
             <FaBox className="text-blue-500" />
             <span>Stock & Status</span>
           </h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -970,7 +1152,7 @@ const ProductCreate = () => {
                 onChange={handleChange}
                 min="0"
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.stock ? 'border-red-300' : 'border-gray-300'
+                  errors.stock ? "border-red-300" : "border-gray-300"
                 }`}
                 placeholder="Enter stock quantity"
               />
@@ -986,22 +1168,26 @@ const ProductCreate = () => {
               <div className="flex items-center space-x-3">
                 <button
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, inStock: true }))}
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, inStock: true }))
+                  }
                   className={`px-4 py-2 rounded-lg border ${
                     formData.inStock
-                      ? 'border-green-500 bg-green-500 text-white'
-                      : 'border-gray-300 text-gray-700'
+                      ? "border-green-500 bg-green-500 text-white"
+                      : "border-gray-300 text-gray-700"
                   }`}
                 >
                   Yes
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, inStock: false }))}
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, inStock: false }))
+                  }
                   className={`px-4 py-2 rounded-lg border ${
                     !formData.inStock
-                      ? 'border-red-500 bg-red-500 text-white'
-                      : 'border-gray-300 text-gray-700'
+                      ? "border-red-500 bg-red-500 text-white"
+                      : "border-gray-300 text-gray-700"
                   }`}
                 >
                   No
@@ -1022,7 +1208,10 @@ const ProductCreate = () => {
                   onChange={handleChange}
                   className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
                 />
-                <label htmlFor="isFeatured" className="flex items-center space-x-2">
+                <label
+                  htmlFor="isFeatured"
+                  className="flex items-center space-x-2"
+                >
                   <FaFire className="text-yellow-500" />
                   <span>Mark as featured</span>
                 </label>
@@ -1052,11 +1241,11 @@ const ProductCreate = () => {
             <div className="text-sm text-gray-600">
               <p>Fields marked with * are required</p>
             </div>
-            
+
             <div className="flex space-x-4">
               <button
                 type="button"
-                onClick={() => navigate('/products')}
+                onClick={() => navigate("/products")}
                 className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 disabled={isSubmitting}
               >

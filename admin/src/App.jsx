@@ -17,6 +17,8 @@ import OrdersList from "./pages/orders/OrderList";
 import OrderDetails from "./pages/orders/OrderDetails";
 import { Toaster } from "./components/ui/sonner";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import ProductDetails from "./pages/products/ProductDetails";
+import Inventory from "./pages/products/Inventory";
 
 // Placeholder components for other pages
 const PlaceholderPage = ({ title }) => (
@@ -51,7 +53,9 @@ function App() {
             {/* Product Management */}
             <Route path="products" element={<ProductsList />} />
             <Route path="products/create" element={<ProductCreate />} />
+            <Route path="products/:id" element={<ProductDetails />} />
             <Route path="products/:id/edit" element={<ProductEdit />} />
+            <Route path="products/inventory" element={<Inventory />} />
 
             {/* Categories */}
             <Route path="categories" element={<CategoriesList />} />
