@@ -1,8 +1,7 @@
-// src/pages/products/ProductDetails.jsx
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useProducts } from '../../context/ProductContext';
-import { toast } from 'sonner';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useProducts } from "../../context/ProductContext";
+import { toast } from "sonner";
 import {
   FaArrowLeft,
   FaEdit,
@@ -27,15 +26,77 @@ import {
   FaChartLine,
   FaShareAlt,
   FaPrint,
-  FaSpinner
-} from 'react-icons/fa';
+  FaSpinner,
+  FaExclamationTriangle,
+} from "react-icons/fa";
+
+const DeleteConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  productName,
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        {/* Background overlay */}
+
+        {/* Modal panel */}
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="sm:flex sm:items-start">
+              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                <FaExclamationTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  Delete Product
+                </h3>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-500">
+                    Are you sure you want to delete "{productName}"? This action
+                    cannot be undone.
+                  </p>
+                  <p className="text-sm text-red-500 mt-2 font-medium">
+                    All product data, including images, variants, and inventory
+                    information will be permanently removed.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { product, loading, fetchProductById, deleteProduct } = useProducts();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const [selectedImage, setSelectedImage] = useState(0);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -50,49 +111,69 @@ const ProductDetails = () => {
   }, [product]);
 
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await deleteProduct(id);
-        toast.success('Product deleted successfully');
-        navigate('/products');
-      } catch (error) {
-        toast.error('Failed to delete product');
-      }
+    setIsDeleting(true);
+    try {
+      await deleteProduct(id);
+      setShowDeleteModal(false);
+      navigate(-1);
+    } catch (error) {
+      toast.error("Failed to delete product");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
+  const openDeleteModal = () => {
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+  };
+
   const formatCurrency = (amount) => {
-    if (!amount) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
+    if (!amount) return "$0.00";
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "KES",
     }).format(amount);
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getCategoryIcon = (category) => {
-    switch(category) {
-      case 'shoes': return '👟';
-      case 'electronics': return '💻';
-      case 'clothing': return '👕';
-      case 'mobile': return '📱';
-      case 'accessories': return '🕶️';
-      case 'home': return '🏠';
-      case 'beauty': return '💄';
-      case 'sports': return '⚽';
-      case 'books': return '📚';
-      case 'fashion': return '👗';
-      default: return '📦';
+    switch (category) {
+      case "shoes":
+        return "👟";
+      case "electronics":
+        return "💻";
+      case "clothing":
+        return "👕";
+      case "mobile":
+        return "📱";
+      case "accessories":
+        return "🕶️";
+      case "home":
+        return "🏠";
+      case "beauty":
+        return "💄";
+      case "sports":
+        return "⚽";
+      case "books":
+        return "📚";
+      case "fashion":
+        return "👗";
+      default:
+        return "📦";
     }
   };
 
@@ -107,8 +188,12 @@ const ProductDetails = () => {
   if (!product) {
     return (
       <div className="p-6 text-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">Product not found</h1>
-        <p className="text-gray-600 mb-6">The product you're looking for doesn't exist or has been removed.</p>
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">
+          Product not found
+        </h1>
+        <p className="text-gray-600 mb-6">
+          The product you're looking for doesn't exist or has been removed.
+        </p>
         <Link
           to="/products"
           className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -120,7 +205,10 @@ const ProductDetails = () => {
     );
   }
 
-  const mainImage = product.mainImage || (product.images && product.images[0]) || 'https://via.placeholder.com/600';
+  const mainImage =
+    product.mainImage ||
+    (product.images && product.images[0]) ||
+    "https://via.placeholder.com/600";
   const additionalImages = product.images || [];
 
   return (
@@ -131,7 +219,7 @@ const ProductDetails = () => {
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-4">
               <button
-                onClick={() => navigate('/products')}
+                onClick={() => navigate("/products")}
                 className="p-2 rounded-full hover:bg-blue-600 transition-colors"
               >
                 <FaArrowLeft />
@@ -143,22 +231,28 @@ const ProductDetails = () => {
                   <span>Featured</span>
                 </span>
               )}
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                product.status === 'active' 
-                  ? 'bg-green-500 text-white' 
-                  : 'bg-red-500 text-white'
-              }`}>
-                {product.status === 'active' ? 'Active' : 'Inactive'}
+              <span
+                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                  product.status === "active"
+                    ? "bg-green-500 text-white"
+                    : "bg-red-500 text-white"
+                }`}
+              >
+                {product.status === "active" ? "Active" : "Inactive"}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-4 text-blue-100">
               <div className="flex items-center space-x-2">
-                <span className="text-lg">{getCategoryIcon(product.category)}</span>
-                <span className="capitalize">{product.category} • {product.subcategory}</span>
+                <span className="text-lg">
+                  {getCategoryIcon(product.category)}
+                </span>
+                <span className="capitalize">
+                  {product.category} • {product.subcategory}
+                </span>
               </div>
               <div className="flex items-center space-x-2">
                 <FaBox />
-                <span>SKU: {product._id?.slice(-8) || 'N/A'}</span>
+                <span>SKU: {product._id?.slice(-8) || "N/A"}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <FaCalendar />
@@ -166,7 +260,7 @@ const ProductDetails = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="flex space-x-3 mt-4 lg:mt-0">
             <button className="flex items-center space-x-2 px-4 py-2 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
               <FaShareAlt />
@@ -184,11 +278,21 @@ const ProductDetails = () => {
               <span>Edit</span>
             </Link>
             <button
-              onClick={handleDelete}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              onClick={openDeleteModal}
+              className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isDeleting}
             >
-              <FaTrash />
-              <span>Delete</span>
+              {isDeleting ? (
+                <>
+                  <FaSpinner className="animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <FaTrash />
+                  <span>Delete</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -205,7 +309,7 @@ const ProductDetails = () => {
                 alt={product.name}
                 className="w-full h-full object-contain"
                 onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/600';
+                  e.target.src = "https://via.placeholder.com/600";
                 }}
               />
               {product.discount > 0 && (
@@ -219,14 +323,18 @@ const ProductDetails = () => {
           {/* Thumbnail Images */}
           {additionalImages.length > 0 && (
             <div className="bg-white rounded-xl shadow-md p-4">
-              <h3 className="font-semibold text-gray-800 mb-4">Additional Images</h3>
+              <h3 className="font-semibold text-gray-800 mb-4">
+                Additional Images
+              </h3>
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3">
                 {additionalImages.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
                     className={`relative h-20 rounded-lg overflow-hidden border-2 ${
-                      selectedImage === index ? 'border-blue-500' : 'border-gray-200'
+                      selectedImage === index
+                        ? "border-blue-500"
+                        : "border-gray-200"
                     }`}
                   >
                     <img
@@ -234,7 +342,7 @@ const ProductDetails = () => {
                       alt={`${product.name} ${index + 1}`}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/150';
+                        e.target.src = "https://via.placeholder.com/150";
                       }}
                     />
                   </button>
@@ -247,14 +355,14 @@ const ProductDetails = () => {
           <div className="bg-white rounded-xl shadow-md">
             <div className="border-b border-gray-200">
               <nav className="flex space-x-1 px-6">
-                {['overview', 'specifications', 'reviews'].map((tab) => (
+                {["overview", "specifications", "reviews"].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === tab
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                        ? "border-blue-500 text-blue-600"
+                        : "border-transparent text-gray-500 hover:text-gray-700"
                     }`}
                   >
                     {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -262,19 +370,28 @@ const ProductDetails = () => {
                 ))}
               </nav>
             </div>
-            
+
             <div className="p-6">
-              {activeTab === 'overview' && (
+              {activeTab === "overview" && (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-800">Description</h3>
-                  <p className="text-gray-600 whitespace-pre-line">{product.description}</p>
-                  
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Description
+                  </h3>
+                  <p className="text-gray-600 whitespace-pre-line">
+                    {product.description}
+                  </p>
+
                   {product.features && product.features.length > 0 && (
                     <div>
-                      <h4 className="font-medium text-gray-800 mb-2">Key Features</h4>
+                      <h4 className="font-medium text-gray-800 mb-2">
+                        Key Features
+                      </h4>
                       <ul className="space-y-2">
                         {product.features.map((feature, index) => (
-                          <li key={index} className="flex items-start space-x-2">
+                          <li
+                            key={index}
+                            className="flex items-start space-x-2"
+                          >
                             <FaCheck className="text-green-500 mt-1 flex-shrink-0" />
                             <span className="text-gray-600">{feature}</span>
                           </li>
@@ -284,38 +401,49 @@ const ProductDetails = () => {
                   )}
                 </div>
               )}
-              
-              {activeTab === 'specifications' && (
+
+              {activeTab === "specifications" && (
                 <div className="space-y-4">
                   {product.specs && Object.keys(product.specs).length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {Object.entries(product.specs).map(([key, value]) => (
-                        <div key={key} className="flex justify-between py-3 border-b border-gray-100">
-                          <span className="text-gray-600 capitalize">{key}</span>
-                          <span className="font-medium text-gray-800">{value}</span>
+                        <div
+                          key={key}
+                          className="flex justify-between py-3 border-b border-gray-100"
+                        >
+                          <span className="text-gray-600 capitalize">
+                            {key}
+                          </span>
+                          <span className="font-medium text-gray-800">
+                            {value}
+                          </span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 italic">No specifications available</p>
+                    <p className="text-gray-500 italic">
+                      No specifications available
+                    </p>
                   )}
                 </div>
               )}
-              
-              {activeTab === 'reviews' && (
+
+              {activeTab === "reviews" && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="text-center">
-                        <div className="text-4xl font-bold text-gray-800">{product.rating || 0}</div>
+                        <div className="text-4xl font-bold text-gray-800">
+                          {product.rating || 0}
+                        </div>
                         <div className="flex items-center">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <FaStar
                               key={star}
                               className={`w-5 h-5 ${
                                 star <= (product.rating || 0)
-                                  ? 'text-yellow-400'
-                                  : 'text-gray-300'
+                                  ? "text-yellow-400"
+                                  : "text-gray-300"
                               }`}
                             />
                           ))}
@@ -342,7 +470,9 @@ const ProductDetails = () => {
         <div className="space-y-6">
           {/* Pricing Card */}
           <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Pricing</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Pricing
+            </h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Selling Price</span>
@@ -350,16 +480,17 @@ const ProductDetails = () => {
                   {formatCurrency(product.price)}
                 </span>
               </div>
-              
-              {product.originalPrice && product.originalPrice > product.price && (
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Original Price</span>
-                  <span className="text-lg text-gray-500 line-through">
-                    {formatCurrency(product.originalPrice)}
-                  </span>
-                </div>
-              )}
-              
+
+              {product.originalPrice &&
+                product.originalPrice > product.price && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Original Price</span>
+                    <span className="text-lg text-gray-500 line-through">
+                      {formatCurrency(product.originalPrice)}
+                    </span>
+                  </div>
+                )}
+
               {product.discount > 0 && (
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Discount</span>
@@ -368,14 +499,18 @@ const ProductDetails = () => {
                   </span>
                 </div>
               )}
-              
+
               <div className="pt-4 border-t border-gray-200">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Profit Margin</span>
                   <span className="text-lg font-medium text-green-600">
                     {product.originalPrice && product.originalPrice > 0
-                      ? `${(((product.originalPrice - product.price) / product.originalPrice) * 100).toFixed(1)}%`
-                      : 'N/A'}
+                      ? `${(
+                          ((product.originalPrice - product.price) /
+                            product.originalPrice) *
+                          100
+                        ).toFixed(1)}%`
+                      : "N/A"}
                   </span>
                 </div>
               </div>
@@ -384,38 +519,46 @@ const ProductDetails = () => {
 
           {/* Inventory Card */}
           <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Inventory</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Inventory
+            </h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Stock Quantity</span>
-                <span className={`text-xl font-bold ${
-                  product.stock === 0
-                    ? 'text-red-600'
-                    : product.stock < 10
-                    ? 'text-yellow-600'
-                    : 'text-green-600'
-                }`}>
+                <span
+                  className={`text-xl font-bold ${
+                    product.stock === 0
+                      ? "text-red-600"
+                      : product.stock < 10
+                      ? "text-yellow-600"
+                      : "text-green-600"
+                  }`}
+                >
                   {product.stock || 0} units
                 </span>
               </div>
-              
+
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Status</span>
                 <div className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    product.inStock ? 'bg-green-500' : 'bg-red-500'
-                  }`} />
+                  <div
+                    className={`w-3 h-3 rounded-full ${
+                      product.inStock ? "bg-green-500" : "bg-red-500"
+                    }`}
+                  />
                   <span className="font-medium">
-                    {product.inStock ? 'In Stock' : 'Out of Stock'}
+                    {product.inStock ? "In Stock" : "Out of Stock"}
                   </span>
                 </div>
               </div>
-              
+
               <div className="pt-4 border-t border-gray-200">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Inventory Value</span>
                   <span className="text-lg font-bold text-blue-600">
-                    {formatCurrency((product.price || 0) * (product.stock || 0))}
+                    {formatCurrency(
+                      (product.price || 0) * (product.stock || 0)
+                    )}
                   </span>
                 </div>
               </div>
@@ -424,7 +567,9 @@ const ProductDetails = () => {
 
           {/* Variants Card */}
           <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Variants</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Variants
+            </h3>
             <div className="space-y-4">
               {/* Colors */}
               {product.colors && product.colors.length > 0 && (
@@ -442,15 +587,17 @@ const ProductDetails = () => {
                       >
                         <div
                           className="w-4 h-4 rounded-full border border-gray-300"
-                          style={{ backgroundColor: color.hex || '#ccc' }}
+                          style={{ backgroundColor: color.hex || "#ccc" }}
                         />
-                        <span className="text-sm text-gray-700">{color.name}</span>
+                        <span className="text-sm text-gray-700">
+                          {color.name}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-              
+
               {/* Sizes */}
               {product.sizes && product.sizes.length > 0 && (
                 <div>
@@ -470,7 +617,7 @@ const ProductDetails = () => {
                   </div>
                 </div>
               )}
-              
+
               {/* Tags */}
               {product.tags && product.tags.length > 0 && (
                 <div>
@@ -495,15 +642,13 @@ const ProductDetails = () => {
 
           {/* Quick Actions */}
           <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Quick Actions
+            </h3>
             <div className="space-y-3">
               <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                 <FaEye />
                 <span>Preview Product</span>
-              </button>
-              <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                <FaShoppingCart />
-                <span>Create Order</span>
               </button>
               <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
                 <FaChartLine />
@@ -520,56 +665,13 @@ const ProductDetails = () => {
         </div>
       </div>
 
-      {/* Product Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500">Total Views</p>
-              <h3 className="text-2xl font-bold text-gray-800 mt-2">N/A</h3>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-full">
-              <FaEye className="text-blue-600 text-2xl" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500">Orders</p>
-              <h3 className="text-2xl font-bold text-gray-800 mt-2">N/A</h3>
-            </div>
-            <div className="p-3 bg-green-100 rounded-full">
-              <FaShoppingCart className="text-green-600 text-2xl" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500">Revenue</p>
-              <h3 className="text-2xl font-bold text-gray-800 mt-2">N/A</h3>
-            </div>
-            <div className="p-3 bg-purple-100 rounded-full">
-              <FaDollarSign className="text-purple-600 text-2xl" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500">Conversion Rate</p>
-              <h3 className="text-2xl font-bold text-gray-800 mt-2">N/A</h3>
-            </div>
-            <div className="p-3 bg-yellow-100 rounded-full">
-              <FaChartLine className="text-yellow-600 text-2xl" />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={closeDeleteModal}
+        onConfirm={handleDelete}
+        productName={product?.name || "this product"}
+      />
     </div>
   );
 };

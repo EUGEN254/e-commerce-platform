@@ -27,6 +27,8 @@ export const ProductProvider = ({ children }) => {
     pages: 1
   });
 
+  const curreSymbol = "KES"
+
   // Fetch all products with filters
   const fetchProducts = useCallback(async (params = {}) => {
     setLoading(true);
@@ -317,6 +319,7 @@ export const ProductProvider = ({ children }) => {
     updateProduct,
     deleteProduct,
     updateStatus,
+    curreSymbol,
     toggleFeatured,
     bulkDelete,
     clearProduct,

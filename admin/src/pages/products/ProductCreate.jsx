@@ -23,9 +23,11 @@ import {
   FaSave,
 } from "react-icons/fa";
 import { createProduct } from "../../services/productService";
+import { useProducts } from "../../context/ProductContext";
 
 const ProductCreate = () => {
   const navigate = useNavigate();
+  const {curreSymbol}= useProducts();
 
   // Categories based on your model
   const categories = [
@@ -401,12 +403,7 @@ const ProductCreate = () => {
       productFormData.append("images", file);
     });
 
-    // Debug: Log FormData contents
-    console.log("FormData contents:");
-    for (let pair of productFormData.entries()) {
-      console.log(pair[0], pair[1]);
-    }
-
+    
     // Call service
     const res = await createProduct(productFormData);
 
@@ -583,7 +580,6 @@ const ProductCreate = () => {
         {/* Pricing */}
         <div className="bg-white rounded-xl shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center space-x-2">
-            <FaDollarSign className="text-blue-500" />
             <span>Pricing</span>
           </h3>
 
@@ -593,7 +589,7 @@ const ProductCreate = () => {
                 Original Price (Optional)
               </label>
               <div className="relative">
-                <FaDollarSign className="absolute left-3 top-3 text-gray-400" />
+                 <span className="absolute left-3 top-2 text-gray-400">{curreSymbol}</span>
                 <input
                   type="number"
                   name="originalPrice"
@@ -612,7 +608,7 @@ const ProductCreate = () => {
                 Selling Price *
               </label>
               <div className="relative">
-                <FaDollarSign className="absolute left-3 top-3 text-gray-400" />
+              <span className="absolute left-3 top-2 text-gray-400">{curreSymbol}</span>
                 <input
                   type="number"
                   name="price"

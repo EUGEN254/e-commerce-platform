@@ -4,6 +4,7 @@ import { Outlet, useLocation, Link } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { FaHome, FaChevronRight } from "react-icons/fa";
+import { useEffect } from "react";
 
 const Layout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -20,6 +21,14 @@ const Layout = () => {
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
+
+  useEffect(() => {
+  const content = document.getElementById("main-content");
+  if (content) {
+    content.scrollTo({ top: 0, behavior: "smooth" });
+  }
+}, [location.pathname]);
 
   const renderBreadcrumbs = () => {
     const pathSegments = location.pathname.split('/').filter(segment => segment);
@@ -74,7 +83,7 @@ const Layout = () => {
         </header>
 
         {/* Scrollable Content Area */}
-        <main className="flex-1 overflow-y-auto main-scrollbar bg-gray-50">
+        <main id="main-content" className="flex-1 overflow-y-auto main-scrollbar bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Page Header */}
             <div className="mb-8">
@@ -88,14 +97,6 @@ const Layout = () => {
                 <Outlet />
               </div>
             </div>
-
-            {/* Footer */}
-            <footer className="mt-12 pt-8 border-t border-gray-200">
-              <div className="text-center text-gray-500 text-sm">
-                <p>© {new Date().getFullYear()} Admin Dashboard v1.0.0</p>
-                <p className="mt-1">Built with React & Tailwind CSS</p>
-              </div>
-            </footer>
           </div>
         </main>
       </div>
