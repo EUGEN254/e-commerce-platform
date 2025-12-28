@@ -1,28 +1,33 @@
 // src/pages/AuthLogin.jsx
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { FaEye, FaEyeSlash, FaLock, FaUser } from 'react-icons/fa';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FaEye, FaEyeSlash, FaLock, FaUser } from "react-icons/fa";
+import { useAuth } from "../context/AuthContext";
+import {toast} from "sonner"
 
 const AuthLogin = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState('');
+  const { login, loading } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement actual authentication logic here
-    // For demo purposes, we'll simulate a successful login if fields are filled
-    if (email && password) {
-      // Simulate API call
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1000);
-    } else {
-      setError('Please fill in all fields');
+
+    if (!email || !password) {
+      toast.error("Email and password are required");
+      return;
     }
+
+    const result = await login(email, password, rememberMe);
+
+    if (!result.success) {
+      toast.error(result.message);
+      return;
+    }
+    navigate("/dashboard");
   };
 
   return (
@@ -35,21 +40,22 @@ const AuthLogin = () => {
               <FaLock className="text-2xl text-white" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-white text-center">Admin Login</h2>
-          <p className="text-sm text-gray-400 text-center mt-2">Secure access to your admin dashboard</p>
+          <h2 className="text-2xl font-bold text-white text-center">
+            Admin Login
+          </h2>
+          <p className="text-sm text-gray-400 text-center mt-2">
+            Secure access to your admin dashboard
+          </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          {error && (
-            <div className="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Email Input */}
+         
+         {/* Email Input */}
           <div className="relative">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Email Address
+            </label>
             <div className="relative">
               <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
               <input
@@ -65,11 +71,13 @@ const AuthLogin = () => {
 
           {/* Password Input */}
           <div className="relative">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Password</label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Password
+            </label>
             <div className="relative">
               <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
               <input
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-12 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
@@ -97,7 +105,10 @@ const AuthLogin = () => {
               />
               <span className="text-sm text-gray-300">Remember me</span>
             </label>
-            <Link to="/forgot-password" className="text-sm text-blue-400 hover:text-blue-300">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-blue-400 hover:text-blue-300"
+            >
               Forgot password?
             </Link>
           </div>
@@ -105,9 +116,10 @@ const AuthLogin = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
+            disabled={loading}
+            className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg disabled:opacity-50"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
       </div>

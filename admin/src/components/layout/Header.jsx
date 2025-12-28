@@ -1,5 +1,5 @@
 // src/components/layout/Header.jsx
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, use } from "react";
 import {
   FaSearch,
   FaBell,
@@ -13,12 +13,14 @@ import {
   FaQuestionCircle,
   FaGlobe,
 } from "react-icons/fa";
+import { useAuth } from "../../context/AuthContext";
 
 const Header = ({ toggleSidebar, isSidebarOpen }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { logout,admin } = useAuth();
 
   const notificationsRef = useRef(null);
   const profileRef = useRef(null);
@@ -258,8 +260,8 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                 <FaUserCircle className="text-white text-1xl" />
               </div>
               <div className="text-left hidden lg:block">
-                <p className="font-medium text-gray-800 text-sm">Admin User</p>
-                <p className="text-xs text-gray-500 ">Super Admin</p>
+                <p className="font-medium text-gray-800 text-sm">{admin?.name || "Admin"}</p>
+                <p className="text-xs text-gray-500 ">{admin?.role || "Super Admin"}</p>
               </div>
             </button>
 
@@ -267,12 +269,12 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <FaUserCircle className="text-white text-3xl" />
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                      <FaUserCircle className="text-white text-1xl" />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-800">Admin User</p>
-                      <p className="text-sm text-gray-500">admin@example.com</p>
+                      <p className="font-semibold text-gray-800">{admin?.name || "Admin User"}</p>
+                      <p className="text-xs text-gray-500">{admin?.email || "admin@example.com"}</p>
                     </div>
                   </div>
                 </div>
@@ -295,7 +297,9 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                 </div>
 
                 <div className="p-3 border-t border-gray-100">
-                  <button className="w-full bg-red-50 text-red-600 hover:bg-red-100 font-medium py-2 rounded-lg transition-colors">
+                  <button 
+                  onClick={logout}
+                  className="w-full bg-red-50 text-red-600 hover:bg-red-100 font-medium py-2 rounded-lg transition-colors">
                     Sign Out
                   </button>
                 </div>

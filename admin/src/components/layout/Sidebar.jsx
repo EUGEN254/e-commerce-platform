@@ -9,9 +9,11 @@ import {
   FaUserCircle,
   FaCaretRight
 } from 'react-icons/fa';
+import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
   const [expandedMenus, setExpandedMenus] = useState({});
+  const { logout } = useAuth();
   const location = useLocation();
 
   const toggleMenu = (menuId) => {
@@ -149,7 +151,9 @@ const Sidebar = () => {
             <p className="text-sm font-medium">Admin User</p>
             <p className="text-xs text-gray-400">admin@example.com</p>
           </div>
-          <button className="p-2 hover:bg-gray-700 rounded-lg transition-colors">
+          <button 
+          onClick={logout}
+          className="p-2 hover:bg-gray-700 rounded-lg transition-colors">
             <FaSignOutAlt className="text-gray-400" />
           </button>
         </div>
