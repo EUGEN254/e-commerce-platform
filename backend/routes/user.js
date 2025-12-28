@@ -1,5 +1,4 @@
 import express from "express";
-import userAuth from "../middleware/userAuth.js";
 import {
   getCurrentUser,
   registerUser,
@@ -13,6 +12,7 @@ import {
   resetPassword,
 } from "../controllers/UserController.js";
 import { otpAttemptsMiddleware } from "../middleware/otpAttemptsMiddleware.js";
+import userAuth from "../middleware/userAuth.js";
 
 const UserRouter = express.Router();
 
