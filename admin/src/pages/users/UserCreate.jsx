@@ -1,6 +1,7 @@
 // src/pages/users/UserCreate.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createUser } from '../../services/userService';
 import { 
   FaUserPlus, 
   FaArrowLeft, 
@@ -130,32 +131,26 @@ const UserCreate = () => {
     setIsSubmitting(true);
     
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Prepare user data based on your model
-      const userData = {
+      const payload = {
         name: formData.name.trim(),
         email: formData.email.toLowerCase().trim(),
         password: formData.password,
-        isVerified: formData.isVerified,
-        verificationCode: formData.isVerified ? null : Math.floor(100000 + Math.random() * 900000).toString(),
-        verificationAttempts: 0
+        confirmPassword: formData.confirmPassword,
       };
-      
-      console.log('Creating user:', userData);
-      
-      // Show success message
-      setSuccessMessage(`User ${formData.email} created successfully!`);
-      
-      // Reset form after 2 seconds
-      setTimeout(() => {
-        navigate('/users');
-      }, 2000);
+
+      const resp = await createUser(payload);
+      const data = resp.data || resp;
+      if (data.success) {
+        setSuccessMessage(data.message || `User ${formData.email} created successfully!`);
+        setTimeout(() => navigate('/users'), 1500);
+      } else {
+        setErrors({ submit: data.message || 'Failed to create user' });
+      }
       
     } catch (error) {
       console.error('Error creating user:', error);
-      setErrors({ submit: 'Failed to create user. Please try again.' });
+      const msg = error.response?.data?.message || error.message || 'Failed to create user. Please try again.';
+      setErrors({ submit: msg });
     } finally {
       setIsSubmitting(false);
     }

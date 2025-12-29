@@ -60,7 +60,6 @@ const getAllCategories = async (req, res) => {
       data: categories,
     });
   } catch (error) {
-    console.error("Get All Categories Error:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -138,7 +137,6 @@ const getProductsByCategoryAndSubcategory = async (req, res) => {
       data: products,
     });
   } catch (error) {
-    console.error("Get Products By Category & Subcategory Error:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -182,7 +180,6 @@ const getCategoryById = async (req, res) => {
       data: category,
     });
   } catch (error) {
-    console.error("Get Category By ID Error:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -210,7 +207,6 @@ const getCategoriesByType = async (req, res) => {
       data: categories,
     });
   } catch (error) {
-    console.error("Get Categories By Type Error:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -232,7 +228,6 @@ const getMainCategories = async (req, res) => {
       data: categories,
     });
   } catch (error) {
-    console.error("Get Main Categories Error:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -256,7 +251,6 @@ const getFeaturedCategories = async (req, res) => {
       data: categories,
     });
   } catch (error) {
-    console.error("Get Featured Categories Error:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -280,7 +274,6 @@ const updateCategoryProductCount = async (categoryId) => {
       await category.save();
     }
   } catch (error) {
-    console.error("Update Category Product Count Error:", error);
   }
 };
 

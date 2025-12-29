@@ -33,6 +33,7 @@ import {
   FaBell,
   FaExclamation,
 } from "react-icons/fa";
+import { formatCurrency } from "../../utils/formatCurrency";
 
 // Delete Confirmation Modal Component
 const DeleteConfirmationModal = ({ 
@@ -358,14 +359,6 @@ const Inventory = () => {
     );
   };
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    if (!amount) return "$0.00";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "KES",
-    }).format(amount);
-  };
 
   // Get stock status
   const getStockStatus = (stock) => {

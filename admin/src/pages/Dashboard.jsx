@@ -26,6 +26,7 @@ import {
   FaPercent,
   FaSpinner
 } from 'react-icons/fa';
+import { formatCurrency } from '../utils/formatCurrency';
 
 // Import Recharts components
 import {
@@ -35,7 +36,7 @@ import {
 
 // Import services
 
-import { getDashboardStats,getRecentActivities  } from '../services/dashboardService';
+import { getDashboardStats, getRecentActivities, getSalesData, getCategoryDistribution } from '../services/dashboardService';
 import { useProducts } from '../context/ProductContext';
 
 
@@ -86,49 +87,68 @@ const Dashboard = () => {
       
       // Calculate product stats
       const productStats = calculateProductStats(products);
-      
-      // Mock data for other stats (you'll replace with actual API calls)
-      const mockStats = {
+      // Start building stats using API when available
+      let apiStats = {};
+      try {
+        const res = await getDashboardStats();
+        apiStats = res.data?.data || res.data || {};
+      } catch (e) {
+        console.warn('getDashboardStats failed, falling back to mock values', e?.message || e);
+      }
+
+      const combinedStats = {
         totalProducts: products.length,
-        totalOrders: 1245,
-        totalRevenue: 2548900,
-        totalUsers: 456,
-        revenueGrowth: 12.5,
-        orderGrowth: 8.3,
-        userGrowth: 15.2,
-        productGrowth: 5.7,
+        totalOrders: apiStats.totalOrders || 0,
+        totalRevenue: apiStats.totalRevenue || productStats.totalValue || 0,
+        totalUsers: apiStats.totalUsers || 0,
+        revenueGrowth: apiStats.revenueGrowth || 0,
+        orderGrowth: apiStats.orderGrowth || 0,
+        userGrowth: apiStats.userGrowth || 0,
+        productGrowth: apiStats.productGrowth || 0,
         ...productStats
       };
-      
-      setStats(mockStats);
-      
-      // Generate mock sales data
-      const mockSalesData = generateSalesData(timeRange);
-      setSalesData(mockSalesData);
-      
-      // Generate category distribution
-      const categoryDistribution = generateCategoryData(products);
-      setCategoryData(categoryDistribution);
-      
-      // Generate recent orders
-      const mockOrders = generateRecentOrders();
-      setRecentOrders(mockOrders);
-      
-      // Get low stock products
+
+      setStats(combinedStats);
+
+      // Sales data (try API, fallback to generated)
+      try {
+        const salesRes = await getSalesData(timeRange);
+        setSalesData(salesRes.data?.data || salesRes.data || generateSalesData(timeRange));
+      } catch (e) {
+        console.warn('getSalesData failed, using generated sales data', e?.message || e);
+        setSalesData(generateSalesData(timeRange));
+      }
+
+      // Category distribution (try API, fallback to generated)
+      try {
+        const catRes = await getCategoryDistribution();
+        setCategoryData(catRes.data?.data || catRes.data || generateCategoryData(products));
+      } catch (e) {
+        console.warn('getCategoryDistribution failed, using generated category data', e?.message || e);
+        setCategoryData(generateCategoryData(products));
+      }
+
+      // Recent orders - try to use recent activities API for better data
+      try {
+        const actRes = await getRecentActivities();
+        const acts = actRes.data?.data || actRes.data || generateRecentActivities();
+        setRecentActivities(acts.slice(0, 10));
+      } catch (e) {
+        console.warn('getRecentActivities failed, using generated activities', e?.message || e);
+        setRecentActivities(generateRecentActivities());
+      }
+
+      // Low stock and top products from local products list
       const lowStock = products
         .filter(p => p.stock <= 10 && p.stock > 0)
         .slice(0, 5);
       setLowStockProducts(lowStock);
-      
-      // Get top products (by stock value or rating)
+
       const top = products
-        .sort((a, b) => (b.price * b.stock) - (a.price * a.stock))
+        .slice()
+        .sort((a, b) => (b.price || 0) * (b.stock || 0) - ((a.price || 0) * (a.stock || 0)))
         .slice(0, 5);
       setTopProducts(top);
-      
-      // Get recent activities
-      const activities = generateRecentActivities();
-      setRecentActivities(activities);
       
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -250,15 +270,7 @@ const Dashboard = () => {
     ];
   };
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  // Use shared formatter
 
   // Get status color
   const getStatusColor = (status) => {
@@ -297,8 +309,8 @@ const Dashboard = () => {
   // Handle time range change
   const handleTimeRangeChange = (range) => {
     setTimeRange(range);
-    const newData = generateSalesData(range);
-    setSalesData(newData);
+    // Re-fetch dashboard data which will load sales for the new range
+    fetchDashboardData();
   };
 
   // Refresh dashboard
@@ -310,14 +322,14 @@ const Dashboard = () => {
   // Initial data fetch
   useEffect(() => {
     fetchDashboardData();
-    
+
     // Set up auto-refresh every 5 minutes
     const interval = setInterval(() => {
       fetchDashboardData();
     }, 5 * 60 * 1000);
-    
+
     return () => clearInterval(interval);
-  }, []);
+  }, [timeRange]);
 
   if (loading) {
     return (

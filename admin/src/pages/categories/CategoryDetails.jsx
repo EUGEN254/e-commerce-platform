@@ -33,6 +33,7 @@ import {
 import { toast } from "sonner";
 import { getIconComponent } from "../../services/icons";
 import { useProducts } from "../../context/ProductContext";
+import { formatCurrency } from "../../utils/formatCurrency";
 
 const CategoryDetails = () => {
   const { id } = useParams();
@@ -66,8 +67,11 @@ const CategoryDetails = () => {
         }
         setCategory(categoryData);
 
-        // Fetch product count for this category
-        await fetchProductsCountForCategories();
+        // Fetch product count for this category only if it's not present
+        // (avoid repeatedly refetching and triggering this effect in a loop)
+        if (categoryData.totalProducts === undefined || categoryData.totalProducts === null) {
+          await fetchProductsCountForCategories();
+        }
 
         // Fetch products in this category
         setProductsLoading(true);
@@ -595,7 +599,7 @@ const CategoryDetails = () => {
                       <h4 className="font-semibold text-gray-800 truncate">{product.name}</h4>
                       <div className="flex justify-between items-center mt-2">
                         <span className="text-lg font-bold text-blue-600">
-                          ${product.price?.toFixed(2)}
+                          {formatCurrency(product.price)}
                         </span>
                         <span className={`text-sm px-2 py-1 rounded ${
                           product.inStock 
@@ -685,13 +689,23 @@ const CategoryDetails = () => {
                     
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => toast.info("Edit subcategory feature coming soon!")}
+                        onClick={() =>
+                          navigate(`/categories/${category._id}/edit`, {
+                            state: { editSubcategory: subcat.name },
+                          })
+                        }
                         className="flex-1 text-center py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
                       >
                         Edit
                       </button>
                       <button
-                        onClick={() => toast.info("View products feature coming soon!")}
+                        onClick={() =>
+                          navigate(
+                            `/products?category=${category.id}&subcategory=${encodeURIComponent(
+                              subcat.name
+                            )}`
+                          )
+                        }
                         className="flex-1 text-center py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-sm"
                       >
                         View Products

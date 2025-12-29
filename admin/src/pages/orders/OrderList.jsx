@@ -27,6 +27,7 @@ import {
   FaFileInvoiceDollar,
   FaChartLine
 } from 'react-icons/fa';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 const OrdersList = () => {
   // Mock data based on your Order model
@@ -371,14 +372,7 @@ const OrdersList = () => {
       : <FaSortDown className="text-blue-500" />;
   };
 
-  // Format currency
-  const formatCurrency = (amount, currency = 'KES') => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
+  // Use shared formatter
 
   // Format date
   const formatDate = (dateString) => {

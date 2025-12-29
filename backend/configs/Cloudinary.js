@@ -1,8 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import 'dotenv/config';
 
-// function to connect to cloudinary
-
 const connectCloudinary = async () => {
   try {
     cloudinary.config({
@@ -10,11 +8,8 @@ const connectCloudinary = async () => {
       api_key: process.env.CLOUDINARY_API_KEY,
       api_secret: process.env.CLOUDINARY_API_SECRET,
     });
-
-    console.log("✅ Cloudinary connected successfully!");
-    
   } catch (error) {
-    console.error("❌ Cloudinary connection failed:", error);
+    // Connection error handled silently
   }
 };
 

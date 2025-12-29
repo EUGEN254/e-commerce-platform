@@ -227,7 +227,7 @@ const createProduct = async (req, res) => {
   }
 };
 
-// Get All Products with Pagination and Filters
+// Fetch all items
 const getAllProducts = async (req, res) => {
   try {
     const admin = req.admin;

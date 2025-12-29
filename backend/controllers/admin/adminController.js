@@ -66,9 +66,6 @@ const loginAdmin = async (req, res) => {
       adminData,
     });
   } catch (error) {
-    console.error("Admin login error:", error);
-
-    // 500 — Internal Server Error
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -96,9 +93,6 @@ const logoutAdmin = async (req, res) => {
       message: "Logout successful",
     });
   } catch (error) {
-    console.error("Admin logout error:", error);
-
-    // 500 — Internal Server Error
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -130,9 +124,6 @@ const getAdminDetails = async (req, res) => {
       adminData: admin,
     });
   } catch (error) {
-    console.error("Get admin details error:", error);
-
-    // 500 — Internal Server Error
     return res.status(500).json({
       success: false,
       message: "Internal server error",

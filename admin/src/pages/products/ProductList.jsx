@@ -21,6 +21,7 @@ import {
   FaSpinner,
   FaExclamationTriangle,
 } from "react-icons/fa";
+import { formatCurrency } from "../../utils/formatCurrency";
 import { useProducts } from "../../context/ProductContext";
 import { getIconComponent } from "../../services/icons";
 
@@ -341,14 +342,6 @@ const ProductsList = () => {
     );
   };
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    if (!amount) return "$0.00";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "KES",
-    }).format(amount);
-  };
 
   // Format date
   const formatDate = (dateString) => {

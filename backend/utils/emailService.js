@@ -35,7 +35,6 @@ export async function sendBrevoEmail(to, subject, htmlContent) {
 
     return { success: true, messageId: response.data.messageId };
   } catch (error) {
-    console.error("Brevo API error:", error.response?.data || error.message);
     throw new Error("Failed to send email. Please try again.");
   }
 }

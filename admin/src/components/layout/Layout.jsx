@@ -64,7 +64,7 @@ const Layout = () => {
           lg:relative lg:translate-x-0 lg:flex lg:flex-col
         `}
       >
-        <Sidebar />
+        <Sidebar closeSidebar={() => setIsSidebarOpen(false)} />
       </aside>
 
       {/* Overlay for mobile */}

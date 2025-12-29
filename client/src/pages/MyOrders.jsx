@@ -24,6 +24,7 @@ import {
   FaExclamationCircle,
 } from "react-icons/fa";
 import { useCart } from "../context/CartContext";
+import { formatCurrency } from "../utils/formatCurrency";
 
 const MyOrders = () => {
   const [activeFilter, setActiveFilter] = useState("all");
@@ -146,14 +147,7 @@ const MyOrders = () => {
     });
   };
 
-  // Format currency
-  const formatCurrency = (amount, currency = "KES") => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency,
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
+  // Use shared formatter
 
   // Filters based on database status
   const filters = [

@@ -115,18 +115,7 @@ const categoryService = {
     }
   },
 
-  // Update category order
-  updateCategoryOrder: async (categoryId, updates) => {
-    try {
-      const response = await axios.patch(
-        `/api/admin/categories/${categoryId}/order`,
-        updates
-      );
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
+  // Display order endpoints removed from server; no client method
 
   // Get products count by category
   getProductsCountByCategory: async (categoryId) => {

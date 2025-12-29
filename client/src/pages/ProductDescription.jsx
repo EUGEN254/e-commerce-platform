@@ -784,7 +784,7 @@ const ProductDescription = () => {
                     <div>
                       <div className="font-medium text-sm">Free Shipping</div>
                       <div className="text-sm text-gray-600">
-                        On orders over $50
+                        On orders over KES 2,500
                       </div>
                     </div>
                   </div>
@@ -1019,7 +1019,7 @@ const ProductDescription = () => {
                           Free Shipping
                         </h4>
                         <p className="text-gray-600">
-                          Free standard shipping on orders over $50. Delivery
+                          Free standard shipping on orders over KES 2,500. Delivery
                           within 3-5 business days.
                         </p>
                       </div>

@@ -28,6 +28,12 @@ import {
   getRecentActivities,
 } from "../../controllers/admin/dashboardController.js";
 import {
+  getAllUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+} from "../../controllers/admin/adminUser.js";
+import {
   createCategory,
   updateCategory,
   deleteCategory,
@@ -35,7 +41,7 @@ import {
   getCategoryById,
   bulkUpdateCategories,
   bulkDeleteCategories,
-  updateCategoryOrder,
+  // updateCategoryOrder and autoReorderCategories removed
   getProductsCountByCategory,
   getAllCategoriesWithProducts,
   getCategoryStats,
@@ -114,10 +120,16 @@ adminRouter.delete("/categories/delete-category/:id", AdminAuth, deleteCategory)
 adminRouter.patch("/categories/:id/status", AdminAuth, updateCategoryStatus);
 adminRouter.patch("/categories/bulk-update", AdminAuth, bulkUpdateCategories);
 adminRouter.delete("/categories/bulk-delete", AdminAuth, bulkDeleteCategories);
-adminRouter.patch("/categories/:id/order", AdminAuth, updateCategoryOrder);
+// Display order endpoints removed
 adminRouter.get("/categories/:id/products-count", AdminAuth, getProductsCountByCategory);
 adminRouter.get("/categories/with-products", AdminAuth, getAllCategoriesWithProducts);
 adminRouter.get("/categories/stats", AdminAuth, getCategoryStats);
 adminRouter.get("/categories/products-count/all", AdminAuth, getProductsCountForAllCategories);
+
+// Admin user management
+adminRouter.get('/users', AdminAuth, getAllUsers);
+adminRouter.get('/users/:id', AdminAuth, getUserById);
+adminRouter.patch('/users/:id', AdminAuth, updateUser);
+adminRouter.delete('/users/:id', AdminAuth, deleteUser);
 
 export default adminRouter;

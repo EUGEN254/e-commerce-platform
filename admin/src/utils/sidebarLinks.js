@@ -95,7 +95,24 @@ export const sidebarLinks = [
     icon: FaTags,
     path: '/categories',
     color: 'text-yellow-400',
-    category: 'management'
+    category: 'management',
+    submenu: [
+      { 
+        title: 'All Categories', 
+        path: '/categories',
+        icon: FaEye
+      },
+      { 
+        title: 'Add Category', 
+        path: '/categories/create',
+        icon: FaPlus
+      },
+      { 
+        title: 'Manage Featured', 
+        path: '/categories',
+        icon: FaFire
+      },
+    ]
   },
   {
     id: 'orders',

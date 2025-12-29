@@ -105,7 +105,6 @@ const getProducts = async (req, res) => {
       data: products,
     });
   } catch (error) {
-    console.error("Get Products Error:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -129,7 +128,6 @@ const getFeaturedProducts = async (req, res) => {
       data: products,
     });
   } catch (error) {
-    console.error("Get Featured Products Error:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -163,7 +161,6 @@ const getProductById = async (req, res) => {
       data: product,
     });
   } catch (error) {
-    console.error("Get Product By ID Error:", error);
 
     if (error.name === "CastError") {
       return res.status(400).json({
@@ -214,7 +211,6 @@ const getProductsByCategory = async (req, res) => {
       data: products,
     });
   } catch (error) {
-    console.error("Get Products By Category Error:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -251,7 +247,6 @@ const searchProducts = async (req, res) => {
       data: products,
     });
   } catch (error) {
-    console.error("Search Products Error:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",

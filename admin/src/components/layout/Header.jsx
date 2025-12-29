@@ -43,7 +43,7 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
     },
     {
       id: 3,
-      text: "Payment of $250 received",
+      text: "Payment of KES 250 received",
       time: "1 hour ago",
       read: true,
       type: "payment",

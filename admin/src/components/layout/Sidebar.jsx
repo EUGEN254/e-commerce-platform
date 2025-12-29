@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 
-const Sidebar = () => {
+const Sidebar = ({ closeSidebar }) => {
   const [expandedMenus, setExpandedMenus] = useState({});
   const { logout } = useAuth();
   const location = useLocation();
@@ -26,7 +26,6 @@ const Sidebar = () => {
   const isActive = (path) => {
     if (path === '/dashboard' && location.pathname === '/') return true;
     if (path === location.pathname) return true;
-    if (location.pathname.startsWith(`${path}/`)) return true;
     return false;
   };
 
@@ -86,13 +85,14 @@ const Sidebar = () => {
                   {/* Submenu items - Animated dropdown */}
                   {expandedMenus[item.id] && (
                     <div className="mt-2 ml-4 space-y-2 border-l-2 border-gray-700 pl-4 py-1 animate-slideDown">
-                      {item.submenu.map((subItem) => {
+                          {item.submenu.map((subItem) => {
                         const isSubItemActive = isActive(subItem.path);
                         
                         return (
                           <Link
                             key={subItem.path}
                             to={subItem.path}
+                            onClick={() => closeSidebar && closeSidebar()}
                             className={`flex items-center space-x-3 py-2 px-3 rounded-lg transition-all duration-200 ${
                               isSubItemActive 
                                 ? 'bg-gradient-to-r from-blue-900/40 to-purple-900/40 text-blue-300 shadow-inner' 
@@ -121,6 +121,7 @@ const Sidebar = () => {
                 // Single menu item (no submenu)
                 <Link
                   to={item.path}
+                  onClick={() => closeSidebar && closeSidebar()}
                   className={`flex items-center space-x-4 px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive(item.path) 
                       ? 'bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-l-4 border-blue-400' 

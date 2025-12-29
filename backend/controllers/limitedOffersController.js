@@ -201,7 +201,7 @@ export const createLimitedOffer = async (req, res) => {
   }
 };
 
-// Get All Limited Offers
+// Fetch all items
 export const getLimitedOffers = async (req, res) => {
   try {
     const {

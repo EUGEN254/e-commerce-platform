@@ -134,7 +134,6 @@ export const createOrder = async (req, res) => {
     });
     
   } catch (error) {
-    console.error("Create Order Error - sanitized");
     return res.status(500).json({
       success: false,
       message: "Failed to create order",
@@ -200,7 +199,6 @@ export const getUserOrders = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching user orders:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch orders",
@@ -240,7 +238,6 @@ export const getOrderById = async (req, res) => {
       order,
     });
   } catch (error) {
-    console.error("Error fetching order:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch order",
@@ -310,7 +307,6 @@ export const cancelOrder = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error cancelling order:", error);
     res.status(500).json({
       success: false,
       message: "Failed to cancel order",
@@ -380,7 +376,6 @@ export const updateOrderPaymentStatus = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error updating order payment status:", error);
     res.status(500).json({
       success: false,
       message: "Failed to update order payment status",
@@ -433,7 +428,6 @@ export const getOrderStatistics = async (req, res) => {
       statistics: result,
     });
   } catch (error) {
-    console.error("Error fetching order statistics:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch order statistics",
@@ -510,7 +504,6 @@ export const generateInvoice = async (req, res) => {
       downloadUrl: `/api/orders/${id}/invoice/pdf`, // Placeholder URL for actual PDF
     });
   } catch (error) {
-    console.error("Error generating invoice:", error);
     res.status(500).json({
       success: false,
       message: "Failed to generate invoice",
@@ -584,7 +577,6 @@ export const getAllOrders = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching all orders:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch orders",
@@ -659,7 +651,6 @@ export const updateOrderStatus = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error updating order status:", error);
     res.status(500).json({
       success: false,
       message: "Failed to update order status",

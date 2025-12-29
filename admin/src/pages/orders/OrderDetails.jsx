@@ -25,6 +25,7 @@ import {
   FaGlobe,
   FaTag
 } from 'react-icons/fa';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 const OrderDetails = () => {
   const { id } = useParams();
@@ -161,13 +162,7 @@ const OrderDetails = () => {
     }
   };
 
-  const formatCurrency = (amount, currency = 'KES') => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 2
-    }).format(amount);
-  };
+  // Use shared formatter
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {

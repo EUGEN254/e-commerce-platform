@@ -33,6 +33,7 @@ import { ProductCard } from "../components/ui/ProductCard";
 import assets from "../assets/assets";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useProducts } from "../context/ProductContext";
+import { getIconComponent } from "../utils/icons";
 
 const Shop = () => {
   // Use the ProductContext
@@ -72,86 +73,33 @@ const Shop = () => {
   const [products, setProducts] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Categories
-  const categories = [
-    {
+  // Categories derived from backend; map to icon components and include subcategories
+  const categories = useMemo(() => {
+    const all = {
       id: "all",
       name: "All Products",
       icon: <Flame className="h-4 w-4" />,
       color: "bg-gradient-to-r from-red-500 to-orange-500",
       path: "/shop",
-    },
-    {
-      id: "fashion",
-      name: "Fashion",
-      icon: <Shirt className="h-4 w-4" />,
-      color: "bg-gradient-to-r from-pink-500 to-rose-500",
-      path: "/shop/fashion",
-    },
-    {
-      id: "electronics",
-      name: "Electronics",
-      icon: <Laptop className="h-4 w-4" />,
-      color: "bg-gradient-to-r from-blue-500 to-cyan-500",
-      path: "/shop/electronics",
-    },
-    {
-      id: "home",
-      name: "Home & Kitchen",
-      icon: <Home className="h-4 w-4" />,
-      color: "bg-gradient-to-r from-amber-500 to-orange-500",
-      path: "/shop/home",
-    },
-    {
-      id: "shoes",
-      name: "Shoes",
-      icon: <Footprints className="h-4 w-4" />,
-      color: "bg-gradient-to-r from-emerald-500 to-teal-500",
-      path: "/shop/shoes",
-    },
-    {
-      id: "mobile",
-      name: "Mobile",
-      icon: <Smartphone className="h-4 w-4" />,
-      color: "bg-gradient-to-r from-purple-500 to-violet-500",
-      path: "/shop/mobile",
-    },
-    {
-      id: "accessories",
-      name: "Accessories",
-      icon: <Accessibility className="h-4 w-4" />,
-      color: "bg-gradient-to-r from-purple-500 to-violet-500",
-      path: "/shop/accessories",
-    },
-    {
-      id: "clothing",
-      name: "Clothing",
-      icon: <Shirt className="h-4 w-4" />,
-      color: "bg-gradient-to-r from-pink-500 to-rose-500",
-      path: "/shop/clothing",
-    },
-    {
-      id: "beauty",
-      name: "Beauty",
-      icon: <Sparkles className="h-4 w-4" />,
-      color: "bg-gradient-to-r from-pink-500 to-purple-500",
-      path: "/shop/beauty",
-    },
-    {
-      id: "sports",
-      name: "Sports",
-      icon: <Flame className="h-4 w-4" />,
-      color: "bg-gradient-to-r from-orange-500 to-red-500",
-      path: "/shop/sports",
-    },
-    {
-      id: "books",
-      name: "Books",
-      icon: <TrendingUp className="h-4 w-4" />,
-      color: "bg-gradient-to-r from-blue-500 to-indigo-500",
-      path: "/shop/books",
-    },
-  ];
+    };
+
+    const mapped = (backendCategories || []).map((cat) => {
+      const id = cat.id || cat._id || String(cat.name || '').toLowerCase().replace(/\s+/g, '-');
+      const IconComp = getIconComponent(cat.icon);
+      const icon = IconComp ? <IconComp className="h-4 w-4" /> : <Tag className="h-4 w-4" />;
+      const color = cat.color || 'bg-gradient-to-r from-blue-500 to-cyan-500';
+      return {
+        id,
+        name: cat.name,
+        icon,
+        color,
+        path: `/shop/${id}`,
+        subcategories: cat.subcategoriesDetailed || cat.subcategories || [],
+      };
+    });
+
+    return [all, ...mapped];
+  }, [backendCategories]);
 
   // Extract unique brands from products (memoized for performance)
   const brands = useMemo(() => {

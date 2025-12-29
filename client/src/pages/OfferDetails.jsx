@@ -393,7 +393,7 @@ const OfferDetails = () => {
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <Truck className="h-5 w-5 text-blue-600" />
-                <span>Free shipping on orders over $50</span>
+                <span>Free shipping on orders over KES 2,500</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <CreditCard className="h-5 w-5 text-purple-600" />

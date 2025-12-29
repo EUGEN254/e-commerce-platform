@@ -23,60 +23,12 @@ import {
 } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
+import { getUsers } from '../../services/userService';
+
 const UsersList = () => {
-  // Mock data based on your User model
-  const [users, setUsers] = useState([
-    {
-      _id: '1',
-      name: 'John Doe',
-      email: 'john@example.com',
-      isVerified: true,
-      verificationCode: null,
-      verificationAttempts: 0,
-      createdAt: '2024-01-10T10:30:00Z',
-      updatedAt: '2024-01-15T14:20:00Z'
-    },
-    {
-      _id: '2',
-      name: 'Jane Smith',
-      email: 'jane@example.com',
-      isVerified: false,
-      verificationCode: '123456',
-      verificationAttempts: 2,
-      createdAt: '2024-01-12T09:15:00Z',
-      updatedAt: '2024-01-15T11:45:00Z'
-    },
-    {
-      _id: '3',
-      name: 'Robert Johnson',
-      email: 'robert@example.com',
-      isVerified: true,
-      verificationCode: null,
-      verificationAttempts: 0,
-      createdAt: '2024-01-05T14:20:00Z',
-      updatedAt: '2024-01-14T16:30:00Z'
-    },
-    {
-      _id: '4',
-      name: 'Emily Davis',
-      email: 'emily@example.com',
-      isVerified: false,
-      verificationCode: '789012',
-      verificationAttempts: 3,
-      createdAt: '2024-01-08T11:45:00Z',
-      updatedAt: '2024-01-15T09:20:00Z'
-    },
-    {
-      _id: '5',
-      name: 'Michael Wilson',
-      email: 'michael@example.com',
-      isVerified: true,
-      verificationCode: null,
-      verificationAttempts: 1,
-      createdAt: '2024-01-03T16:30:00Z',
-      updatedAt: '2024-01-13T10:15:00Z'
-    },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
 
   // State for search and filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -85,6 +37,25 @@ const UsersList = () => {
   const [sortDirection, setSortDirection] = useState('desc');
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch users from backend
+  useEffect(() => {
+    const loadUsers = async () => {
+      setIsLoading(true);
+      try {
+        const resp = await getUsers({ page, limit });
+        const data = resp.data || resp;
+        const usersData = data.data || [];
+        setUsers(usersData);
+      } catch (err) {
+        console.error('Error loading users:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUsers();
+  }, [page, limit]);
 
   // Filter and sort users
   const filteredUsers = users

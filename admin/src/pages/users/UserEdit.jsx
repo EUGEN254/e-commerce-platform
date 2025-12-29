@@ -21,6 +21,7 @@ import {
   FaCheckCircle,
   FaTimesCircle
 } from 'react-icons/fa';
+import * as userService from '../../services/userService';
 
 const UserEdit = () => {
   const { id } = useParams();
@@ -69,36 +70,30 @@ const UserEdit = () => {
     loadActivityLogs();
   }, [id]);
 
-  // Mock API call to load user data
+  // Load user data from backend
   const loadUserData = async () => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user data based on your User model
-      const mockUser = {
-        _id: id,
-        name: 'John Doe',
-        email: 'john@example.com',
-        isVerified: true,
-        verificationCode: null,
-        verificationAttempts: 0,
-        createdAt: '2024-01-10T10:30:00Z',
-        updatedAt: '2024-01-15T14:20:00Z'
-      };
-      
-      setUser(mockUser);
-      setFormData({
-        name: mockUser.name,
-        email: mockUser.email,
-        isVerified: mockUser.isVerified,
-        verificationCode: mockUser.verificationCode || '',
-        verificationAttempts: mockUser.verificationAttempts
-      });
+      const res = await userService.getUserById(id);
+      const fetched = res.data?.data || res.data;
+      if (!fetched) {
+        setErrors({ load: 'User not found' });
+        setUser(null);
+      } else {
+        setUser(fetched);
+        setFormData({
+          name: fetched.name || '',
+          email: fetched.email || '',
+          isVerified: !!fetched.isVerified,
+          verificationCode: fetched.verificationCode || '',
+          verificationAttempts: fetched.verificationAttempts || 0
+        });
+      }
     } catch (error) {
       console.error('Error loading user:', error);
-      setErrors({ load: 'Failed to load user data' });
+      const msg = error.response?.data?.message || error.message || 'Failed to load user data';
+      setErrors({ load: msg });
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -213,31 +208,25 @@ const UserEdit = () => {
     setIsSaving(true);
     
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Prepare updated user data
-      const updatedUser = {
-        ...user,
-        ...formData,
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        isVerified: !!formData.isVerified,
         verificationCode: formData.isVerified ? null : formData.verificationCode,
-        updatedAt: new Date().toISOString()
+        verificationAttempts: formData.verificationAttempts || 0
       };
-      
-      console.log('Updating user:', updatedUser);
-      
-      // Show success message
-      setSuccessMessage('User updated successfully!');
-      setUser(updatedUser);
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
-      
+
+      const res = await userService.updateUser(id, payload);
+      const updated = res.data?.data || res.data;
+
+      setSuccessMessage(res.data?.message || 'User updated successfully!');
+      setUser(updated || { ...user, ...payload });
+      setTimeout(() => setSuccessMessage(''), 3000);
+
     } catch (error) {
       console.error('Error updating user:', error);
-      setErrors({ submit: 'Failed to update user. Please try again.' });
+      const msg = error.response?.data?.message || error.message || 'Failed to update user. Please try again.';
+      setErrors({ submit: msg });
     } finally {
       setIsSaving(false);
     }
@@ -245,44 +234,30 @@ const UserEdit = () => {
 
   // Handle password reset
   const handlePasswordReset = async () => {
-    if (!validatePasswordReset()) {
-      return;
-    }
-    
+    if (!validatePasswordReset()) return;
+
     setIsSaving(true);
-    
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Resetting password for user:', id);
-      
-      // Add to activity logs
+      // Update password via admin API
+      await userService.updateUser(id, { password: passwordData.newPassword });
+
       const newLog = {
         id: activityLogs.length + 1,
         action: 'Password Reset by Admin',
         timestamp: new Date().toISOString(),
         details: 'Password was reset by administrator'
       };
-      
+
       setActivityLogs(prev => [newLog, ...prev]);
-      
-      // Reset password form
-      setPasswordData({
-        newPassword: '',
-        confirmPassword: ''
-      });
+      setPasswordData({ newPassword: '', confirmPassword: '' });
       setShowPasswordReset(false);
-      
+
       setSuccessMessage('Password reset successfully!');
-      
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
-      
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       console.error('Error resetting password:', error);
-      setErrors({ submit: 'Failed to reset password. Please try again.' });
+      const msg = error.response?.data?.message || error.message || 'Failed to reset password. Please try again.';
+      setErrors({ submit: msg });
     } finally {
       setIsSaving(false);
     }
@@ -291,38 +266,31 @@ const UserEdit = () => {
   // Handle resend verification
   const handleResendVerification = async () => {
     setIsSaving(true);
-    
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
       const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-      
+      await userService.updateUser(id, { verificationCode: newCode, verificationAttempts: (formData.verificationAttempts || 0) + 1, isVerified: false });
+
       setFormData(prev => ({
         ...prev,
         verificationCode: newCode,
-        verificationAttempts: prev.verificationAttempts + 1,
+        verificationAttempts: (prev.verificationAttempts || 0) + 1,
         isVerified: false
       }));
-      
-      // Add to activity logs
+
       const newLog = {
         id: activityLogs.length + 1,
         action: 'Verification Code Sent',
         timestamp: new Date().toISOString(),
         details: `New verification code sent: ${newCode}`
       };
-      
+
       setActivityLogs(prev => [newLog, ...prev]);
-      
       setSuccessMessage('Verification code sent successfully!');
-      
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
-      
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       console.error('Error sending verification:', error);
-      setErrors({ submit: 'Failed to send verification code.' });
+      const msg = error.response?.data?.message || error.message || 'Failed to send verification code.';
+      setErrors({ submit: msg });
     } finally {
       setIsSaving(false);
     }

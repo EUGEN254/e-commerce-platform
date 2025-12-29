@@ -41,7 +41,6 @@ const CategoriesList = () => {
     deleteCategory,
     bulkUpdateCategories,
     bulkDeleteCategories,
-    updateCategoryOrder,
     categoriesLoading,
     fetchProductsCountForCategories,
   } = useProducts();
@@ -233,22 +232,7 @@ const CategoriesList = () => {
     }
   };
 
-  const handleReorder = async (categoryId, direction) => {
-    try {
-      const category = categories.find((c) => c._id === categoryId);
-      if (!category) return;
-
-      const currentOrder = category.order || 0;
-      const newOrder = direction === "up" ? currentOrder - 1 : currentOrder + 1;
-
-      await updateCategoryOrder(categoryId, newOrder);
-      await fetchCategories(); // Refresh categories list
-      toast.success("Category order updated!");
-    } catch (error) {
-      console.error("Error reordering category:", error);
-      toast.error("Failed to reorder category");
-    }
-  };
+  // Display order feature removed: reorder controls disabled in UI
 
   // Bulk actions
   const handleBulkFeatured = async () => {
@@ -551,15 +535,7 @@ const CategoriesList = () => {
                     />
                   </div>
                 </th>
-                <th
-                  className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
-                  onClick={() => handleSort("order")}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Order</span>
-                    {getSortIcon("order")}
-                  </div>
-                </th>
+                {/* Order column removed */}
                 <th
                   className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
                   onClick={() => handleSort("name")}
@@ -621,31 +597,7 @@ const CategoriesList = () => {
                             className="rounded border-gray-300"
                           />
                         </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center space-x-3">
-                            <button
-                              onClick={() => handleReorder(category._id, "up")}
-                              className="p-1 text-gray-400 hover:text-blue-600 disabled:text-gray-200 disabled:cursor-not-allowed"
-                              title="Move up"
-                              disabled={category.order <= 1}
-                            >
-                              <FaSortUp />
-                            </button>
-                            <span className="font-medium text-gray-800 w-6 text-center">
-                              {category.order || 0}
-                            </span>
-                            <button
-                              onClick={() =>
-                                handleReorder(category._id, "down")
-                              }
-                              className="p-1 text-gray-400 hover:text-blue-600 disabled:text-gray-200 disabled:cursor-not-allowed"
-                              title="Move down"
-                              disabled={category.order >= categories.length}
-                            >
-                              <FaSortDown />
-                            </button>
-                          </div>
-                        </td>
+                        
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-3">
                             <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
@@ -809,10 +761,10 @@ const CategoriesList = () => {
                       </tr>
 
                       {/* Subcategories Row */}
-                      {expandedCategory === category._id &&
+                          {expandedCategory === category._id &&
                         subcategoriesList.length > 0 && (
                           <tr className="bg-gray-50">
-                            <td colSpan="8" className="py-4 px-4">
+                            <td colSpan="7" className="py-4 px-4">
                               <div className="pl-14">
                                 <h4 className="font-medium text-gray-800 mb-3 flex items-center space-x-2">
                                   <FaLayerGroup className="text-gray-400" />
@@ -840,16 +792,21 @@ const CategoriesList = () => {
                                         </p>
                                       )}
                                       <div className="flex space-x-2">
-                                        <button
-                                          onClick={() =>
-                                            toast.info(
-                                              "Edit subcategory feature coming soon!"
-                                            )
-                                          }
+                                        <Link
+                                          to={`/categories/${category._id}/edit`}
+                                          state={{ editSubcategory: subcat.name }}
                                           className="text-xs text-blue-600 hover:text-blue-800"
                                         >
                                           Edit
-                                        </button>
+                                        </Link>
+                                        <Link
+                                          to={`/products?category=${category.id}&subcategory=${encodeURIComponent(
+                                            subcat.name
+                                          )}`}
+                                          className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-700 hover:bg-gray-200"
+                                        >
+                                          View Products
+                                        </Link>
                                         <button
                                           onClick={() =>
                                             toast.info(
@@ -882,7 +839,7 @@ const CategoriesList = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="8" className="py-8 text-center text-gray-500">
+                  <td colSpan="7" className="py-8 text-center text-gray-500">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <FaTags className="text-4xl text-gray-300" />
                       <p>No categories found</p>

@@ -29,6 +29,7 @@ import {
   FaSpinner,
   FaExclamationTriangle,
 } from "react-icons/fa";
+import { formatCurrency } from "../../utils/formatCurrency";
 
 const DeleteConfirmationModal = ({
   isOpen,
@@ -131,13 +132,6 @@ const ProductDetails = () => {
     setShowDeleteModal(false);
   };
 
-  const formatCurrency = (amount) => {
-    if (!amount) return "$0.00";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "KES",
-    }).format(amount);
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";

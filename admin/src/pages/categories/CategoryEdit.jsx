@@ -1,6 +1,6 @@
 // src/pages/categories/CategoryEdit.jsx
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { 
   FaTags, 
@@ -33,10 +33,12 @@ import {
 } from 'react-icons/fa';
 import * as categoryIconService from '../../services/icons';
 import { useProducts } from '../../context/ProductContext';
+import categoryService from '../../services/categoryService';
 
 const CategoryEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { 
     categories, 
     getCategoryById, 
@@ -77,7 +79,6 @@ const CategoryEdit = () => {
     bannerImagePreview: '',
     
     // Settings
-    order: 0,
     featured: false,
     isActive: true,
     
@@ -90,6 +91,9 @@ const CategoryEdit = () => {
     name: '',
     description: ''
   });
+
+  // Editing state for subcategories (index in formData.subcategoriesDetailed)
+  const [editingSubcategoryIndex, setEditingSubcategoryIndex] = useState(-1);
   
   // Activity logs
   const [activityLogs, setActivityLogs] = useState([]);
@@ -122,6 +126,25 @@ const CategoryEdit = () => {
     }
   }, [id, categories]);
 
+  // If navigated here with an editSubcategory in location.state, prefill the subcategory form
+  useEffect(() => {
+    try {
+      const editName = location?.state?.editSubcategory;
+      if (editName && formData.subcategoriesDetailed && formData.subcategoriesDetailed.length > 0) {
+        const idx = formData.subcategoriesDetailed.findIndex((s) => s.name === editName);
+        if (idx !== -1) {
+          setEditingSubcategoryIndex(idx);
+          setSubcategoryForm({
+            name: formData.subcategoriesDetailed[idx].name,
+            description: formData.subcategoriesDetailed[idx].description || ''
+          });
+        }
+      }
+    } catch (err) {
+      // ignore
+    }
+  }, [location?.state, formData.subcategoriesDetailed]);
+
   const loadCategoryData = async () => {
     try {
       // Get category from context
@@ -152,7 +175,6 @@ const CategoryEdit = () => {
         bannerImageFile: null,
         imagePreview: categoryData.image || '',
         bannerImagePreview: categoryData.bannerImage || '',
-        order: categoryData.order || 0,
         featured: categoryData.featured || false,
         isActive: categoryData.isActive !== undefined ? categoryData.isActive : true,
         totalProducts: categoryData.totalProducts || 0
@@ -304,13 +326,45 @@ const CategoryEdit = () => {
       description: subcategoryForm.description.trim(),
       totalProducts: 0
     };
-    
+    // If editing an existing subcategory, update it
+    if (editingSubcategoryIndex >= 0) {
+      setFormData((prev) => {
+        const updatedDetailed = [...prev.subcategoriesDetailed];
+        const updatedSimple = [...prev.subcategories];
+
+        updatedDetailed[editingSubcategoryIndex] = newSubcategory;
+        updatedSimple[editingSubcategoryIndex] = newSubcategory.name.toLowerCase();
+
+        return {
+          ...prev,
+          subcategoriesDetailed: updatedDetailed,
+          subcategories: updatedSimple,
+        };
+      });
+
+      const updatedLog = {
+        id: activityLogs.length + 1,
+        action: 'Subcategory Updated',
+        timestamp: new Date().toISOString(),
+        details: `Updated "${subcategoryForm.name.trim()}" subcategory`,
+      };
+
+      setActivityLogs((prev) => [updatedLog, ...prev]);
+
+      // Clear editing state and form
+      setEditingSubcategoryIndex(-1);
+      setSubcategoryForm({ name: '', description: '' });
+      if (errors.subcategoryName) setErrors((prev) => ({ ...prev, subcategoryName: '' }));
+      return;
+    }
+
+    // Otherwise add new subcategory
     setFormData(prev => ({
       ...prev,
       subcategories: [...prev.subcategories, subcategoryForm.name.trim().toLowerCase()],
       subcategoriesDetailed: [...prev.subcategoriesDetailed, newSubcategory]
     }));
-    
+
     // Add activity log
     const newLog = {
       id: activityLogs.length + 1,
@@ -318,15 +372,15 @@ const CategoryEdit = () => {
       timestamp: new Date().toISOString(),
       details: `Added "${subcategoryForm.name.trim()}" subcategory`
     };
-    
+
     setActivityLogs(prev => [newLog, ...prev]);
-    
+
     // Clear form
     setSubcategoryForm({
       name: '',
       description: ''
     });
-    
+
     // Clear error
     if (errors.subcategoryName) {
       setErrors(prev => ({ ...prev, subcategoryName: '' }));
@@ -393,7 +447,6 @@ const CategoryEdit = () => {
       formDataToSend.append('isMainCategory', formData.isMainCategory);
       formDataToSend.append('description', formData.description.trim());
       formDataToSend.append('featured', formData.featured);
-      formDataToSend.append('order', formData.order);
       formDataToSend.append('isActive', formData.isActive);
       
       // Add subcategories as JSON
@@ -403,25 +456,16 @@ const CategoryEdit = () => {
       // Add image files if they exist
       if (formData.imageFile) {
         formDataToSend.append('image', formData.imageFile);
-      } else if (formData.image) {
-        formDataToSend.append('image', formData.image);
-      }
+        }
       
       if (formData.bannerImageFile) {
         formDataToSend.append('bannerImage', formData.bannerImageFile);
-      } else if (formData.bannerImage) {
-        formDataToSend.append('bannerImage', formData.bannerImage);
       }
+
+      // Call API service - use categoryService.updateCategory
+      const response = await categoryService.updateCategory(id, formDataToSend);
       
-      // Call API service - you need to create an updateCategory function in your categoryService
-      const response = await fetch(`/api/admin/categories/${id}`, {
-        method: 'PUT',
-        body: formDataToSend,
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
+      if (response.success) {
         toast.success(`Category "${formData.name}" updated successfully!`);
         
         // Refresh categories list
@@ -433,7 +477,7 @@ const CategoryEdit = () => {
           navigate('/categories');
         }, 1500);
       } else {
-        throw new Error(data.message || 'Failed to update category');
+        throw new Error(response?.data?.message || 'Failed to update category');
       }
       
     } catch (error) {
@@ -862,23 +906,7 @@ const CategoryEdit = () => {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Display Order
-                  </label>
-                  <div className="relative">
-                    <FaSortNumericDown className="absolute left-3 top-3 text-gray-400" />
-                    <input
-                      type="number"
-                      name="order"
-                      value={formData.order}
-                      onChange={handleChange}
-                      min="0"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Display order"
-                    />
-                  </div>
-                </div>
+              
 
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
@@ -996,14 +1024,29 @@ const CategoryEdit = () => {
                   </div>
                   
                   <div className="mt-6">
-                    <button
-                      type="button"
-                      onClick={handleAddSubcategory}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                    >
-                      <FaPlus />
-                      <span>Add Subcategory</span>
-                    </button>
+                    <div className="flex items-center space-x-3">
+                      <button
+                        type="button"
+                        onClick={handleAddSubcategory}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                      >
+                        {editingSubcategoryIndex >= 0 ? <FaEdit /> : <FaPlus />}
+                        <span>{editingSubcategoryIndex >= 0 ? 'Update Subcategory' : 'Add Subcategory'}</span>
+                      </button>
+
+                      {editingSubcategoryIndex >= 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSubcategoryIndex(-1);
+                            setSubcategoryForm({ name: '', description: '' });
+                          }}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 

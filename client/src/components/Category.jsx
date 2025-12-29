@@ -20,6 +20,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { ProductCard } from "./ui/ProductCard";
 import { useProducts } from "../context/ProductContext";
+import { getIconComponent } from "../utils/icons";
 
 const Categories = () => {
   const navigate = useNavigate();
@@ -232,8 +233,9 @@ const Categories = () => {
   const getCategoryIcon = useCallback((categoryId) => {
     const category = categories.find((cat) => cat.id === categoryId);
     if (category && category.icon) {
-      const IconComponent = iconMap[category.icon];
-      return IconComponent ? <IconComponent /> : <FaTshirt />;
+      const IconComponent = getIconComponent(category.icon);
+      if (!IconComponent) return <span className="text-xl">{category.icon || '📁'}</span>;
+      return <IconComponent />;
     }
     return <FaTshirt />;
   }, [categories]);

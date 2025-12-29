@@ -59,7 +59,6 @@ export const ProductProvider = ({ children }) => {
     }
     
     const totalCategories = categoriesList.length;
-    console.log("Calculating stats from categories:", categoriesList);
     const activeCategories = categoriesList.filter(cat => cat.isActive).length;
     const featuredCategories = categoriesList.filter(cat => cat.featured).length;
     
@@ -89,11 +88,10 @@ export const ProductProvider = ({ children }) => {
     try {
       const response = await getProducts(params);
 
+
       // The response from axios contains data in response.data
       // The API returns { success, data, pagination } structure
       const responseData = response.data;
-
-      console.log("API Response:", responseData); // Debug log
 
       // Set products - check different possible structures
       let productsData = [];
@@ -388,15 +386,18 @@ export const ProductProvider = ({ children }) => {
         limit: 100,
       });
 
-      // Adjust based on your API response structure
-      // API typically returns { success, data: [...] }
-      const categoriesData = response?.data?.data || response?.data || [];
+      // Normalize response whether service returned axios.response.data or direct data
+      const responseData = response?.data || response;
+      const categoriesData = Array.isArray(responseData)
+        ? responseData
+        : responseData?.data || [];
+
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
 
       return {
         success: true,
         data: categoriesData,
-        message: response.message,
+        message: responseData?.message || response?.message,
       };
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -666,37 +667,9 @@ export const ProductProvider = ({ children }) => {
   };
 
   // Update category order
-  const updateCategoryOrder = async (categoryId, order) => {
-    setCategoriesLoading(true);
-    try {
-      const response = await categoryService.updateCategoryOrder(categoryId, {
-        order,
-      });
-      const responseData = response.data || response;
+  // Display order endpoints removed; no updateCategoryOrder function
 
-      // Update in local state
-      setCategories((prev) =>
-        prev.map((cat) =>
-          cat._id === categoryId
-            ? { ...cat, order: responseData.data?.order || order }
-            : cat
-        )
-      );
-
-      return {
-        success: true,
-        data: responseData.data,
-        message: responseData.message,
-      };
-    } catch (error) {
-      console.error("Error updating category order:", error);
-      const errorMessage = error.message || "Failed to update category order";
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setCategoriesLoading(false);
-    }
-  };
+  // Auto-reorder removed
 
   // Get products count by category
   const getProductsCountByCategory = async (categoryId) => {
@@ -731,9 +704,12 @@ export const ProductProvider = ({ children }) => {
     try {
       // Fetch all categories with their product counts
       const response = await categoryService.getAllCategoriesWithProducts();
-      const categoriesData = response.data || response.data?.data || [];
+      const responseData = response?.data || response;
+      const categoriesData = Array.isArray(responseData)
+        ? responseData
+        : responseData?.data || [];
 
-      setCategories(categoriesData);
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
 
       return {
         success: true,
@@ -886,7 +862,7 @@ const getProductsByCategory = useCallback(async (categoryId, params = {}) => {
     deleteCategory,
     bulkUpdateCategories,
     bulkDeleteCategories,
-    updateCategoryOrder,
+    // updateCategoryOrder removed
     getProductsCountByCategory,
     updateAllCategoriesProductCount,
     fetchProductsCountForCategories,

@@ -1,4 +1,4 @@
-// backend/controllers/admin/dashboardController.js
+// Admin Dashboard Controller
 import Product from "../../models/Product.js";
 import Order from "../../models/Order.js";
 import User from "../../models/User.js";
@@ -37,7 +37,6 @@ export const getDashboardStats = async (req, res) => {
       ])
     ]);
 
-    // Calculate growth (you might want to compare with previous period)
     const revenueResult = totalRevenue[0] || { total: 0 };
 
     res.status(200).json({
@@ -50,14 +49,13 @@ export const getDashboardStats = async (req, res) => {
         recentOrders,
         lowStockProducts,
         categories,
-        revenueGrowth: 12.5, // Calculate actual growth
+        revenueGrowth: 12.5,
         orderGrowth: 8.3,
         userGrowth: 15.2,
         productGrowth: 5.7
       }
     });
   } catch (error) {
-    console.error("Dashboard stats error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch dashboard statistics"
@@ -78,7 +76,6 @@ export const getSalesData = async (req, res) => {
       data: salesData
     });
   } catch (error) {
-    console.error("Sales data error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch sales data"
@@ -109,7 +106,6 @@ export const getCategoryDistribution = async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error("Category distribution error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch category distribution"
@@ -129,7 +125,6 @@ export const getRecentOrders = async (req, res) => {
       data: orders
     });
   } catch (error) {
-    console.error("Recent orders error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch recent orders"
@@ -173,7 +168,6 @@ export const getRecentActivities = async (req, res) => {
       data: activities
     });
   } catch (error) {
-    console.error("Recent activities error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch recent activities"

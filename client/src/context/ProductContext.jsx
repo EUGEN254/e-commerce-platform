@@ -31,7 +31,10 @@ export function ProductProvider({ children }) {
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${backendUrl}/api/products`);
+      // fetch a large number of products to ensure the storefront shows all items
+      const response = await axios.get(`${backendUrl}/api/products`, {
+        params: { limit: 10000 },
+      });
       setProducts(response.data.data || []);
       setError(null);
 

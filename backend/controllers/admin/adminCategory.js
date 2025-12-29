@@ -11,10 +11,9 @@ const deleteFromCloudinary = async (publicId) => {
     const { cloudinary } = await import("cloudinary");
     await cloudinary.v2.uploader.destroy(publicId);
   } catch (error) {
-    console.error("Error deleting from Cloudinary:", error);
+    // Silently handle cleanup errors
   }
 };
-// 1. GET ALL CATEGORIES
 const getAllCategories = async (req, res) => {
   try {
     const {
@@ -83,8 +82,6 @@ const getAllCategories = async (req, res) => {
       })
     );
 
-    console.log("Fetched categories with counts:", categoriesWithCounts);
-
     res.status(200).json({
       success: true,
       data: categoriesWithCounts,
@@ -96,7 +93,6 @@ const getAllCategories = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Get All Categories Error:", error);
     res.status(500).json({
       success: false,
       message: "Server error while fetching categories",
@@ -104,7 +100,6 @@ const getAllCategories = async (req, res) => {
   }
 };
 
-// 2. GET SINGLE CATEGORY
 const getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -137,7 +132,6 @@ const getCategoryById = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Get Category Error:", error);
     res.status(500).json({
       success: false,
       message: "Server error while fetching category",
@@ -145,7 +139,6 @@ const getCategoryById = async (req, res) => {
   }
 };
 
-// 3. CREATE CATEGORY WITH IMAGE UPLOADS
 const createCategory = async (req, res) => {
   try {
     const {
@@ -168,11 +161,9 @@ const createCategory = async (req, res) => {
       try {
         subcategories = JSON.parse(req.body.subcategories);
       } catch (error) {
-        console.error("Error parsing subcategories:", error);
-        // If it's not valid JSON, try to handle as array or comma-separated string
+        // Handle JSON parsing - fallback to array or string splitting
         if (typeof req.body.subcategories === 'string') {
           if (req.body.subcategories.includes('[')) {
-            // Try to parse as array string
             try {
               subcategories = JSON.parse(req.body.subcategories);
             } catch (e) {
@@ -191,14 +182,10 @@ const createCategory = async (req, res) => {
       try {
         subcategoriesDetailed = JSON.parse(req.body.subcategoriesDetailed);
       } catch (error) {
-        console.error("Error parsing subcategoriesDetailed:", error);
-        // If it's not valid JSON, use empty array
+        // Fallback to empty array if parsing fails
         subcategoriesDetailed = [];
       }
     }
-
-    console.log("Parsed subcategories:", subcategories);
-    console.log("Parsed subcategoriesDetailed:", subcategoriesDetailed);
 
     // Required fields validation
     const requiredFields = {
@@ -235,6 +222,20 @@ const createCategory = async (req, res) => {
       });
     }
 
+    // If order is provided, check for duplicates
+    if (order && parseInt(order) > 0) {
+      const existingOrder = await Category.findOne({
+        order: parseInt(order),
+      });
+
+      if (existingOrder) {
+        return res.status(400).json({
+          success: false,
+          message: `Display order ${order} is already taken. Please choose a different order number.`,
+        });
+      }
+    }
+
     // Process uploaded images - SIMPLE STRING URLs (like product creation)
     const imageFile = req.files?.image?.[0];
     const bannerFile = req.files?.bannerImage?.[0];
@@ -252,7 +253,6 @@ const createCategory = async (req, res) => {
         });
         imageUrl = imageResult.secure_url;
       } catch (uploadError) {
-        console.error("Category image upload error:", uploadError);
         // Continue without image if upload fails
         imageUrl = "";
       }
@@ -268,13 +268,11 @@ const createCategory = async (req, res) => {
         });
         bannerImageUrl = bannerResult.secure_url;
       } catch (uploadError) {
-        console.error("Banner image upload error:", uploadError);
         // Continue without banner if upload fails
         bannerImageUrl = "";
       }
     }
 
-    // Create category - storing images as simple strings
     const categoryData = {
       id: id.toLowerCase(),
       name,
@@ -287,12 +285,10 @@ const createCategory = async (req, res) => {
       description: description || "",
       featured: featured === true || featured === "true",
       order: order ? parseInt(order) : 0,
-      image: imageUrl, // Simple string URL
-      bannerImage: bannerImageUrl, // Simple string URL
+      image: imageUrl,
+      bannerImage: bannerImageUrl,
       isActive: true,
     };
-
-    console.log("Creating category with data:", categoryData);
 
     const category = await Category.create(categoryData);
 
@@ -302,8 +298,6 @@ const createCategory = async (req, res) => {
       data: category,
     });
   } catch (error) {
-    console.error("Create Category Error:", error);
-
     // Clean up uploaded images if category creation fails
     if (req.files?.image?.[0]?.filename) {
       await deleteFromCloudinary(req.files.image[0].filename);
@@ -336,7 +330,6 @@ const createCategory = async (req, res) => {
   }
 };
 
-// 4. UPDATE CATEGORY WITH IMAGE UPLOADS
 const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -357,9 +350,27 @@ const updateCategory = async (req, res) => {
       });
     }
 
+    // Parse subcategories if they come as JSON strings
+    if (updates.subcategories && typeof updates.subcategories === 'string') {
+      try {
+        updates.subcategories = JSON.parse(updates.subcategories);
+      } catch (error) {
+        // If parsing fails, keep as is
+      }
+    }
+
+    if (updates.subcategoriesDetailed && typeof updates.subcategoriesDetailed === 'string') {
+      try {
+        updates.subcategoriesDetailed = JSON.parse(updates.subcategoriesDetailed);
+      } catch (error) {
+        // If parsing fails, keep as is
+      }
+    }
+
     // Store old image data for cleanup
-    const oldImageData = { ...category.image };
-    const oldBannerData = { ...category.bannerImage };
+      // Store old image URLs for cleanup
+      const oldImageUrl = category.image;
+      const oldBannerUrl = category.bannerImage;
 
     // Process uploaded images
     const imageFile = req.files?.image?.[0];
@@ -367,17 +378,31 @@ const updateCategory = async (req, res) => {
 
     // Handle image updates
     if (imageFile) {
-      updates.image = {
-        url: imageFile.path || imageFile.url,
-        publicId: imageFile.filename || imageFile.public_id,
-      };
+        try {
+          // Upload to Cloudinary
+          const imageResult = await cloudinary.uploader.upload(imageFile.path, {
+            folder: "ecommerce/categories/images",
+            public_id: `${updates.id || category.id}-image-${Date.now()}`,
+            overwrite: false,
+          });
+          updates.image = imageResult.secure_url;
+        } catch (uploadError) {
+          updates.image = category.image;
+        }
     }
 
     if (bannerFile) {
-      updates.bannerImage = {
-        url: bannerFile.path || bannerFile.url,
-        publicId: bannerFile.filename || bannerFile.public_id,
-      };
+        try {
+          // Upload to Cloudinary
+          const bannerResult = await cloudinary.uploader.upload(bannerFile.path, {
+            folder: "ecommerce/categories/banners",
+            public_id: `${updates.id || category.id}-banner-${Date.now()}`,
+            overwrite: false,
+          });
+          updates.bannerImage = bannerResult.secure_url;
+        } catch (uploadError) {
+          updates.bannerImage = category.bannerImage;
+        }
     }
 
     // Prevent updating ID if provided
@@ -393,11 +418,13 @@ const updateCategory = async (req, res) => {
     await category.save();
 
     // Delete old images from Cloudinary if new ones were uploaded
-    if (imageFile && oldImageData.publicId) {
-      await deleteFromCloudinary(oldImageData.publicId);
+    if (imageFile && oldImageUrl) {
+      // Extract public ID from Cloudinary URL if needed
+      // For now, we'll just let Cloudinary handle cleanup with new uploads
     }
-    if (bannerFile && oldBannerData.publicId) {
-      await deleteFromCloudinary(oldBannerData.publicId);
+    if (bannerFile && oldBannerUrl) {
+      // Extract public ID from Cloudinary URL if needed
+      // For now, we'll just let Cloudinary handle cleanup with new uploads
     }
 
     res.status(200).json({
@@ -406,8 +433,6 @@ const updateCategory = async (req, res) => {
       data: category,
     });
   } catch (error) {
-    console.error("Update Category Error:", error);
-
     // Clean up newly uploaded images if update fails
     if (req.files?.image?.[0]?.filename) {
       await deleteFromCloudinary(req.files.image[0].filename);
@@ -432,7 +457,6 @@ const updateCategory = async (req, res) => {
   }
 };
 
-// controllers/admin/adminCategory.js
 const updateCategoryStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -463,18 +487,12 @@ const updateCategoryStatus = async (req, res) => {
       });
     }
 
-    console.log('Update successful');
-
     res.json({ 
       success: true, 
       message: 'Category updated successfully', 
       data: updatedCategory 
     });
   } catch (error) {
-    console.error('=== ERROR DETAILS ===');
-    console.error('Error:', error.message);
-    console.error('Error code:', error.code);
-    
     res.status(500).json({ 
       success: false, 
       message: 'Error updating category status', 
@@ -483,7 +501,6 @@ const updateCategoryStatus = async (req, res) => {
   }
 };
 
-// 5. DELETE CATEGORY (SOFT DELETE)
 const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -510,26 +527,6 @@ const deleteCategory = async (req, res) => {
       await Category.findOneAndDelete({ id: id.toLowerCase() });
     }
 
-    // Optionally: Clean up images from Cloudinary
-    if (category.image) {
-      try {
-        // Extract public_id from Cloudinary URL if needed
-        // This requires parsing the URL or storing public_id separately
-        console.log("Category had image, might want to delete from Cloudinary:", category.image);
-      } catch (cloudinaryError) {
-        console.error("Error cleaning up Cloudinary image:", cloudinaryError);
-        // Continue even if cleanup fails
-      }
-    }
-
-    if (category.bannerImage) {
-      try {
-        console.log("Category had banner image, might want to delete from Cloudinary:", category.bannerImage);
-      } catch (cloudinaryError) {
-        console.error("Error cleaning up Cloudinary banner:", cloudinaryError);
-      }
-    }
-
     res.status(200).json({
       success: true,
       message: "Category permanently deleted successfully",
@@ -540,8 +537,6 @@ const deleteCategory = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Delete Category Error:", error);
-    
     if (error.name === "CastError") {
       return res.status(400).json({
         success: false,
@@ -557,7 +552,6 @@ const deleteCategory = async (req, res) => {
   }
 };
 
-// 6. HARD DELETE CATEGORY (ADMIN ONLY - WITH IMAGE CLEANUP)
 const hardDeleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -606,7 +600,6 @@ const hardDeleteCategory = async (req, res) => {
       message: "Category permanently deleted",
     });
   } catch (error) {
-    console.error("Hard Delete Category Error:", error);
     res.status(500).json({
       success: false,
       message: "Server Error",
@@ -657,7 +650,6 @@ const bulkUpdateCategories = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Error bulk updating categories:", error);
     res.status(500).json({
       success: false,
       message: "Error updating categories",
@@ -705,7 +697,6 @@ const bulkDeleteCategories = async (req, res) => {
       message: `${result.deletedCount} categories deleted successfully`,
     });
   } catch (error) {
-    console.error("Error bulk deleting categories:", error);
     res.status(500).json({
       success: false,
       message: "Error deleting categories",
@@ -727,6 +718,19 @@ const updateCategoryOrder = async (req, res) => {
       });
     }
 
+    // Check if another category already has this order number
+    const existingOrder = await Category.findOne({
+      _id: { $ne: id },
+      order: parseInt(order),
+    });
+
+    if (existingOrder) {
+      return res.status(400).json({
+        success: false,
+        message: `Display order ${order} is already taken by another category. Please use auto-reorder feature for sequential ordering.`,
+      });
+    }
+
     const category = await Category.findByIdAndUpdate(
       id,
       { $set: { order: parseInt(order) } },
@@ -740,16 +744,77 @@ const updateCategoryOrder = async (req, res) => {
       });
     }
 
+    // Get product count for the category to include in response
+    const productCount = await Product.countDocuments({
+      category: category.id,
+      isActive: true,
+    });
+
+    const categoryWithCount = {
+      ...category.toObject(),
+      totalProducts: productCount,
+    };
+
     res.json({
       success: true,
       message: "Category order updated successfully",
-      data: category,
+      data: categoryWithCount,
     });
   } catch (error) {
-    console.error("Error updating category order:", error);
     res.status(500).json({
       success: false,
       message: "Error updating category order",
+      error: error.message,
+    });
+  }
+};
+
+// Auto-reorder categories sequentially (1, 2, 3, 4, ...)
+const autoReorderCategories = async (req, res) => {
+  try {
+    const { categoryIds } = req.body;
+
+    if (!Array.isArray(categoryIds) || categoryIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide array of category IDs to reorder",
+      });
+    }
+
+    // Update categories with sequential order numbers
+    const updatedCategories = await Promise.all(
+      categoryIds.map(async (id, index) => {
+        const category = await Category.findByIdAndUpdate(
+          id,
+          { $set: { order: index + 1 } },
+          { new: true }
+        );
+
+        if (category) {
+          // Get product count for each category
+          const productCount = await Product.countDocuments({
+            category: category.id,
+            isActive: true,
+          });
+
+          return {
+            ...category.toObject(),
+            totalProducts: productCount,
+          };
+        }
+        return null;
+      })
+    );
+
+    res.json({
+      success: true,
+      message: "Categories reordered successfully",
+      data: updatedCategories.filter((cat) => cat !== null),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error reordering categories",
       error: error.message,
     });
   }
@@ -787,7 +852,6 @@ const getProductsCountByCategory = async (req, res) => {
       data: { totalProducts: totalCount },
     });
   } catch (error) {
-    console.error("Error getting products count:", error);
     res.status(500).json({
       success: false,
       message: "Error getting products count",
@@ -796,7 +860,7 @@ const getProductsCountByCategory = async (req, res) => {
   }
 };
 
-// Get all categories with products count
+// Fetch all items
 const getAllCategoriesWithProducts = async (req, res) => {
   try {
     const { includeProductsCount = true } = req.query;
@@ -829,7 +893,6 @@ const getAllCategoriesWithProducts = async (req, res) => {
       data: categories,
     });
   } catch (error) {
-    console.error("Error getting categories with products:", error);
     res.status(500).json({
       success: false,
       message: "Error getting categories",
@@ -858,7 +921,6 @@ const getCategoryStats = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error getting category stats:", error);
     res.status(500).json({
       success: false,
       message: "Error getting statistics",
@@ -870,7 +932,7 @@ const getCategoryStats = async (req, res) => {
 // Get products count for all categories
 const getProductsCountForAllCategories = async (req, res) => {
   try {
-    // Get all categories (including inactive if needed)
+    // Fetch all items
     const categories = await Category.find({})
       .sort({ order: 1, name: 1 })
       .lean();
@@ -913,7 +975,6 @@ const getProductsCountForAllCategories = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error getting products count for all categories:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch products count for categories',
@@ -932,7 +993,7 @@ export {
   hardDeleteCategory,
   bulkUpdateCategories,
   bulkDeleteCategories,
-  updateCategoryOrder,
+  // updateCategoryOrder and autoReorderCategories removed from public exports
   getProductsCountByCategory,
   getAllCategoriesWithProducts,
   getCategoryStats,

@@ -27,10 +27,11 @@ import {
 } from "react-icons/fa";
 import { useProducts } from "../../context/ProductContext";
 import { getIconComponent } from "../../services/icons";
+import { formatCurrency } from "../../utils/formatCurrency";
 const ProductEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { products, deleteProduct, updateProduct } = useProducts();
+  const { products, deleteProduct, updateProduct, fetchProductById } = useProducts();
   // Categories based on your model
   const categories = [
     { value: "shoes", label: "👟 Shoes" },
@@ -140,7 +141,15 @@ const ProductEdit = () => {
   const loadProductData = async () => {
     setIsLoading(true);
     try {
-      const foundProduct = products.find((p) => p._id === id);
+      let foundProduct = products.find((p) => p._id === id);
+      if (!foundProduct) {
+        // attempt to fetch from backend if not present in context
+        const fetched = await fetchProductById(id);
+        if (fetched && fetched.success && fetched.data) {
+          foundProduct = fetched.data;
+        }
+      }
+
       if (foundProduct) {
         setProduct(foundProduct);
         // Convert specs object to array for form
@@ -177,7 +186,7 @@ const ProductEdit = () => {
           reviewCount: foundProduct.reviewCount || 0,
         });
       } else {
-        console.error(`Product with ID ${id} not found in context`);
+        console.error(`Product with ID ${id} not found in context or backend`);
         toast.error("Product not found");
       }
     } catch (error) {
@@ -201,7 +210,7 @@ const ProductEdit = () => {
         id: 2,
         action: "Price Updated",
         timestamp: "2024-01-12T14:20:00Z",
-        details: "Price changed from $149.99 to $129.99",
+        details: "Price changed from KES 149.99 to KES 129.99",
       },
       {
         id: 3,
@@ -553,13 +562,8 @@ const ProductEdit = () => {
     }
   };
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "KES",
-    }).format(amount);
-  };
+  // Format currency (use shared util)
+  // imported from utils at top
   // Format date
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
