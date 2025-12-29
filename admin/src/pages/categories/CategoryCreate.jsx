@@ -1,6 +1,7 @@
 // src/pages/categories/CategoryCreate.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {toast} from "sonner"
 import { 
   FaTags, 
   FaArrowLeft, 
@@ -19,55 +20,28 @@ import {
   FaMinus,
   FaFolder,
   FaFolderOpen,
-  FaSortNumericDown
+  FaSortNumericDown,
+  FaCamera,
+  FaCloudUploadAlt,
+  FaSearch
 } from 'react-icons/fa';
+import * as categoryIconService from '../../services/icons'; // Your icon service
+import categoryService from '../../services/categoryService'; // Your API service
 
 const CategoryCreate = () => {
   const navigate = useNavigate();
   
-  // Available types from your model
-  const types = [
-    { value: 'main', label: 'Main', icon: '🏠' },
-    { value: 'fashion', label: 'Fashion', icon: '👗' },
-    { value: 'electronics', label: 'Electronics', icon: '💻' },
-    { value: 'home', label: 'Home', icon: '🏠' },
-    { value: 'beauty', label: 'Beauty', icon: '💄' },
-    { value: 'sports', label: 'Sports', icon: '⚽' },
-    { value: 'books', label: 'Books', icon: '📚' }
-  ];
-
-  // Common icons for categories
-  const categoryIcons = [
-    { value: '💻', label: 'Laptop' },
-    { value: '📱', label: 'Mobile' },
-    { value: '👗', label: 'Dress' },
-    { value: '👟', label: 'Shoes' },
-    { value: '👜', label: 'Bag' },
-    { value: '⌚', label: 'Watch' },
-    { value: '🏠', label: 'Home' },
-    { value: '🍽️', label: 'Kitchen' },
-    { value: '🛏️', label: 'Bed' },
-    { value: '💄', label: 'Makeup' },
-    { value: '🧴', label: 'Lotion' },
-    { value: '⚽', label: 'Sports' },
-    { value: '🏃', label: 'Running' },
-    { value: '📚', label: 'Book' },
-    { value: '✏️', label: 'Stationery' },
-    { value: '🎮', label: 'Gaming' },
-    { value: '🎧', label: 'Headphones' },
-    { value: '📺', label: 'TV' },
-    { value: '🚗', label: 'Car' },
-    { value: '✈️', label: 'Travel' }
-  ];
-
+  // Get icons from service
+  const categoryIcons = categoryIconService.categoryIcons;
+  
   // Form state
   const [formData, setFormData] = useState({
     // Basic Info
     id: '',
     name: '',
-    icon: '📦',
+    icon: 'FaTag',
     path: '',
-    type: 'main',
+    type: '', // Empty by default - user can type their own type
     
     // Details
     description: '',
@@ -77,9 +51,11 @@ const CategoryCreate = () => {
     subcategories: [],
     subcategoriesDetailed: [],
     
-    // Images
-    image: '',
-    bannerImage: '',
+    // Images - Changed to files
+    imageFile: null,
+    bannerImageFile: null,
+    imagePreview: '',
+    bannerImagePreview: '',
     
     // Settings
     order: 0,
@@ -96,8 +72,15 @@ const CategoryCreate = () => {
   // Form errors
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [iconSearch, setIconSearch] = useState('');
+  const [showIconPicker, setShowIconPicker] = useState(false);
   
+  // Filter icons based on search
+  const filteredIcons = categoryIcons.filter(icon => 
+    icon.label.toLowerCase().includes(iconSearch.toLowerCase()) ||
+    icon.value.toLowerCase().includes(iconSearch.toLowerCase())
+  );
+
   // Auto-generate path from name
   const generatePath = (name) => {
     return '/' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -139,6 +122,76 @@ const CategoryCreate = () => {
       setFormData(prev => ({
         ...prev,
         path: '/' + value.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      }));
+    }
+  };
+
+  // Handle icon selection
+  const handleIconSelect = (iconValue) => {
+    setFormData(prev => ({
+      ...prev,
+      icon: iconValue
+    }));
+    setShowIconPicker(false);
+    setIconSearch('');
+  };
+
+  // Handle image upload
+  const handleImageUpload = (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setErrors(prev => ({ ...prev, [type]: 'Only JPG, PNG, WebP, or GIF images are allowed' }));
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, [type]: 'Image size must be less than 5MB' }));
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (type === 'image') {
+        setFormData(prev => ({
+          ...prev,
+          imageFile: file,
+          imagePreview: reader.result
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          bannerImageFile: file,
+          bannerImagePreview: reader.result
+        }));
+      }
+      
+      // Clear error
+      if (errors[type]) {
+        setErrors(prev => ({ ...prev, [type]: '' }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Remove image
+  const handleRemoveImage = (type) => {
+    if (type === 'image') {
+      setFormData(prev => ({
+        ...prev,
+        imageFile: null,
+        imagePreview: ''
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        bannerImageFile: null,
+        bannerImagePreview: ''
       }));
     }
   };
@@ -202,31 +255,13 @@ const CategoryCreate = () => {
     if (!formData.name.trim()) newErrors.name = 'Category name is required';
     if (!formData.icon.trim()) newErrors.icon = 'Icon is required';
     if (!formData.path.trim()) newErrors.path = 'Path is required';
-    if (!formData.type) newErrors.type = 'Type is required';
-    
-    // Validate URLs if provided
-    if (formData.image && !isValidUrl(formData.image)) {
-      newErrors.image = 'Please enter a valid image URL';
-    }
-    
-    if (formData.bannerImage && !isValidUrl(formData.bannerImage)) {
-      newErrors.bannerImage = 'Please enter a valid banner image URL';
-    }
+    if (!formData.type.trim()) newErrors.type = 'Category type is required';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const isValidUrl = (url) => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  // Handle form submission
+  // Handle form submission with file uploads
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -237,51 +272,82 @@ const CategoryCreate = () => {
     setIsSubmitting(true);
     
     try {
-      // Prepare category data based on your model
-      const categoryData = {
-        id: formData.id.toLowerCase().trim(),
-        name: formData.name.trim(),
-        icon: formData.icon,
-        path: formData.path.trim(),
-        type: formData.type,
-        isMainCategory: formData.isMainCategory,
-        subcategories: formData.subcategories,
-        subcategoriesDetailed: formData.subcategoriesDetailed,
-        description: formData.description.trim(),
-        totalProducts: 0, // Will be calculated later
-        featured: formData.featured,
-        image: formData.image.trim(),
-        bannerImage: formData.bannerImage.trim(),
-        order: parseInt(formData.order) || 0,
-        isActive: formData.isActive
-      };
+      // Create FormData for file uploads
+      const formDataToSend = new FormData();
       
-      console.log('Creating category:', categoryData);
+      // Add basic fields
+      formDataToSend.append('id', formData.id.toLowerCase().trim());
+      formDataToSend.append('name', formData.name.trim());
+      formDataToSend.append('icon', formData.icon);
+      formDataToSend.append('path', formData.path.trim());
+      formDataToSend.append('type', formData.type.trim());
+      formDataToSend.append('isMainCategory', formData.isMainCategory);
+      formDataToSend.append('description', formData.description.trim());
+      formDataToSend.append('featured', formData.featured);
+      formDataToSend.append('order', formData.order);
+      formDataToSend.append('isActive', formData.isActive);
       
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Add subcategories as JSON
+      formDataToSend.append('subcategories', JSON.stringify(formData.subcategories));
+      formDataToSend.append('subcategoriesDetailed', JSON.stringify(formData.subcategoriesDetailed));
       
-      // Show success message
-      setSuccessMessage(`Category "${formData.name}" created successfully!`);
+      // Add image files if they exist
+      if (formData.imageFile) {
+        formDataToSend.append('image', formData.imageFile);
+      }
+      if (formData.bannerImageFile) {
+        formDataToSend.append('bannerImage', formData.bannerImageFile);
+      }
       
-      // Reset form after 2 seconds and redirect
-      setTimeout(() => {
-        navigate('/categories');
-      }, 2000);
+      // Call API service
+      const response = await categoryService.createCategory(formDataToSend);
+      
+      if (response.success) {
+        toast.success(`Category "${formData.name}" created successfully!`);
+        
+        // Reset form after 2 seconds and redirect
+        setTimeout(() => {
+          navigate('/categories');
+        }, 2000);
+      } else {
+        toast.error(response?.data?.message || "Failed to create category.");
+      }
       
     } catch (error) {
       console.error('Error creating category:', error);
-      setErrors({ submit: 'Failed to create category. Please try again.' });
+    
+    // Handle different error formats
+    if (error.response) {
+      // Axios error with response
+      const errorMessage = error.response.data?.message || 
+                          error.response.data?.error ||
+                          error.response.statusText ||
+                          "Failed to create category.";
+      toast.error(errorMessage);
+      
+      // If there are validation errors
+      if (error.response.data?.errors) {
+        error.response.data.errors.forEach(err => {
+          toast.error(err);
+        });
+      }
+    } else if (error.request) {
+      // Network error - no response received
+      toast.error("Network error. Please check your connection.");
+    } else if (error.message) {
+      // Error thrown in service
+      toast.error(error.message);
+    } else {
+      // Unknown error
+      toast.error("Failed to create category. Please try again.");
+    }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Get next available order number
-  const getNextOrder = () => {
-    // In real app, you would fetch this from the backend
-    return 10;
-  };
+  // Get icon preview component
+  const IconPreview = categoryIconService.getIconComponent(formData.icon);
 
   return (
     <div className="space-y-6">
@@ -307,19 +373,6 @@ const CategoryCreate = () => {
           </div>
         </div>
       </div>
-
-      {/* Success Message */}
-      {successMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-          <div className="flex items-center space-x-3">
-            <FaCheck className="text-green-600" />
-            <div>
-              <p className="text-green-800 font-medium">{successMessage}</p>
-              <p className="text-green-600 text-sm">Redirecting to categories list...</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Error Message */}
       {errors.submit && (
@@ -388,30 +441,110 @@ const CategoryCreate = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Icon *
               </label>
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center text-3xl">
-                  {formData.icon}
+              <div className="space-y-3">
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center text-2xl">
+                    {IconPreview && <IconPreview />}
+                  </div>
+                  <div className="flex-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowIconPicker(!showIconPicker)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-left hover:bg-gray-50 flex justify-between items-center"
+                    >
+                      <span className="text-gray-700">
+                        {categoryIcons.find(icon => icon.value === formData.icon)?.label || 'Select Icon'}
+                      </span>
+                      <span className="text-gray-400">▼</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <select
-                    name="icon"
-                    value={formData.icon}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.icon ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Select an icon</option>
-                    {categoryIcons.map(icon => (
-                      <option key={icon.value} value={icon.value}>
-                        {icon.value} {icon.label}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.icon && (
-                    <p className="mt-1 text-sm text-red-600">{errors.icon}</p>
-                  )}
-                </div>
+                
+                {/* Icon Picker Modal */}
+                {showIconPicker && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+                      <div className="p-6 border-b">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xl font-bold text-gray-800">Select Icon</h3>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowIconPicker(false);
+                              setIconSearch('');
+                            }}
+                            className="text-gray-500 hover:text-gray-700"
+                          >
+                            <FaTimes className="w-5 h-5" />
+                          </button>
+                        </div>
+                        <div className="relative">
+                          <FaSearch className="absolute left-3 top-3 text-gray-400" />
+                          <input
+                            type="text"
+                            value={iconSearch}
+                            onChange={(e) => setIconSearch(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Search icons..."
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="p-6 overflow-y-auto max-h-[50vh]">
+                        {filteredIcons.length === 0 ? (
+                          <p className="text-center text-gray-500 py-8">No icons found</p>
+                        ) : (
+                          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4">
+                            {filteredIcons.map((icon) => {
+                              const IconComponent = categoryIconService.getIconComponent(icon.value);
+                              return (
+                                <button
+                                  key={icon.value}
+                                  type="button"
+                                  onClick={() => handleIconSelect(icon.value)}
+                                  className={`flex flex-col items-center justify-center p-3 rounded-lg border-2 hover:border-blue-500 hover:bg-blue-50 transition-all ${
+                                    formData.icon === icon.value
+                                      ? 'border-blue-500 bg-blue-50'
+                                      : 'border-gray-200'
+                                  }`}
+                                >
+                                  {IconComponent ? (
+                                    <IconComponent className="w-6 h-6 text-gray-700" />
+                                  ) : (
+                                    <span className="text-2xl">{icon.value}</span>
+                                  )}
+                                  <span className="text-xs mt-2 text-gray-600 truncate w-full text-center">
+                                    {icon.label}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="p-6 border-t bg-gray-50">
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowIconPicker(false);
+                              setIconSearch('');
+                            }}
+                            className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {errors.icon && (
+                  <p className="mt-1 text-sm text-red-600">{errors.icon}</p>
+                )}
               </div>
             </div>
 
@@ -454,24 +587,22 @@ const CategoryCreate = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category Type *
               </label>
-              <select
+              <input
+                type="text"
                 name="type"
                 value={formData.type}
                 onChange={handleChange}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.type ? 'border-red-300' : 'border-gray-300'
                 }`}
-              >
-                <option value="">Select Type</option>
-                {types.map(type => (
-                  <option key={type.value} value={type.value}>
-                    {type.icon} {type.label}
-                  </option>
-                ))}
-              </select>
+                placeholder="e.g., Electronics, Fashion, Home, etc."
+              />
               {errors.type && (
                 <p className="mt-1 text-sm text-red-600">{errors.type}</p>
               )}
+              <p className="mt-1 text-xs text-gray-500">
+                Enter your own category type (e.g., "Electronics", "Fashion", "Home Decor")
+              </p>
             </div>
 
             <div>
@@ -567,109 +698,109 @@ const CategoryCreate = () => {
           </div>
         </div>
 
-        {/* Subcategories */}
+        {/* Subcategories Section */}
         <div className="bg-white rounded-xl shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center space-x-2">
-            <FaFolder className="text-blue-500" />
+            <FaFolderOpen className="text-blue-500" />
             <span>Subcategories</span>
           </h3>
           
-          <div className="space-y-6">
-            {/* Add Subcategory Form */}
-            <div className="bg-gray-50 rounded-lg p-6">
-              <h4 className="font-medium text-gray-800 mb-4">Add Subcategory</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Subcategory Name *
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={subcategoryForm.name}
-                    onChange={handleSubcategoryChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.subcategoryName ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="e.g., Smartphones, Laptops"
-                  />
-                  {errors.subcategoryName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.subcategoryName}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    name="description"
-                    value={subcategoryForm.description}
-                    onChange={handleSubcategoryChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Brief description"
-                  />
-                </div>
+          {/* Subcategory Input Form */}
+          <div className="bg-gray-50 rounded-lg p-6 mb-6">
+            <h4 className="font-medium text-gray-800 mb-4">Add New Subcategory</h4>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Subcategory Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={subcategoryForm.name}
+                  onChange={handleSubcategoryChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Laptops, Mobiles, Accessories"
+                />
+                {errors.subcategoryName && (
+                  <p className="mt-1 text-sm text-red-600">{errors.subcategoryName}</p>
+                )}
               </div>
-              
-              <div className="mt-6">
-                <button
-                  type="button"
-                  onClick={handleAddSubcategory}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                >
-                  <FaPlus />
-                  <span>Add Subcategory</span>
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description (Optional)
+                </label>
+                <input
+                  type="text"
+                  name="description"
+                  value={subcategoryForm.description}
+                  onChange={handleSubcategoryChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Brief description"
+                />
               </div>
             </div>
-            
-            {/* Subcategories List */}
-            {formData.subcategoriesDetailed.length > 0 ? (
-              <div>
-                <h4 className="font-medium text-gray-800 mb-4">
-                  Subcategories ({formData.subcategoriesDetailed.length})
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {formData.subcategoriesDetailed.map((subcat, index) => (
-                    <div key={index} className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h5 className="font-medium text-gray-800">{subcat.name}</h5>
-                          {subcat.description && (
-                            <p className="text-sm text-gray-600 mt-1">{subcat.description}</p>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSubcategory(index)}
-                          className="text-gray-500 hover:text-red-500"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-500">ID: {subcat.name.toLowerCase().replace(/\s+/g, '-')}</span>
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          0 products
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
-                <FaFolderOpen className="text-4xl text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No subcategories added yet</p>
-                <p className="text-sm text-gray-400 mt-1">Add subcategories to organize products further</p>
-              </div>
-            )}
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={handleAddSubcategory}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+              >
+                <FaPlus />
+                <span>Add Subcategory</span>
+              </button>
+              <p className="mt-2 text-xs text-gray-500">
+                Subcategories help organize products within this category
+              </p>
+            </div>
           </div>
+
+          {/* Subcategories List */}
+          {formData.subcategoriesDetailed.length > 0 ? (
+            <div>
+              <h4 className="font-medium text-gray-800 mb-4">
+                Subcategories ({formData.subcategoriesDetailed.length})
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {formData.subcategoriesDetailed.map((subcat, index) => (
+                  <div key={index} className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h5 className="font-medium text-gray-800">{subcat.name}</h5>
+                        {subcat.description && (
+                          <p className="text-sm text-gray-600 mt-1">{subcat.description}</p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSubcategory(index)}
+                        className="text-gray-500 hover:text-red-500 p-1"
+                        title="Remove subcategory"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">
+                        ID: {subcat.name.toLowerCase().replace(/\s+/g, '-')}
+                      </span>
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        {subcat.totalProducts || 0} products
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+              <FaFolderOpen className="text-4xl text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No subcategories added yet</p>
+              <p className="text-sm text-gray-400 mt-1">Add subcategories to organize products further</p>
+            </div>
+          )}
         </div>
 
-        {/* Images */}
+        {/* Images Section */}
         <div className="bg-white rounded-xl shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center space-x-2">
             <FaImage className="text-blue-500" />
@@ -677,82 +808,106 @@ const CategoryCreate = () => {
           </h3>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Category Image */}
+            {/* Category Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 Category Image (Optional)
               </label>
               <div className="space-y-4">
-                <input
-                  type="url"
-                  name="image"
-                  value={formData.image}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.image ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                  placeholder="https://example.com/category-image.jpg"
-                />
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                  {formData.imagePreview ? (
+                    <div className="space-y-4">
+                      <div className="relative mx-auto w-48 h-48">
+                        <img 
+                          src={formData.imagePreview} 
+                          alt="Category preview"
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage('image')}
+                          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <FaTrash className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-600">Image preview</p>
+                    </div>
+                  ) : (
+                    <>
+                      <FaCloudUploadAlt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">Upload category image</p>
+                      <p className="text-sm text-gray-500 mb-4">JPG, PNG, WebP or GIF (Max 5MB)</p>
+                      <label className="cursor-pointer inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <span>Choose File</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleImageUpload(e, 'image')}
+                          className="hidden"
+                        />
+                      </label>
+                    </>
+                  )}
+                </div>
                 {errors.image && (
                   <p className="mt-1 text-sm text-red-600">{errors.image}</p>
                 )}
-                
-                {formData.image && (
-                  <div className="w-40 h-40 bg-gray-100 rounded-lg overflow-hidden border">
-                    <img 
-                      src={formData.image} 
-                      alt="Category preview"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/200?text=Invalid+URL';
-                      }}
-                    />
-                  </div>
-                )}
-                
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <FaInfoCircle />
-                  <span>Used as thumbnail in category listings</span>
+                  <span>Used as thumbnail in category listings (300x300 recommended)</span>
                 </div>
               </div>
             </div>
 
-            {/* Banner Image */}
+            {/* Banner Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 Banner Image (Optional)
               </label>
               <div className="space-y-4">
-                <input
-                  type="url"
-                  name="bannerImage"
-                  value={formData.bannerImage}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.bannerImage ? 'border-red-300' : 'border-gray-300'
-                  }`}
-                  placeholder="https://example.com/banner-image.jpg"
-                />
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                  {formData.bannerImagePreview ? (
+                    <div className="space-y-4">
+                      <div className="relative mx-auto w-full h-32">
+                        <img 
+                          src={formData.bannerImagePreview} 
+                          alt="Banner preview"
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage('bannerImage')}
+                          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <FaTrash className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-600">Banner preview</p>
+                    </div>
+                  ) : (
+                    <>
+                      <FaCloudUploadAlt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">Upload banner image</p>
+                      <p className="text-sm text-gray-500 mb-4">JPG, PNG, WebP or GIF (Max 5MB)</p>
+                      <label className="cursor-pointer inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <span>Choose File</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleImageUpload(e, 'bannerImage')}
+                          className="hidden"
+                        />
+                      </label>
+                    </>
+                  )}
+                </div>
                 {errors.bannerImage && (
                   <p className="mt-1 text-sm text-red-600">{errors.bannerImage}</p>
                 )}
-                
-                {formData.bannerImage && (
-                  <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden border">
-                    <img 
-                      src={formData.bannerImage} 
-                      alt="Banner preview"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/600x200?text=Invalid+URL';
-                      }}
-                    />
-                  </div>
-                )}
-                
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <FaInfoCircle />
-                  <span>Used as header banner on category page</span>
+                  <span>Used as header banner on category page (1200x300 recommended)</span>
                 </div>
               </div>
             </div>
@@ -768,8 +923,8 @@ const CategoryCreate = () => {
           
           <div className="bg-gray-50 rounded-lg p-6">
             <div className="flex items-center space-x-4">
-              <div className="w-20 h-20 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-4xl">
-                {formData.icon}
+              <div className="w-20 h-20 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-2xl">
+               {IconPreview && <IconPreview />}
               </div>
               <div className="flex-1">
                 <div className="flex items-center space-x-3">
@@ -804,6 +959,30 @@ const CategoryCreate = () => {
                   )}
                 </div>
               </div>
+            </div>
+            
+            {/* Image Previews */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {formData.imagePreview && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">Category Image:</p>
+                  <img 
+                    src={formData.imagePreview} 
+                    alt="Category preview" 
+                    className="w-32 h-32 object-cover rounded-lg border"
+                  />
+                </div>
+              )}
+              {formData.bannerImagePreview && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">Banner Image:</p>
+                  <img 
+                    src={formData.bannerImagePreview} 
+                    alt="Banner preview" 
+                    className="w-full h-24 object-cover rounded-lg border"
+                  />
+                </div>
+              )}
             </div>
             
             {formData.subcategories.length > 0 && (
@@ -873,6 +1052,10 @@ const CategoryCreate = () => {
               <li className="flex items-start space-x-2">
                 <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
                 <span>Use descriptive names that customers will understand</span>
+              </li>
+              <li className="flex items-start space-x-2">
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
+                <span>Choose relevant icons that represent the category</span>
               </li>
               <li className="flex items-start space-x-2">
                 <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>

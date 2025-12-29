@@ -256,7 +256,8 @@ const getAllProducts = async (req, res) => {
     }
     
     if (req.query.category && req.query.category !== 'all') {
-      filter.category = req.query.category;
+      // Case-insensitive category filter
+      filter.category = { $regex: `^${req.query.category}$`, $options: 'i' };
     }
     
     if (req.query.status && req.query.status !== 'all') {

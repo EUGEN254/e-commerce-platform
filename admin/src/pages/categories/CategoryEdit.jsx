@@ -1,6 +1,7 @@
 // src/pages/categories/CategoryEdit.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { 
   FaTags, 
   FaArrowLeft, 
@@ -24,60 +25,40 @@ import {
   FaEye,
   FaChartBar,
   FaShoppingCart,
-  FaEdit
+  FaEdit,
+  FaSpinner,
+  FaCloudUploadAlt,
+  FaTimesCircle,
+  FaSearch
 } from 'react-icons/fa';
+import * as categoryIconService from '../../services/icons';
+import { useProducts } from '../../context/ProductContext';
 
 const CategoryEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { 
+    categories, 
+    getCategoryById, 
+    categoriesLoading,
+    updateCategoryFeatured,
+    updateCategoryStatus,
+    deleteCategory,
+    fetchCategories,
+    fetchProductsCountForCategories
+  } = useProducts();
   
-  // Available types from your model
-  const types = [
-    { value: 'main', label: 'Main', icon: '🏠' },
-    { value: 'fashion', label: 'Fashion', icon: '👗' },
-    { value: 'electronics', label: 'Electronics', icon: '💻' },
-    { value: 'home', label: 'Home', icon: '🏠' },
-    { value: 'beauty', label: 'Beauty', icon: '💄' },
-    { value: 'sports', label: 'Sports', icon: '⚽' },
-    { value: 'books', label: 'Books', icon: '📚' }
-  ];
-
-  // Common icons for categories
-  const categoryIcons = [
-    { value: '💻', label: 'Laptop' },
-    { value: '📱', label: 'Mobile' },
-    { value: '👗', label: 'Dress' },
-    { value: '👟', label: 'Shoes' },
-    { value: '👜', label: 'Bag' },
-    { value: '⌚', label: 'Watch' },
-    { value: '🏠', label: 'Home' },
-    { value: '🍽️', label: 'Kitchen' },
-    { value: '🛏️', label: 'Bed' },
-    { value: '💄', label: 'Makeup' },
-    { value: '🧴', label: 'Lotion' },
-    { value: '⚽', label: 'Sports' },
-    { value: '🏃', label: 'Running' },
-    { value: '📚', label: 'Book' },
-    { value: '✏️', label: 'Stationery' },
-    { value: '🎮', label: 'Gaming' },
-    { value: '🎧', label: 'Headphones' },
-    { value: '📺', label: 'TV' },
-    { value: '🚗', label: 'Car' },
-    { value: '✈️', label: 'Travel' }
-  ];
-
-  // Category state
-  const [category, setCategory] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Get icons from service
+  const categoryIcons = categoryIconService.categoryIcons;
   
   // Form state
   const [formData, setFormData] = useState({
     // Basic Info
     id: '',
     name: '',
-    icon: '📦',
+    icon: 'FaTag',
     path: '',
-    type: 'main',
+    type: '',
     
     // Details
     description: '',
@@ -90,6 +71,10 @@ const CategoryEdit = () => {
     // Images
     image: '',
     bannerImage: '',
+    imageFile: null,
+    bannerImageFile: null,
+    imagePreview: '',
+    bannerImagePreview: '',
     
     // Settings
     order: 0,
@@ -112,88 +97,86 @@ const CategoryEdit = () => {
   // Form errors
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [iconSearch, setIconSearch] = useState('');
+  const [showIconPicker, setShowIconPicker] = useState(false);
+
+  // Filter icons based on search
+  const filteredIcons = categoryIcons.filter(icon => 
+    icon.label.toLowerCase().includes(iconSearch.toLowerCase()) ||
+    icon.value.toLowerCase().includes(iconSearch.toLowerCase())
+  );
+
+  // Get icon preview component
+  const IconPreview = categoryIconService.getIconComponent(formData.icon);
+
+  // Auto-generate path from name
+  const generatePath = (name) => {
+    return '/' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  };
 
   // Load category data
   useEffect(() => {
-    loadCategoryData();
-    loadActivityLogs();
-  }, [id]);
+    if (id) {
+      loadCategoryData();
+      loadActivityLogs();
+    }
+  }, [id, categories]);
 
-  // Mock API call to load category data
   const loadCategoryData = async () => {
-    setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get category from context
+      const categoryData = getCategoryById(id);
       
-      // Mock category data based on your model
-      const mockCategory = {
-        _id: id,
-        id: 'electronics',
-        name: 'Electronics',
-        icon: '💻',
-        path: '/electronics',
-        type: 'electronics',
-        isMainCategory: true,
-        subcategories: ['smartphones', 'laptops', 'tv'],
-        subcategoriesDetailed: [
-          { name: 'Smartphones', description: 'Mobile phones and accessories', totalProducts: 234 },
-          { name: 'Laptops', description: 'Portable computers', totalProducts: 189 },
-          { name: 'TVs', description: 'Televisions and displays', totalProducts: 156 }
-        ],
-        description: 'Latest electronic devices and gadgets for modern living',
-        totalProducts: 579,
-        featured: true,
-        image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=400',
-        bannerImage: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=1200',
-        order: 1,
-        isActive: true,
-        createdAt: '2024-01-10T10:30:00Z',
-        updatedAt: '2024-01-15T14:20:00Z'
-      };
+      if (!categoryData) {
+        toast.error('Category not found');
+        navigate('/categories');
+        return;
+      }
       
-      setCategory(mockCategory);
+      console.log('Category data:', categoryData);
       
-      // Set form data
+      // Set form data with actual category data
       setFormData({
-        id: mockCategory.id,
-        name: mockCategory.name,
-        icon: mockCategory.icon,
-        path: mockCategory.path,
-        type: mockCategory.type,
-        description: mockCategory.description,
-        isMainCategory: mockCategory.isMainCategory,
-        subcategories: mockCategory.subcategories,
-        subcategoriesDetailed: mockCategory.subcategoriesDetailed,
-        image: mockCategory.image,
-        bannerImage: mockCategory.bannerImage,
-        order: mockCategory.order,
-        featured: mockCategory.featured,
-        isActive: mockCategory.isActive,
-        totalProducts: mockCategory.totalProducts
+        id: categoryData.id || '',
+        name: categoryData.name || '',
+        icon: categoryData.icon || 'FaTag',
+        path: categoryData.path || '',
+        type: categoryData.type || '',
+        description: categoryData.description || '',
+        isMainCategory: categoryData.isMainCategory || false,
+        subcategories: categoryData.subcategories || [],
+        subcategoriesDetailed: categoryData.subcategoriesDetailed || [],
+        image: categoryData.image || '',
+        bannerImage: categoryData.bannerImage || '',
+        imageFile: null,
+        bannerImageFile: null,
+        imagePreview: categoryData.image || '',
+        bannerImagePreview: categoryData.bannerImage || '',
+        order: categoryData.order || 0,
+        featured: categoryData.featured || false,
+        isActive: categoryData.isActive !== undefined ? categoryData.isActive : true,
+        totalProducts: categoryData.totalProducts || 0
       });
       
     } catch (error) {
       console.error('Error loading category:', error);
-      setErrors({ load: 'Failed to load category data' });
-    } finally {
-      setIsLoading(false);
+      toast.error('Failed to load category data');
     }
   };
 
-  // Load activity logs
+  // Load activity logs (you can implement this with your API)
   const loadActivityLogs = async () => {
-    // Mock activity logs
-    const mockLogs = [
-      { id: 1, action: 'Category Created', timestamp: '2024-01-10T10:30:00Z', details: 'Added to catalog' },
-      { id: 2, action: 'Subcategory Added', timestamp: '2024-01-12T14:20:00Z', details: 'Added "Smartphones" subcategory' },
-      { id: 3, action: 'Featured Status', timestamp: '2024-01-13T09:45:00Z', details: 'Marked as featured category' },
-      { id: 4, action: 'Products Added', timestamp: '2024-01-14T11:30:00Z', details: '45 new products added' },
-      { id: 5, action: 'Image Updated', timestamp: '2024-01-15T08:30:00Z', details: 'Updated category image' },
-    ];
-    
-    setActivityLogs(mockLogs);
+    try {
+      // For now, using mock data. Replace with actual API call.
+      const mockLogs = [
+        { id: 1, action: 'Category Created', timestamp: new Date().toISOString(), details: 'Added to catalog' },
+        { id: 2, action: 'Subcategory Added', timestamp: new Date().toISOString(), details: 'Added new subcategory' },
+      ];
+      
+      setActivityLogs(mockLogs);
+    } catch (error) {
+      console.error('Error loading activity logs:', error);
+    }
   };
 
   // Handle input changes
@@ -212,7 +195,7 @@ const CategoryEdit = () => {
     
     // Auto-generate path from name
     if (name === 'name' && value) {
-      const generatedPath = '/' + value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const generatedPath = generatePath(value);
       setFormData(prev => ({
         ...prev,
         path: generatedPath
@@ -224,6 +207,78 @@ const CategoryEdit = () => {
       setFormData(prev => ({
         ...prev,
         path: '/' + value.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      }));
+    }
+  };
+
+  // Handle icon selection
+  const handleIconSelect = (iconValue) => {
+    setFormData(prev => ({
+      ...prev,
+      icon: iconValue
+    }));
+    setShowIconPicker(false);
+    setIconSearch('');
+  };
+
+  // Handle image upload
+  const handleImageUpload = (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setErrors(prev => ({ ...prev, [type]: 'Only JPG, PNG, WebP, or GIF images are allowed' }));
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, [type]: 'Image size must be less than 5MB' }));
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (type === 'image') {
+        setFormData(prev => ({
+          ...prev,
+          imageFile: file,
+          imagePreview: reader.result
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          bannerImageFile: file,
+          bannerImagePreview: reader.result
+        }));
+      }
+      
+      // Clear error
+      if (errors[type]) {
+        setErrors(prev => ({ ...prev, [type]: '' }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Remove image
+  const handleRemoveImage = (type) => {
+    if (type === 'image') {
+      setFormData(prev => ({
+        ...prev,
+        imageFile: null,
+        imagePreview: '',
+        image: ''
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        bannerImageFile: null,
+        bannerImagePreview: '',
+        bannerImage: ''
       }));
     }
   };
@@ -252,7 +307,7 @@ const CategoryEdit = () => {
     
     setFormData(prev => ({
       ...prev,
-      subcategories: [...prev.subcategories, subcategoryForm.name.trim().toLowerCase().replace(/\s+/g, '-')],
+      subcategories: [...prev.subcategories, subcategoryForm.name.trim().toLowerCase()],
       subcategoriesDetailed: [...prev.subcategoriesDetailed, newSubcategory]
     }));
     
@@ -278,26 +333,9 @@ const CategoryEdit = () => {
     }
   };
 
-  // Edit subcategory
-  const handleEditSubcategory = (index, field, value) => {
-    const updatedSubcategories = [...formData.subcategoriesDetailed];
-    updatedSubcategories[index][field] = value;
-    
-    // Update simple subcategories array
-    const updatedSimpleSubcategories = updatedSubcategories.map(sc => 
-      sc.name.toLowerCase().replace(/\s+/g, '-')
-    );
-    
-    setFormData(prev => ({
-      ...prev,
-      subcategories: updatedSimpleSubcategories,
-      subcategoriesDetailed: updatedSubcategories
-    }));
-  };
-
   // Remove subcategory
   const handleRemoveSubcategory = (index) => {
-    const subcategoryName = formData.subcategoriesDetailed[index].name;
+    const subcategoryName = formData.subcategoriesDetailed[index]?.name || '';
     
     setFormData(prev => ({
       ...prev,
@@ -326,28 +364,10 @@ const CategoryEdit = () => {
     if (!formData.name.trim()) newErrors.name = 'Category name is required';
     if (!formData.icon.trim()) newErrors.icon = 'Icon is required';
     if (!formData.path.trim()) newErrors.path = 'Path is required';
-    if (!formData.type) newErrors.type = 'Type is required';
-    
-    // Validate URLs if provided
-    if (formData.image && !isValidUrl(formData.image)) {
-      newErrors.image = 'Please enter a valid image URL';
-    }
-    
-    if (formData.bannerImage && !isValidUrl(formData.bannerImage)) {
-      newErrors.bannerImage = 'Please enter a valid banner image URL';
-    }
+    if (!formData.type.trim()) newErrors.type = 'Category type is required';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const isValidUrl = (url) => {
-    try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
-    }
   };
 
   // Handle form submission
@@ -361,59 +381,84 @@ const CategoryEdit = () => {
     setIsSaving(true);
     
     try {
-      // Prepare category data based on your model
-      const categoryData = {
-        id: formData.id.toLowerCase().trim(),
-        name: formData.name.trim(),
-        icon: formData.icon,
-        path: formData.path.trim(),
-        type: formData.type,
-        isMainCategory: formData.isMainCategory,
-        subcategories: formData.subcategories,
-        subcategoriesDetailed: formData.subcategoriesDetailed,
-        description: formData.description.trim(),
-        totalProducts: formData.totalProducts,
-        featured: formData.featured,
-        image: formData.image.trim(),
-        bannerImage: formData.bannerImage.trim(),
-        order: parseInt(formData.order) || 0,
-        isActive: formData.isActive,
-        updatedAt: new Date().toISOString()
-      };
+      // Create FormData for file uploads
+      const formDataToSend = new FormData();
       
-      console.log('Updating category:', categoryData);
+      // Add basic fields
+      formDataToSend.append('id', formData.id.toLowerCase().trim());
+      formDataToSend.append('name', formData.name.trim());
+      formDataToSend.append('icon', formData.icon);
+      formDataToSend.append('path', formData.path.trim());
+      formDataToSend.append('type', formData.type.trim());
+      formDataToSend.append('isMainCategory', formData.isMainCategory);
+      formDataToSend.append('description', formData.description.trim());
+      formDataToSend.append('featured', formData.featured);
+      formDataToSend.append('order', formData.order);
+      formDataToSend.append('isActive', formData.isActive);
       
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Add subcategories as JSON
+      formDataToSend.append('subcategories', JSON.stringify(formData.subcategories));
+      formDataToSend.append('subcategoriesDetailed', JSON.stringify(formData.subcategoriesDetailed));
       
-      // Update category state
-      setCategory(prev => ({
-        ...prev,
-        ...categoryData,
-        _id: id
-      }));
+      // Add image files if they exist
+      if (formData.imageFile) {
+        formDataToSend.append('image', formData.imageFile);
+      } else if (formData.image) {
+        formDataToSend.append('image', formData.image);
+      }
       
-      // Add activity log
-      const newLog = {
-        id: activityLogs.length + 1,
-        action: 'Category Updated',
-        timestamp: new Date().toISOString(),
-        details: 'Category information was updated'
-      };
+      if (formData.bannerImageFile) {
+        formDataToSend.append('bannerImage', formData.bannerImageFile);
+      } else if (formData.bannerImage) {
+        formDataToSend.append('bannerImage', formData.bannerImage);
+      }
       
-      setActivityLogs(prev => [newLog, ...prev]);
+      // Call API service - you need to create an updateCategory function in your categoryService
+      const response = await fetch(`/api/admin/categories/${id}`, {
+        method: 'PUT',
+        body: formDataToSend,
+      });
       
-      // Show success message
-      setSuccessMessage('Category updated successfully!');
+      const data = await response.json();
       
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
+      if (response.ok) {
+        toast.success(`Category "${formData.name}" updated successfully!`);
+        
+        // Refresh categories list
+        await fetchCategories();
+        await fetchProductsCountForCategories();
+        
+        // Navigate back to categories list
+        setTimeout(() => {
+          navigate('/categories');
+        }, 1500);
+      } else {
+        throw new Error(data.message || 'Failed to update category');
+      }
       
     } catch (error) {
       console.error('Error updating category:', error);
-      setErrors({ submit: 'Failed to update category. Please try again.' });
+      
+      // Handle different error formats
+      if (error.response) {
+        const errorMessage = error.response.data?.message || 
+                            error.response.data?.error ||
+                            error.response.statusText ||
+                            "Failed to update category.";
+        toast.error(errorMessage);
+        
+        if (error.response.data?.errors) {
+          error.response.data.errors.forEach(err => {
+            toast.error(err);
+          });
+        }
+      } else if (error.request) {
+        toast.error("Network error. Please check your connection.");
+      } else if (error.message) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to update category. Please try again.");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -421,37 +466,79 @@ const CategoryEdit = () => {
 
   // Handle delete category
   const handleDeleteCategory = async () => {
-    if (!window.confirm('Are you sure you want to delete this category? All subcategories and products will be affected.')) {
+    if (!window.confirm(`Are you sure you want to delete "${formData.name}"? This action cannot be undone.`)) {
       return;
     }
     
-    setIsSaving(true);
-    
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Deleting category:', id);
+      await deleteCategory(id);
+      toast.success("Category deleted successfully!");
       navigate('/categories');
-      
     } catch (error) {
       console.error('Error deleting category:', error);
-      setErrors({ submit: 'Failed to delete category.' });
-      setIsSaving(false);
+      toast.error(error.message || "Failed to delete category");
+    }
+  };
+
+  // Handle toggle featured
+  const handleToggleFeatured = async () => {
+    try {
+      await updateCategoryFeatured(id, !formData.featured);
+      setFormData(prev => ({ ...prev, featured: !prev.featured }));
+      
+      // Add activity log
+      const newLog = {
+        id: activityLogs.length + 1,
+        action: 'Featured Status',
+        timestamp: new Date().toISOString(),
+        details: `Marked as ${!formData.featured ? 'featured' : 'not featured'}`
+      };
+      setActivityLogs(prev => [newLog, ...prev]);
+      
+    } catch (error) {
+      console.error('Error toggling featured:', error);
+      toast.error(error.message || "Failed to update featured status");
+    }
+  };
+
+  // Handle toggle status
+  const handleToggleStatus = async () => {
+    try {
+      await updateCategoryStatus(id, !formData.isActive);
+      setFormData(prev => ({ ...prev, isActive: !prev.isActive }));
+      
+      // Add activity log
+      const newLog = {
+        id: activityLogs.length + 1,
+        action: 'Status Changed',
+        timestamp: new Date().toISOString(),
+        details: `Marked as ${!formData.isActive ? 'active' : 'inactive'}`
+      };
+      setActivityLogs(prev => [newLog, ...prev]);
+      
+    } catch (error) {
+      console.error('Error toggling status:', error);
+      toast.error(error.message || "Failed to update status");
     }
   };
 
   // Format date
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
   };
 
-  if (isLoading) {
+  if (categoriesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -462,7 +549,7 @@ const CategoryEdit = () => {
     );
   }
 
-  if (!category) {
+  if (!formData.id && !categoriesLoading) {
     return (
       <div className="p-6 text-center">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Category Not Found</h1>
@@ -498,7 +585,7 @@ const CategoryEdit = () => {
             <div className="flex items-center space-x-2">
               <div className="text-right">
                 <p className="text-sm text-blue-100">Category ID</p>
-                <p className="font-mono text-sm">{category.id}</p>
+                <p className="font-mono text-sm">{formData.id}</p>
               </div>
               <FaTags className="text-3xl opacity-80" />
             </div>
@@ -506,18 +593,7 @@ const CategoryEdit = () => {
         </div>
       </div>
 
-      {/* Success & Error Messages */}
-      {successMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-          <div className="flex items-center space-x-3">
-            <FaCheck className="text-green-600" />
-            <div>
-              <p className="text-green-800 font-medium">{successMessage}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Error Message */}
       {errors.submit && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
           <div className="flex items-center space-x-3">
@@ -533,41 +609,41 @@ const CategoryEdit = () => {
           {/* Category Info Card */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex flex-col lg:flex-row items-start lg:items-center space-y-4 lg:space-y-0 lg:space-x-6">
-              <div className="w-32 h-32 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center text-6xl">
-                {category.icon}
+              <div className="w-32 h-32 bg-gray-100 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-4xl">
+                {IconPreview && <IconPreview />}
               </div>
               <div className="flex-1">
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">{category.name}</h3>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">{formData.name}</h3>
                 <div className="flex flex-wrap items-center gap-3 mb-3">
                   <div className="flex items-center space-x-2">
                     <FaShoppingCart className="text-gray-400" />
-                    <span className="font-medium text-gray-600">{category.totalProducts} products</span>
+                    <span className="font-medium text-gray-600">{formData.totalProducts || 0} products</span>
                   </div>
                   <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    category.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    formData.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {category.isActive ? 'Active' : 'Inactive'}
+                    {formData.isActive ? 'Active' : 'Inactive'}
                   </div>
-                  {category.featured && (
+                  {formData.featured && (
                     <div className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium flex items-center space-x-1">
                       <FaStar />
                       <span>Featured</span>
                     </div>
                   )}
-                  {category.isMainCategory && (
+                  {formData.isMainCategory && (
                     <div className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
                       Main Category
                     </div>
                   )}
                 </div>
                 <div className="flex items-center space-x-4 text-gray-600">
-                  <div className="flex items-center space-x-2">
-                    <span className="capitalize">{category.type}</span>
+                  <div className="flex items-center space-x-2 capitalize">
+                    <span>{formData.type}</span>
                   </div>
                   <span>•</span>
-                  <span>Path: {category.path}</span>
+                  <span>Path: {formData.path}</span>
                   <span>•</span>
-                  <span>Last Updated: {formatDate(category.updatedAt)}</span>
+                  <span>Subcategories: {formData.subcategories.length}</span>
                 </div>
               </div>
             </div>
@@ -628,30 +704,110 @@ const CategoryEdit = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Icon *
                   </label>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center text-3xl">
-                      {formData.icon}
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center text-2xl">
+                        {IconPreview && <IconPreview />}
+                      </div>
+                      <div className="flex-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowIconPicker(!showIconPicker)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg text-left hover:bg-gray-50 flex justify-between items-center"
+                        >
+                          <span className="text-gray-700">
+                            {categoryIcons.find(icon => icon.value === formData.icon)?.label || 'Select Icon'}
+                          </span>
+                          <span className="text-gray-400">▼</span>
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <select
-                        name="icon"
-                        value={formData.icon}
-                        onChange={handleChange}
-                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.icon ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                      >
-                        <option value="">Select an icon</option>
-                        {categoryIcons.map(icon => (
-                          <option key={icon.value} value={icon.value}>
-                            {icon.value} {icon.label}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.icon && (
-                        <p className="mt-1 text-sm text-red-600">{errors.icon}</p>
-                      )}
-                    </div>
+                    
+                    {/* Icon Picker Modal */}
+                    {showIconPicker && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+                          <div className="p-6 border-b">
+                            <div className="flex justify-between items-center mb-4">
+                              <h3 className="text-xl font-bold text-gray-800">Select Icon</h3>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowIconPicker(false);
+                                  setIconSearch('');
+                                }}
+                                className="text-gray-500 hover:text-gray-700"
+                              >
+                                <FaTimes className="w-5 h-5" />
+                              </button>
+                            </div>
+                            <div className="relative">
+                              <FaSearch className="absolute left-3 top-3 text-gray-400" />
+                              <input
+                                type="text"
+                                value={iconSearch}
+                                onChange={(e) => setIconSearch(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Search icons..."
+                                autoFocus
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="p-6 overflow-y-auto max-h-[50vh]">
+                            {filteredIcons.length === 0 ? (
+                              <p className="text-center text-gray-500 py-8">No icons found</p>
+                            ) : (
+                              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4">
+                                {filteredIcons.map((icon) => {
+                                  const IconComponent = categoryIconService.getIconComponent(icon.value);
+                                  return (
+                                    <button
+                                      key={icon.value}
+                                      type="button"
+                                      onClick={() => handleIconSelect(icon.value)}
+                                      className={`flex flex-col items-center justify-center p-3 rounded-lg border-2 hover:border-blue-500 hover:bg-blue-50 transition-all ${
+                                        formData.icon === icon.value
+                                          ? 'border-blue-500 bg-blue-50'
+                                          : 'border-gray-200'
+                                      }`}
+                                    >
+                                      {IconComponent ? (
+                                        <IconComponent className="w-6 h-6 text-gray-700" />
+                                      ) : (
+                                        <span className="text-2xl">{icon.value}</span>
+                                      )}
+                                      <span className="text-xs mt-2 text-gray-600 truncate w-full text-center">
+                                        {icon.label}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="p-6 border-t bg-gray-50">
+                            <div className="flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowIconPicker(false);
+                                  setIconSearch('');
+                                }}
+                                className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {errors.icon && (
+                      <p className="mt-1 text-sm text-red-600">{errors.icon}</p>
+                    )}
                   </div>
                 </div>
 
@@ -691,21 +847,16 @@ const CategoryEdit = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Category Type *
                   </label>
-                  <select
+                  <input
+                    type="text"
                     name="type"
                     value={formData.type}
                     onChange={handleChange}
                     className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       errors.type ? 'border-red-300' : 'border-gray-300'
                     }`}
-                  >
-                    <option value="">Select Type</option>
-                    {types.map(type => (
-                      <option key={type.value} value={type.value}>
-                        {type.icon} {type.label}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="e.g., Electronics, Fashion, Home, etc."
+                  />
                   {errors.type && (
                     <p className="mt-1 text-sm text-red-600">{errors.type}</p>
                   )}
@@ -864,20 +1015,11 @@ const CategoryEdit = () => {
                       {formData.subcategoriesDetailed.map((subcat, index) => (
                         <div key={index} className="bg-white border border-gray-200 rounded-lg p-4">
                           <div className="flex justify-between items-start mb-3">
-                            <div className="flex-1">
-                              <input
-                                type="text"
-                                value={subcat.name}
-                                onChange={(e) => handleEditSubcategory(index, 'name', e.target.value)}
-                                className="w-full font-medium text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none"
-                              />
-                              <input
-                                type="text"
-                                value={subcat.description}
-                                onChange={(e) => handleEditSubcategory(index, 'description', e.target.value)}
-                                className="w-full text-sm text-gray-600 mt-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none"
-                                placeholder="Add description..."
-                              />
+                            <div>
+                              <h5 className="font-medium text-gray-800">{subcat.name}</h5>
+                              {subcat.description && (
+                                <p className="text-sm text-gray-600 mt-1">{subcat.description}</p>
+                              )}
                             </div>
                             <button
                               type="button"
@@ -892,7 +1034,7 @@ const CategoryEdit = () => {
                               ID: {subcat.name.toLowerCase().replace(/\s+/g, '-')}
                             </span>
                             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                              {subcat.totalProducts} products
+                              {subcat.totalProducts || 0} products
                             </span>
                           </div>
                         </div>
@@ -923,31 +1065,44 @@ const CategoryEdit = () => {
                     Category Image
                   </label>
                   <div className="space-y-4">
-                    <input
-                      type="url"
-                      name="image"
-                      value={formData.image}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.image ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                      placeholder="https://example.com/category-image.jpg"
-                    />
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                      {formData.imagePreview ? (
+                        <div className="space-y-4">
+                          <div className="relative mx-auto w-48 h-48">
+                            <img 
+                              src={formData.imagePreview} 
+                              alt="Category preview"
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage('image')}
+                              className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                            >
+                              <FaTrash className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <p className="text-sm text-gray-600">Current image</p>
+                        </div>
+                      ) : (
+                        <>
+                          <FaCloudUploadAlt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 mb-2">Upload category image</p>
+                          <p className="text-sm text-gray-500 mb-4">JPG, PNG, WebP or GIF (Max 5MB)</p>
+                          <label className="cursor-pointer inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            <span>Choose File</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleImageUpload(e, 'image')}
+                              className="hidden"
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
                     {errors.image && (
                       <p className="mt-1 text-sm text-red-600">{errors.image}</p>
-                    )}
-                    
-                    {formData.image && (
-                      <div className="w-40 h-40 bg-gray-100 rounded-lg overflow-hidden border">
-                        <img 
-                          src={formData.image} 
-                          alt="Category preview"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/200?text=Invalid+URL';
-                          }}
-                        />
-                      </div>
                     )}
                   </div>
                 </div>
@@ -958,31 +1113,44 @@ const CategoryEdit = () => {
                     Banner Image
                   </label>
                   <div className="space-y-4">
-                    <input
-                      type="url"
-                      name="bannerImage"
-                      value={formData.bannerImage}
-                      onChange={handleChange}
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.bannerImage ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                      placeholder="https://example.com/banner-image.jpg"
-                    />
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                      {formData.bannerImagePreview ? (
+                        <div className="space-y-4">
+                          <div className="relative mx-auto w-full h-32">
+                            <img 
+                              src={formData.bannerImagePreview} 
+                              alt="Banner preview"
+                              className="w-full h-full object-cover rounded-lg"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage('bannerImage')}
+                              className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                            >
+                              <FaTrash className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <p className="text-sm text-gray-600">Current banner</p>
+                        </div>
+                      ) : (
+                        <>
+                          <FaCloudUploadAlt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600 mb-2">Upload banner image</p>
+                          <p className="text-sm text-gray-500 mb-4">JPG, PNG, WebP or GIF (Max 5MB)</p>
+                          <label className="cursor-pointer inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            <span>Choose File</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleImageUpload(e, 'bannerImage')}
+                              className="hidden"
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
                     {errors.bannerImage && (
                       <p className="mt-1 text-sm text-red-600">{errors.bannerImage}</p>
-                    )}
-                    
-                    {formData.bannerImage && (
-                      <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden border">
-                        <img 
-                          src={formData.bannerImage} 
-                          alt="Banner preview"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/600x200?text=Invalid+URL';
-                          }}
-                        />
-                      </div>
                     )}
                   </div>
                 </div>
@@ -1033,7 +1201,7 @@ const CategoryEdit = () => {
             
             <div className="space-y-3">
               <button
-                onClick={() => window.open(`/categories/${category.id}`, '_blank')}
+                onClick={() => window.open(`/categories/${formData.id}`, '_blank')}
                 className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center justify-between">
@@ -1042,6 +1210,36 @@ const CategoryEdit = () => {
                     <p className="text-sm text-gray-600">Open in storefront</p>
                   </div>
                   <FaEye className="text-gray-400" />
+                </div>
+              </button>
+
+              <button
+                onClick={handleToggleFeatured}
+                className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-800">{formData.featured ? 'Remove Featured' : 'Mark as Featured'}</p>
+                    <p className="text-sm text-gray-600">{formData.featured ? 'Remove from homepage' : 'Feature on homepage'}</p>
+                  </div>
+                  <FaStar className={formData.featured ? "text-yellow-500" : "text-gray-400"} />
+                </div>
+              </button>
+
+              <button
+                onClick={handleToggleStatus}
+                className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-800">{formData.isActive ? 'Deactivate' : 'Activate'}</p>
+                    <p className="text-sm text-gray-600">{formData.isActive ? 'Hide from customers' : 'Show to customers'}</p>
+                  </div>
+                  {formData.isActive ? (
+                    <FaCheck className="text-green-500" />
+                  ) : (
+                    <FaTimes className="text-red-500" />
+                  )}
                 </div>
               </button>
 
@@ -1067,39 +1265,18 @@ const CategoryEdit = () => {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-600">Total Products</p>
-                <p className="text-2xl font-bold text-gray-800">{formData.totalProducts}</p>
+                <p className="text-2xl font-bold text-gray-800">{formData.totalProducts || 0}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Subcategories</p>
                 <p className="text-2xl font-bold text-blue-600">{formData.subcategories.length}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Created</p>
-                <p className="text-sm font-medium text-gray-800">{formatDate(category.createdAt)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Last Updated</p>
-                <p className="text-sm font-medium text-gray-800">{formatDate(category.updatedAt)}</p>
+                <p className="text-sm text-gray-600">Display Order</p>
+                <p className="text-2xl font-bold text-yellow-600">#{formData.order || 0}</p>
               </div>
             </div>
           </div>
-
-          {/* Subcategory Stats */}
-          {formData.subcategoriesDetailed.length > 0 && (
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h4 className="font-semibold text-gray-800 mb-4">Subcategory Products</h4>
-              <div className="space-y-3">
-                {formData.subcategoriesDetailed.map((subcat, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <span className="text-sm text-gray-700 truncate">{subcat.name}</span>
-                    <span className="text-sm font-medium bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                      {subcat.totalProducts}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Activity Log */}
           <div className="bg-white rounded-xl shadow-md p-6">
@@ -1134,7 +1311,7 @@ const CategoryEdit = () => {
                 <ul className="space-y-2 text-sm text-blue-700">
                   <li className="flex items-start space-x-2">
                     <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
-                    <span>Changing ID will affect product URLs</span>
+                    <span>Changing ID may affect existing URLs</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
@@ -1142,7 +1319,7 @@ const CategoryEdit = () => {
                   </li>
                   <li className="flex items-start space-x-2">
                     <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
-                    <span>Inactive categories are hidden</span>
+                    <span>Inactive categories are hidden from customers</span>
                   </li>
                 </ul>
               </div>

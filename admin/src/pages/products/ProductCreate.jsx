@@ -1,5 +1,5 @@
 // src/pages/products/ProductCreate.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -27,58 +27,14 @@ import { useProducts } from "../../context/ProductContext";
 
 const ProductCreate = () => {
   const navigate = useNavigate();
-  const {curreSymbol}= useProducts();
+  const { 
+    curreSymbol, 
+    categories, 
+    fetchCategories, 
+    categoriesLoading 
+  } = useProducts();
 
-  // Categories based on your model
-  const categories = [
-    { value: "shoes", label: "👟 Shoes" },
-    { value: "clothing", label: "👕 Clothing" },
-    { value: "electronics", label: "💻 Electronics" },
-    { value: "accessories", label: "🕶️ Accessories" },
-    { value: "home", label: "🏠 Home" },
-    { value: "mobile", label: "📱 Mobile" },
-    { value: "beauty", label: "💄 Beauty" },
-    { value: "sports", label: "⚽ Sports" },
-    { value: "books", label: "📚 Books" },
-    { value: "fashion", label: "👗 Fashion" },
-  ];
-
-  // Common subcategories for each category
-  const subcategories = {
-    shoes: ["Running", "Casual", "Sports", "Formal", "Sneakers"],
-    clothing: ["T-Shirts", "Shirts", "Pants", "Jackets", "Dresses"],
-    electronics: ["TVs", "Audio", "Computers", "Gaming", "Smart Home"],
-    accessories: ["Watches", "Bags", "Jewelry", "Sunglasses", "Belts"],
-    home: ["Furniture", "Decor", "Kitchen", "Bedding", "Lighting"],
-    mobile: ["Smartphones", "Tablets", "Wearables", "Accessories"],
-    beauty: ["Skincare", "Makeup", "Haircare", "Fragrance"],
-    sports: ["Equipment", "Apparel", "Footwear", "Accessories"],
-    books: ["Fiction", "Non-Fiction", "Educational", "Children"],
-    fashion: ["Women", "Men", "Kids", "Unisex"],
-  };
-
-  // Common sizes
-  const commonSizes = {
-    clothing: ["XS", "S", "M", "L", "XL", "XXL"],
-    shoes: ["7", "8", "9", "10", "11", "12"],
-    default: ["One Size"],
-  };
-
-  // Common colors
-  const commonColors = [
-    { name: "Black", hex: "#000000", value: "black" },
-    { name: "White", hex: "#FFFFFF", value: "white" },
-    { name: "Red", hex: "#DC2626", value: "red" },
-    { name: "Blue", hex: "#2563EB", value: "blue" },
-    { name: "Green", hex: "#059669", value: "green" },
-    { name: "Yellow", hex: "#D97706", value: "yellow" },
-    { name: "Purple", hex: "#7C3AED", value: "purple" },
-    { name: "Gray", hex: "#6B7280", value: "gray" },
-    { name: "Brown", hex: "#92400E", value: "brown" },
-    { name: "Pink", hex: "#DB2777", value: "pink" },
-  ];
-
-  // Form state
+  // Initialize form state
   const [formData, setFormData] = useState({
     // Basic Info
     name: "",
@@ -95,7 +51,7 @@ const ProductCreate = () => {
     subcategory: "",
     brand: "",
 
-    // Images - will store URLs for preview
+    // Images
     mainImage: "",
     images: [],
 
@@ -126,9 +82,38 @@ const ProductCreate = () => {
   const [mainImagePreview, setMainImagePreview] = useState("");
   const [additionalImagePreviews, setAdditionalImagePreviews] = useState([]);
 
-  // Temporary states for tags and features
+  // Temporary states
   const [tagInput, setTagInput] = useState("");
   const [featureInput, setFeatureInput] = useState("");
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    if (categories.length === 0) {
+      fetchCategories();
+    }
+  }, [categories, fetchCategories]);
+
+  // Common sizes
+  const commonSizes = {
+    fashion: ["XS", "S", "M", "L", "XL", "XXL"],
+    shoes: ["7", "8", "9", "10", "11", "12"],
+    clothing: ["XS", "S", "M", "L", "XL", "XXL"],
+    default: ["One Size"],
+  };
+
+  // Common colors
+  const commonColors = [
+    { name: "Black", hex: "#000000", value: "black" },
+    { name: "White", hex: "#FFFFFF", value: "white" },
+    { name: "Red", hex: "#DC2626", value: "red" },
+    { name: "Blue", hex: "#2563EB", value: "blue" },
+    { name: "Green", hex: "#059669", value: "green" },
+    { name: "Yellow", hex: "#D97706", value: "yellow" },
+    { name: "Purple", hex: "#7C3AED", value: "purple" },
+    { name: "Gray", hex: "#6B7280", value: "gray" },
+    { name: "Brown", hex: "#92400E", value: "brown" },
+    { name: "Pink", hex: "#DB2777", value: "pink" },
+  ];
 
   // Handle input changes
   const handleChange = (e) => {
@@ -144,7 +129,7 @@ const ProductCreate = () => {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
 
-    // Auto-calculate discount if both prices are provided
+    // Auto-calculate discount
     if (name === "price" || name === "originalPrice") {
       const price = parseFloat(formData.price) || 0;
       const originalPrice = parseFloat(formData.originalPrice) || 0;
@@ -172,41 +157,58 @@ const ProductCreate = () => {
     }
   };
 
-  // Handle main image file selection
+  // Get subcategories based on selected category
+  const getSubcategories = () => {
+    if (!formData.category) return [];
+    
+    const selectedCategory = categories.find(
+      cat => cat.id === formData.category || cat._id === formData.category
+    );
+    
+    return  selectedCategory?.subcategories || [];
+  };
+
+  // Get available sizes based on category
+  const getAvailableSizes = () => {
+    if (!formData.category) return commonSizes.default;
+    
+    const selectedCategory = categories.find(
+      cat => cat.id === formData.category || cat._id === formData.category
+    );
+    
+    const categoryType = selectedCategory?.type?.toLowerCase();
+    
+    if (categoryType && commonSizes[categoryType]) {
+      return commonSizes[categoryType];
+    }
+    
+    return commonSizes.default;
+  };
+
+  // Main image handler
   const handleMainImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setMainImageFile(file);
-      
-      // Create preview URL
       const previewUrl = URL.createObjectURL(file);
       setMainImagePreview(previewUrl);
-      
-      // Update form data with preview URL for display
-      setFormData(prev => ({ ...prev, mainImage: previewUrl }));
-      
-      // Clear any previous error
+      setFormData((prev) => ({ ...prev, mainImage: previewUrl }));
       if (errors.mainImage) {
-        setErrors(prev => ({ ...prev, mainImage: "" }));
+        setErrors((prev) => ({ ...prev, mainImage: "" }));
       }
     }
   };
 
-  // Handle additional images file selection
+  // Additional images handler
   const handleAdditionalImagesChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 0) {
-      // Create preview URLs
-      const previewUrls = files.map(file => URL.createObjectURL(file));
-      
-      // Update state
-      setAdditionalImageFiles(prev => [...prev, ...files]);
-      setAdditionalImagePreviews(prev => [...prev, ...previewUrls]);
-      
-      // Update form data with preview URLs
-      setFormData(prev => ({
+      const previewUrls = files.map((file) => URL.createObjectURL(file));
+      setAdditionalImageFiles((prev) => [...prev, ...files]);
+      setAdditionalImagePreviews((prev) => [...prev, ...previewUrls]);
+      setFormData((prev) => ({
         ...prev,
-        images: [...prev.images, ...previewUrls]
+        images: [...prev.images, ...previewUrls],
       }));
     }
   };
@@ -215,20 +217,14 @@ const ProductCreate = () => {
   const handleRemoveAdditionalImage = (index) => {
     const newFiles = [...additionalImageFiles];
     const newPreviews = [...additionalImagePreviews];
-    
-    // Revoke the object URL to prevent memory leak
     URL.revokeObjectURL(newPreviews[index]);
-    
     newFiles.splice(index, 1);
     newPreviews.splice(index, 1);
-    
     setAdditionalImageFiles(newFiles);
     setAdditionalImagePreviews(newPreviews);
-    
-    // Update form data
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: prev.images.filter((_, i) => i !== index),
     }));
   };
 
@@ -239,10 +235,10 @@ const ProductCreate = () => {
     }
     setMainImageFile(null);
     setMainImagePreview("");
-    setFormData(prev => ({ ...prev, mainImage: "" }));
+    setFormData((prev) => ({ ...prev, mainImage: "" }));
   };
 
-  // Handle array fields
+  // Tag handlers
   const handleAddTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
       setFormData((prev) => ({
@@ -260,11 +256,9 @@ const ProductCreate = () => {
     }));
   };
 
+  // Feature handlers
   const handleAddFeature = () => {
-    if (
-      featureInput.trim() &&
-      !formData.features.includes(featureInput.trim())
-    ) {
+    if (featureInput.trim() && !formData.features.includes(featureInput.trim())) {
       setFormData((prev) => ({
         ...prev,
         features: [...prev.features, featureInput.trim()],
@@ -280,7 +274,7 @@ const ProductCreate = () => {
     }));
   };
 
-  // Handle colors
+  // Color handlers
   const handleColorToggle = (color) => {
     setFormData((prev) => ({
       ...prev,
@@ -290,7 +284,7 @@ const ProductCreate = () => {
     }));
   };
 
-  // Handle sizes
+  // Size handlers
   const handleSizeToggle = (size) => {
     setFormData((prev) => ({
       ...prev,
@@ -300,7 +294,7 @@ const ProductCreate = () => {
     }));
   };
 
-  // Handle specs
+  // Spec handlers
   const handleSpecChange = (index, field, value) => {
     const newSpecs = [...formData.specs];
     newSpecs[index][field] = value;
@@ -330,8 +324,6 @@ const ProductCreate = () => {
       newErrors.description = "Description is required";
     if (!formData.price) newErrors.price = "Price is required";
     if (!formData.category) newErrors.category = "Category is required";
-    if (!formData.subcategory)
-      newErrors.subcategory = "Subcategory is required";
     if (!formData.brand.trim()) newErrors.brand = "Brand is required";
     if (!mainImageFile) newErrors.mainImage = "Main image is required";
     if (!formData.stock && formData.stock !== 0)
@@ -342,105 +334,104 @@ const ProductCreate = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!validateForm()) return;
+    if (!validateForm()) return;
 
-  setIsSubmitting(true);
+    setIsSubmitting(true);
 
-  try {
-    // Create FormData for multipart/form-data
-    const productFormData = new FormData();
+    try {
+      const productFormData = new FormData();
 
-    // Append basic fields
-    productFormData.append("name", formData.name.trim());
-    productFormData.append("description", formData.description.trim());
-    productFormData.append(
-      "shortDescription",
-      formData.shortDescription.trim()
-    );
-    productFormData.append("price", parseFloat(formData.price));
-    productFormData.append(
-      "originalPrice",
-      formData.originalPrice
-        ? parseFloat(formData.originalPrice)
-        : parseFloat(formData.price)
-    );
-    productFormData.append(
-      "discount",
-      formData.discount ? parseFloat(formData.discount) : 0
-    );
-    productFormData.append("category", formData.category);
-    productFormData.append("subcategory", formData.subcategory);
-    productFormData.append("brand", formData.brand.trim());
-    productFormData.append("stock", parseInt(formData.stock) || 0);
-    productFormData.append("inStock", formData.inStock);
-    productFormData.append("isFeatured", formData.isFeatured);
-    productFormData.append("status", formData.status);
+      // Append basic fields
+      productFormData.append("name", formData.name.trim());
+      productFormData.append("description", formData.description.trim());
+      productFormData.append(
+        "shortDescription",
+        formData.shortDescription.trim()
+      );
+      productFormData.append("price", parseFloat(formData.price));
+      productFormData.append(
+        "originalPrice",
+        formData.originalPrice
+          ? parseFloat(formData.originalPrice)
+          : parseFloat(formData.price)
+      );
+      productFormData.append(
+        "discount",
+        formData.discount ? parseFloat(formData.discount) : 0
+      );
+      productFormData.append("category", formData.category.toLowerCase());
+      productFormData.append("subcategory", formData.subcategory.toLowerCase());
+      productFormData.append("brand", formData.brand.trim());
+      productFormData.append("stock", parseInt(formData.stock) || 0);
+      productFormData.append("inStock", formData.inStock);
+      productFormData.append("isFeatured", formData.isFeatured);
+      productFormData.append("status", formData.status);
 
-    // Append arrays and objects as JSON strings
-    productFormData.append("colors", JSON.stringify(formData.colors));
-    productFormData.append("sizes", JSON.stringify(formData.sizes));
-    productFormData.append("tags", JSON.stringify(formData.tags));
-    productFormData.append("features", JSON.stringify(formData.features));
-    productFormData.append(
-      "specs",
-      JSON.stringify(
-        formData.specs.reduce((acc, spec) => {
-          if (spec.key && spec.value) acc[spec.key] = spec.value;
-          return acc;
-        }, {})
-      )
-    );
+      // Append arrays and objects
+      productFormData.append("colors", JSON.stringify(formData.colors));
+      productFormData.append("sizes", JSON.stringify(formData.sizes));
+      productFormData.append("tags", JSON.stringify(formData.tags));
+      productFormData.append("features", JSON.stringify(formData.features));
+      productFormData.append(
+        "specs",
+        JSON.stringify(
+          formData.specs.reduce((acc, spec) => {
+            if (spec.key && spec.value) acc[spec.key] = spec.value;
+            return acc;
+          }, {})
+        )
+      );
 
-    // Append main image (field name: 'mainImage')
-    if (mainImageFile) {
-      productFormData.append("mainImage", mainImageFile);
+      // Append images
+      if (mainImageFile) {
+        productFormData.append("mainImage", mainImageFile);
+      }
+      additionalImageFiles.forEach((file, index) => {
+        productFormData.append("images", file);
+      });
+
+      // Call service
+      const res = await createProduct(productFormData);
+
+      toast.success(res.data.message || "Product created successfully!");
+
+      // Clean up object URLs
+      if (mainImagePreview) {
+        URL.revokeObjectURL(mainImagePreview);
+      }
+      additionalImagePreviews.forEach((url) => URL.revokeObjectURL(url));
+
+      // Redirect
+      setTimeout(() => {
+        navigate("/products");
+      }, 2000);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      toast.error(error.response?.data?.message || "Failed to create product.");
+      setErrors({ submit: "Failed to create product. Please try again." });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Append additional images (field name: 'images')
-    additionalImageFiles.forEach((file, index) => {
-      productFormData.append("images", file);
-    });
-
-    
-    // Call service
-    const res = await createProduct(productFormData);
-
-    toast.success(res.data.message || "Product created successfully!");
-    setSuccessMessage(`Product "${formData.name}" created successfully!`);
-
-    // Clean up object URLs
-    if (mainImagePreview) {
-      URL.revokeObjectURL(mainImagePreview);
-    }
-    additionalImagePreviews.forEach(url => URL.revokeObjectURL(url));
-
-    // Redirect after 2 seconds
-    setTimeout(() => {
-      navigate("/products");
-    }, 2000);
-  } catch (error) {
-    console.error("Error creating product:", error);
-    toast.error(error.response?.data?.message || "Failed to create product.");
-    setErrors({ submit: "Failed to create product. Please try again." });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-  // Get available sizes based on category
-  const getAvailableSizes = () => {
-    if (formData.category && commonSizes[formData.category]) {
-      return commonSizes[formData.category];
-    }
-    return commonSizes.default;
   };
+
+  // Show loading state
+  if (categoriesLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading categories...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
+      <div className="bg-linear-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
           <div>
             <div className="flex items-center space-x-3 mb-2">
@@ -589,7 +580,9 @@ const ProductCreate = () => {
                 Original Price (Optional)
               </label>
               <div className="relative">
-                 <span className="absolute left-3 top-2 text-gray-400">{curreSymbol}</span>
+                <span className="absolute left-3 top-2 text-gray-400">
+                  {curreSymbol}
+                </span>
                 <input
                   type="number"
                   name="originalPrice"
@@ -608,7 +601,9 @@ const ProductCreate = () => {
                 Selling Price *
               </label>
               <div className="relative">
-              <span className="absolute left-3 top-2 text-gray-400">{curreSymbol}</span>
+                <span className="absolute left-3 top-2 text-gray-400">
+                  {curreSymbol}
+                </span>
                 <input
                   type="number"
                   name="price"
@@ -683,8 +678,9 @@ const ProductCreate = () => {
               >
                 <option value="">Select Category</option>
                 {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
+                  <option key={cat.id || cat._id} value={cat.id || cat._id}>
+                    {cat.name} 
+                    {cat.type && ` (${cat.type})`}
                   </option>
                 ))}
               </select>
@@ -695,35 +691,42 @@ const ProductCreate = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subcategory *
+                Subcategory (Optional)
               </label>
               <select
                 name="subcategory"
                 value={formData.subcategory}
                 onChange={handleChange}
-                disabled={!formData.category}
+                disabled={!formData.category || getSubcategories().length === 0}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.subcategory ? "border-red-300" : "border-gray-300"
                 }`}
               >
                 <option value="">Select Subcategory</option>
-                {formData.category &&
-                  subcategories[formData.category]?.map((sub) => (
-                    <option key={sub} value={sub.toLowerCase()}>
-                      {sub}
-                    </option>
-                  ))}
+                {getSubcategories().map((sub) => (
+                  <option 
+                    key={sub.name || sub} 
+                    value={typeof sub === 'string' ? sub.toLowerCase() : sub.name.toLowerCase()}
+                  >
+                    {typeof sub === 'string' ? sub : sub.name}
+                  </option>
+                ))}
               </select>
               {errors.subcategory && (
                 <p className="mt-1 text-sm text-red-600">
                   {errors.subcategory}
                 </p>
               )}
+              {formData.category && getSubcategories().length === 0 && (
+                <p className="mt-1 text-xs text-gray-500">
+                  This category has no subcategories
+                </p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Images Section - UPDATED for file uploads */}
+        {/* Images Section */}
         <div className="bg-white rounded-xl shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center space-x-2">
             <FaImage className="text-blue-500" />
@@ -738,7 +741,11 @@ const ProductCreate = () => {
               </label>
               <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
                 <div className="flex-1">
-                  <div className={`border-2 border-dashed rounded-lg p-6 text-center ${errors.mainImage ? 'border-red-300' : 'border-gray-300'}`}>
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                      errors.mainImage ? "border-red-300" : "border-gray-300"
+                    }`}
+                  >
                     <input
                       type="file"
                       accept="image/*"
@@ -746,12 +753,19 @@ const ProductCreate = () => {
                       className="hidden"
                       id="main-image-upload"
                     />
-                    <label htmlFor="main-image-upload" className="cursor-pointer">
+                    <label
+                      htmlFor="main-image-upload"
+                      className="cursor-pointer"
+                    >
                       <div className="flex flex-col items-center justify-center space-y-3">
                         <FaUpload className="text-3xl text-gray-400" />
                         <div>
-                          <p className="text-gray-700 font-medium">Click to upload main image</p>
-                          <p className="text-gray-500 text-sm">Recommended: 800x800px, max 5MB</p>
+                          <p className="text-gray-700 font-medium">
+                            Click to upload main image
+                          </p>
+                          <p className="text-gray-500 text-sm">
+                            Recommended: 800x800px, max 5MB
+                          </p>
                         </div>
                         <button
                           type="button"
@@ -763,10 +777,12 @@ const ProductCreate = () => {
                     </label>
                   </div>
                   {errors.mainImage && (
-                    <p className="mt-1 text-sm text-red-600">{errors.mainImage}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.mainImage}
+                    </p>
                   )}
                 </div>
-                
+
                 {/* Main Image Preview */}
                 {mainImagePreview && (
                   <div className="relative w-40 h-40">
@@ -806,12 +822,19 @@ const ProductCreate = () => {
                   id="additional-images-upload"
                   multiple
                 />
-                <label htmlFor="additional-images-upload" className="cursor-pointer">
+                <label
+                  htmlFor="additional-images-upload"
+                  className="cursor-pointer"
+                >
                   <div className="flex flex-col items-center justify-center space-y-3">
                     <FaUpload className="text-3xl text-gray-400" />
                     <div>
-                      <p className="text-gray-700 font-medium">Click to upload additional images</p>
-                      <p className="text-gray-500 text-sm">Upload up to 4 images (optional)</p>
+                      <p className="text-gray-700 font-medium">
+                        Click to upload additional images
+                      </p>
+                      <p className="text-gray-500 text-sm">
+                        Upload up to 4 images (optional)
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -826,7 +849,9 @@ const ProductCreate = () => {
               {/* Additional Images Preview */}
               {additionalImagePreviews.length > 0 && (
                 <div className="mt-6">
-                  <p className="text-sm text-gray-600 mb-3">Additional Images:</p>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Additional Images:
+                  </p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {additionalImagePreviews.map((preview, index) => (
                       <div key={index} className="relative">

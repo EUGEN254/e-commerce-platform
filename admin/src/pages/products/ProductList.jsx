@@ -1,5 +1,5 @@
 // src/pages/products/ProductsList.jsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   FaSearch,
@@ -22,6 +22,7 @@ import {
   FaExclamationTriangle,
 } from "react-icons/fa";
 import { useProducts } from "../../context/ProductContext";
+import { getIconComponent } from "../../services/icons";
 
 // Delete Confirmation Modal Component
 const DeleteConfirmationModal = ({
@@ -42,7 +43,7 @@ const DeleteConfirmationModal = ({
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="sm:flex sm:items-start">
-              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+              <div className="mx-auto shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
                 <FaExclamationTriangle className="h-6 w-6 text-red-600" />
               </div>
               <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
@@ -104,6 +105,7 @@ const ProductsList = () => {
     toggleFeatured,
     bulkDelete,
     pagination,
+    categories,
   } = useProducts();
 
   // State for filters and search
@@ -126,11 +128,15 @@ const ProductsList = () => {
   // Make sure products is always an array
   const safeProducts = Array.isArray(products) ? products : [];
 
-  // Use safeProducts instead of products everywhere
-  const categories = [
-    "all",
-    ...new Set(safeProducts.map((p) => p?.category).filter(Boolean)),
-  ];
+  // Get unique category names from context categories
+  const safeCategories = useMemo(() => {
+    const categoryNames = categories
+      .map((cat) => cat?.name?.toLowerCase()) // Normalize to lowercase
+      .filter(Boolean)
+      .filter((name, index, self) => self.indexOf(name) === index); // Remove duplicates
+    
+    return ["all", ...categoryNames];
+  }, [categories]);
 
   // Apply filters locally
   const filteredProducts = safeProducts
@@ -257,12 +263,18 @@ const ProductsList = () => {
   const applyFilters = useCallback(() => {
     const filters = {};
     if (searchTerm) filters.search = searchTerm;
-    if (selectedCategory !== "all") filters.category = selectedCategory;
+    
+    if (selectedCategory !== "all") {
+      // Send category name to API (products store category as names)
+      filters.category = selectedCategory;
+    }
+    
     if (selectedStatus !== "all") filters.status = selectedStatus;
     if (selectedStock !== "all") filters.stock = selectedStock;
     if (sortField)
       filters.sort = `${sortDirection === "desc" ? "-" : ""}${sortField}`;
 
+    console.log("Sending filters to API:", filters);
     fetchProducts(filters);
   }, [
     searchTerm,
@@ -277,11 +289,37 @@ const ProductsList = () => {
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-      applyFilters();
+      // Build filters directly to avoid depending on applyFilters identity
+      const filters = {};
+      if (searchTerm) filters.search = searchTerm;
+      if (selectedCategory !== "all") filters.category = selectedCategory;
+      if (selectedStatus !== "all") filters.status = selectedStatus;
+      if (selectedStock !== "all") filters.stock = selectedStock;
+      if (sortField)
+        filters.sort = `${sortDirection === "desc" ? "-" : ""}${sortField}`;
+
+      fetchProducts(filters);
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, applyFilters]);
+  }, [searchTerm]);
+
+  // Handle category change - also trigger API filter
+  const handleCategoryChange = (e) => {
+    const newCategory = e.target.value;
+    setSelectedCategory(newCategory);
+    
+    // Apply filters immediately when category changes
+    const filters = {};
+    if (searchTerm) filters.search = searchTerm;
+    if (newCategory !== "all") filters.category = newCategory;
+    if (selectedStatus !== "all") filters.status = selectedStatus;
+    if (selectedStock !== "all") filters.stock = selectedStock;
+    if (sortField)
+      filters.sort = `${sortDirection === "desc" ? "-" : ""}${sortField}`;
+    
+    fetchProducts(filters);
+  };
 
   // Handle sort
   const handleSort = (field) => {
@@ -323,31 +361,22 @@ const ProductsList = () => {
   };
 
   // Get category icon
+  // Get category icon from utility
   const getCategoryIcon = (category) => {
-    switch (category) {
-      case "shoes":
-        return "👟";
-      case "electronics":
-        return "💻";
-      case "clothing":
-        return "👕";
-      case "mobile":
-        return "📱";
-      case "accessories":
-        return "🕶️";
-      case "home":
-        return "🏠";
-      case "beauty":
-        return "💄";
-      case "sports":
-        return "⚽";
-      case "books":
-        return "📚";
-      case "fashion":
-        return "👗";
-      default:
-        return "📦";
-    }
+    const iconMap = {
+      shoes: "FaShoePrints",
+      electronics: "FaLaptop",
+      clothing: "FaTshirt",
+      mobile: "FaMobileAlt",
+      accessories: "FaShoppingBag",
+      home: "FaHome",
+      beauty: "GiLipstick",
+      sports: "GiWeightLiftingUp",
+      books: "FaBook",
+      fashion: "GiLargeDress",
+    };
+    
+    return iconMap[category] || "FaBox";
   };
 
   // Calculate statistics
@@ -401,7 +430,7 @@ const ProductsList = () => {
       />
 
       {/* Header with Stats */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
+      <div className="bg-linear-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
         <div className="flex flex-col space-y-4 lg:space-y-0 lg:flex-row lg:justify-between lg:items-center">
           <div className="flex-1">
             <h2 className="text-2xl font-bold mb-2">Product Management</h2>
@@ -458,11 +487,11 @@ const ProductsList = () => {
             <div className="relative w-full sm:w-auto">
               <select
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
+                onChange={handleCategoryChange}
                 className="pl-3 pr-8 py-2 w-full sm:w-48 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-colors"
               >
                 <option value="all">All Categories</option>
-                {categories
+                {safeCategories
                   .filter((c) => c !== "all")
                   .map((category) => (
                     <option key={category} value={category}>
@@ -477,7 +506,21 @@ const ProductsList = () => {
               <FaFilter className="absolute left-3 top-3 text-gray-400" />
               <select
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                onChange={(e) => {
+                  const newStatus = e.target.value;
+                  setSelectedStatus(newStatus);
+                  
+                  // Apply filters immediately
+                  const filters = {};
+                  if (searchTerm) filters.search = searchTerm;
+                  if (selectedCategory !== "all") filters.category = selectedCategory;
+                  if (newStatus !== "all") filters.status = newStatus;
+                  if (selectedStock !== "all") filters.stock = selectedStock;
+                  if (sortField)
+                    filters.sort = `${sortDirection === "desc" ? "-" : ""}${sortField}`;
+                  
+                  fetchProducts(filters);
+                }}
                 className="pl-10 pr-8 py-2 w-full sm:w-40 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-colors"
               >
                 <option value="all">All Status</option>
@@ -491,7 +534,21 @@ const ProductsList = () => {
               <FaBox className="absolute left-3 top-3 text-gray-400" />
               <select
                 value={selectedStock}
-                onChange={(e) => setSelectedStock(e.target.value)}
+                onChange={(e) => {
+                  const newStock = e.target.value;
+                  setSelectedStock(newStock);
+                  
+                  // Apply filters immediately
+                  const filters = {};
+                  if (searchTerm) filters.search = searchTerm;
+                  if (selectedCategory !== "all") filters.category = selectedCategory;
+                  if (selectedStatus !== "all") filters.status = selectedStatus;
+                  if (newStock !== "all") filters.stock = newStock;
+                  if (sortField)
+                    filters.sort = `${sortDirection === "desc" ? "-" : ""}${sortField}`;
+                  
+                  fetchProducts(filters);
+                }}
                 className="pl-10 pr-8 py-2 w-full sm:w-44 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-colors"
               >
                 <option value="all">All Stock</option>
@@ -557,7 +614,7 @@ const ProductsList = () => {
                 {pagination.total || totalProducts}
               </h3>
             </div>
-            <div className="flex-shrink-0 p-3 bg-blue-100 rounded-full ml-3">
+            <div className="shrink-0 p-3 bg-blue-100 rounded-full ml-3">
               <FaBox className="text-blue-600 text-xl" />
             </div>
           </div>
@@ -571,7 +628,7 @@ const ProductsList = () => {
                 {formatCurrency(totalValue)}
               </h3>
             </div>
-            <div className="flex-shrink-0 p-3 bg-green-100 rounded-full ml-3">
+            <div className="shrink-0 p-3 bg-green-100 rounded-full ml-3">
               <FaChartLine className="text-green-600 text-xl" />
             </div>
           </div>
@@ -585,7 +642,7 @@ const ProductsList = () => {
                 {lowStockProducts}
               </h3>
             </div>
-            <div className="flex-shrink-0 p-3 bg-red-100 rounded-full ml-3">
+            <div className="shrink-0 p-3 bg-red-100 rounded-full ml-3">
               <FaTimes className="text-red-600 text-xl" />
             </div>
           </div>
@@ -601,7 +658,7 @@ const ProductsList = () => {
                 {featuredProducts}
               </h3>
             </div>
-            <div className="flex-shrink-0 p-3 bg-purple-100 rounded-full ml-3">
+            <div className="shrink-0 p-3 bg-purple-100 rounded-full ml-3">
               <FaFire className="text-purple-600 text-xl" />
             </div>
           </div>
@@ -617,7 +674,7 @@ const ProductsList = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1024px]">
+              <table className="w-full min-w-max">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="py-3 px-4 text-left w-12">
@@ -715,7 +772,7 @@ const ProductsList = () => {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-3 min-w-0">
-                            <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                            <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                               <img
                                 src={
                                   product.mainImage ||
@@ -738,7 +795,7 @@ const ProductsList = () => {
                                   {product.brand}
                                 </span>
                                 {product.isFeatured && (
-                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded flex-shrink-0">
+                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded shrink-0">
                                     Featured
                                   </span>
                                 )}
@@ -748,9 +805,9 @@ const ProductsList = () => {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-2">
-                            <span className="text-lg">
-                              {getCategoryIcon(product.category)}
-                            </span>
+                            {React.createElement(getIconComponent(getCategoryIcon(product.category)), {
+                              className: "text-lg text-blue-500",
+                            })}
                             <div className="min-w-0">
                               <p className="font-medium text-gray-800 capitalize truncate">
                                 {product.category || "N/A"}
@@ -771,7 +828,7 @@ const ProductsList = () => {
                                 <span className="text-sm text-gray-500 line-through truncate">
                                   {formatCurrency(product.originalPrice)}
                                 </span>
-                                <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded flex-shrink-0">
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded shrink-0">
                                   -{product.discount}%
                                 </span>
                               </div>
@@ -796,7 +853,7 @@ const ProductsList = () => {
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-2">
                             <div className="flex items-center">
-                              <FaStar className="text-yellow-400 flex-shrink-0" />
+                              <FaStar className="text-yellow-400 shrink-0" />
                               <span className="ml-1 font-medium">
                                 {product.rating || 0}
                               </span>
@@ -819,7 +876,7 @@ const ProductsList = () => {
                                 handleToggleStatus(product._id, product.status)
                               }
                               disabled={loading || isDeleting}
-                              className={`relative inline-flex h-6 w-11 items-center rounded-full disabled:opacity-50 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full disabled:opacity-50 shrink-0 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                                 product.status === "active"
                                   ? "bg-green-500 focus:ring-green-500"
                                   : "bg-gray-300 focus:ring-gray-500"
@@ -851,7 +908,7 @@ const ProductsList = () => {
                             <button
                               onClick={() => handleToggleFeatured(product._id)}
                               disabled={loading || isDeleting}
-                              className={`p-2 rounded disabled:opacity-50 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
+                              className={`p-2 rounded disabled:opacity-50 shrink-0 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
                                 product.isFeatured
                                   ? "bg-yellow-100 text-yellow-600 hover:bg-yellow-200 hover:text-yellow-700 focus:ring-yellow-500"
                                   : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-700 focus:ring-gray-500"
@@ -867,7 +924,7 @@ const ProductsList = () => {
 
                             <Link
                               to={`/products/${product._id}/edit`}
-                              className="p-2 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-700 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                              className="p-2 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 hover:text-blue-700 shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                               title="Edit Product"
                             >
                               <FaEdit />
@@ -875,7 +932,7 @@ const ProductsList = () => {
 
                             <Link
                               to={`/products/${product._id}`}
-                              className="p-2 rounded bg-green-100 text-green-600 hover:bg-green-200 hover:text-green-700 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+                              className="p-2 rounded bg-green-100 text-green-600 hover:bg-green-200 hover:text-green-700 shrink-0 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
                               title="View Details"
                             >
                               <FaEye />
@@ -884,7 +941,7 @@ const ProductsList = () => {
                             <button
                               onClick={() => handleDeleteProduct(product._id)}
                               disabled={loading || isDeleting}
-                              className="p-2 rounded bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 disabled:opacity-50 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                              className="p-2 rounded bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-700 disabled:opacity-50 shrink-0 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
                               title="Delete Product"
                             >
                               <FaTrash />
@@ -902,11 +959,11 @@ const ProductsList = () => {
                         <div className="flex flex-col items-center justify-center space-y-2">
                           <FaBox className="text-4xl text-gray-300" />
                           <p>No products found</p>
-                          {searchTerm && (
+                          {searchTerm || selectedCategory !== "all" || selectedStatus !== "all" || selectedStock !== "all" ? (
                             <p className="text-sm">
                               Try adjusting your search or filters
                             </p>
-                          )}
+                          ) : null}
                           <Link
                             to="/products/create"
                             className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"

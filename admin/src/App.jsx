@@ -19,12 +19,13 @@ import { Toaster } from "./components/ui/sonner";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import ProductDetails from "./pages/products/ProductDetails";
 import Inventory from "./pages/products/Inventory";
+import CategoryDetails from "./pages/categories/CategoryDetails";
 
 // Placeholder components for other pages
 const PlaceholderPage = ({ title }) => (
   <div className="p-6">
     <h1 className="text-3xl font-bold text-gray-800 mb-6">{title}</h1>
-    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-8 text-center border-2 border-dashed border-gray-200">
+    <div className="bg-linear-to-r from-blue-50 to-purple-50 rounded-xl p-8 text-center border-2 border-dashed border-gray-200">
       <p className="text-gray-600 mb-4">This page is under construction</p>
       <p className="text-gray-500">Content for {title} will be added soon!</p>
     </div>
@@ -60,7 +61,10 @@ function App() {
             {/* Categories */}
             <Route path="categories" element={<CategoriesList />} />
             <Route path="categories/create" element={<CategoryCreate />} />
+            <Route path="categories/:id" element={<CategoryDetails />} />
             <Route path="categories/:id/edit" element={<CategoryEdit />} />
+             
+           
 
             {/* Orders */}
             <Route path="orders" element={<OrdersList />} />

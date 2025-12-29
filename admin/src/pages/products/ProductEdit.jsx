@@ -26,6 +26,7 @@ import {
   FaFileImage,
 } from "react-icons/fa";
 import { useProducts } from "../../context/ProductContext";
+import { getIconComponent } from "../../services/icons";
 const ProductEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -120,7 +121,7 @@ const ProductEdit = () => {
   // Form errors
   const [errors, setErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
- 
+
   // Confirmation dialog state
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -333,39 +334,40 @@ const ProductEdit = () => {
   const handleMainImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
         toast.error("Main image file size should be less than 5MB");
         return;
       }
-     
-      if (!file.type.startsWith('image/')) {
+
+      if (!file.type.startsWith("image/")) {
         toast.error("Please select an image file");
         return;
       }
       setMainImageFile(file);
-     
+
       // Create preview URL
       const previewUrl = URL.createObjectURL(file);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        mainImage: previewUrl
+        mainImage: previewUrl,
       }));
-     
+
       // Clear main image validation error
       if (errors.mainImage) {
-        setErrors(prev => ({ ...prev, mainImage: "" }));
+        setErrors((prev) => ({ ...prev, mainImage: "" }));
       }
     }
   };
   // Handle additional images upload
   const handleAdditionalImagesUpload = (e) => {
     const files = Array.from(e.target.files);
-    const validFiles = files.filter(file => {
+    const validFiles = files.filter((file) => {
       if (file.size > 5 * 1024 * 1024) {
         toast.error(`File ${file.name} exceeds 5MB limit`);
         return false;
       }
-      if (!file.type.startsWith('image/')) {
+      if (!file.type.startsWith("image/")) {
         toast.error(`File ${file.name} is not an image`);
         return false;
       }
@@ -375,10 +377,10 @@ const ProductEdit = () => {
       const newFiles = [...additionalImagesFiles, ...validFiles];
       setAdditionalImagesFiles(newFiles);
       // Create preview URLs
-      const newPreviews = validFiles.map(file => URL.createObjectURL(file));
-      setFormData(prev => ({
+      const newPreviews = validFiles.map((file) => URL.createObjectURL(file));
+      setFormData((prev) => ({
         ...prev,
-        images: [...prev.images, ...newPreviews]
+        images: [...prev.images, ...newPreviews],
       }));
     }
   };
@@ -387,19 +389,22 @@ const ProductEdit = () => {
     if (isExistingImage) {
       // Mark existing image for removal
       const imageUrl = formData.images[index];
-      setRemovedImages(prev => [...prev, imageUrl]);
+      setRemovedImages((prev) => [...prev, imageUrl]);
     } else {
       // Remove uploaded file that hasn't been saved yet
       const newFiles = [...additionalImagesFiles];
-      newFiles.splice(index - formData.images.length + additionalImagesFiles.length, 1);
+      newFiles.splice(
+        index - formData.images.length + additionalImagesFiles.length,
+        1
+      );
       setAdditionalImagesFiles(newFiles);
     }
     // Remove from preview
     const newImages = [...formData.images];
     newImages.splice(index, 1);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      images: newImages
+      images: newImages,
     }));
   };
   // Validate form
@@ -423,7 +428,7 @@ const ProductEdit = () => {
   // Prepare form data for submission
   const prepareFormData = () => {
     const formDataToSend = new FormData();
-   
+
     // Append product data as JSON string
     const productData = {
       name: formData.name.trim(),
@@ -434,8 +439,8 @@ const ProductEdit = () => {
         ? parseFloat(formData.originalPrice)
         : parseFloat(formData.price),
       discount: formData.discount ? parseFloat(formData.discount) : 0,
-      category: formData.category,
-      subcategory: formData.subcategory,
+      category: formData.category.toLowerCase(),
+      subcategory: formData.subcategory.toLowerCase(),
       brand: formData.brand.trim(),
       colors: formData.colors,
       sizes: formData.sizes,
@@ -453,19 +458,19 @@ const ProductEdit = () => {
       status: formData.status,
       removedImages: removedImages,
     };
-   
-    formDataToSend.append('productData', JSON.stringify(productData));
-   
+
+    formDataToSend.append("productData", JSON.stringify(productData));
+
     // Append main image file if uploaded
     if (mainImageFile) {
-      formDataToSend.append('mainImage', mainImageFile);
+      formDataToSend.append("mainImage", mainImageFile);
     }
-   
+
     // Append additional images files
     additionalImagesFiles.forEach((file, index) => {
-      formDataToSend.append('images', file);
+      formDataToSend.append("images", file);
     });
-   
+
     return formDataToSend;
   };
   // Handle form submission with confirmation
@@ -484,10 +489,10 @@ const ProductEdit = () => {
     setShowConfirmDialog(false);
     try {
       const formDataToSend = prepareFormData();
-     
+
       // Call the update product function
       const result = await updateProduct(id, formDataToSend);
-     
+
       if (result.success) {
         // Update local state
         setProduct((prev) => ({
@@ -507,21 +512,19 @@ const ProductEdit = () => {
         setTimeout(() => {
           navigate("/products");
         }, 1500);
-       
       } else {
         throw new Error(result.error || "Failed to update product");
       }
     } catch (error) {
       let errorMessage = "Failed to update product. Please try again.";
-     
+
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-     
+
       setErrors({ submit: errorMessage });
-     
     } finally {
       setIsSaving(false);
       setPendingFormData(null);
@@ -538,17 +541,17 @@ const ProductEdit = () => {
   };
   // Confirm delete
   const confirmDelete = async () => {
-  setIsDeleting(true);
+    setIsDeleting(true);
 
-  try {
-    await deleteProduct(id);
-    navigate("/products");
-  } catch (error) {
-    console.error("Error deleting product:", error);
-    toast.error("Failed to delete product");
-    setIsDeleting(false); // allow retry
-  }
-};
+    try {
+      await deleteProduct(id);
+      navigate("/products");
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      toast.error("Failed to delete product");
+      setIsDeleting(false); // allow retry
+    }
+  };
 
   // Format currency
   const formatCurrency = (amount) => {
@@ -574,32 +577,22 @@ const ProductEdit = () => {
     }
     return commonSizes.default;
   };
-  // Get category icon
+  // Get category icon from utility
   const getCategoryIcon = (category) => {
-    switch (category) {
-      case "shoes":
-        return "👟";
-      case "electronics":
-        return "💻";
-      case "clothing":
-        return "👕";
-      case "mobile":
-        return "📱";
-      case "accessories":
-        return "🕶️";
-      case "home":
-        return "🏠";
-      case "beauty":
-        return "💄";
-      case "sports":
-        return "⚽";
-      case "books":
-        return "📚";
-      case "fashion":
-        return "👗";
-      default:
-        return "📦";
-    }
+    const iconMap = {
+      shoes: "FaShoePrints",
+      electronics: "FaLaptop",
+      clothing: "FaTshirt",
+      mobile: "FaMobileAlt",
+      accessories: "FaShoppingBag",
+      home: "FaHome",
+      beauty: "GiLipstick",
+      sports: "GiWeightLiftingUp",
+      books: "FaBook",
+      fashion: "GiLargeDress",
+    };
+    
+    return iconMap[category] || "FaBox";
   };
   if (isLoading) {
     return (
@@ -644,12 +637,12 @@ const ProductEdit = () => {
                   Confirm Changes
                 </h3>
               </div>
-             
+
               <p className="text-gray-600 mb-6">
-                Are you sure you want to save these changes to the product?
-                This will update the product information in the database.
+                Are you sure you want to save these changes to the product? This
+                will update the product information in the database.
               </p>
-             
+
               <div className="flex space-x-3">
                 <button
                   onClick={cancelSubmit}
@@ -669,66 +662,65 @@ const ProductEdit = () => {
         </div>
       )}
       {/* Delete Modal */}
-     {showDeleteModal && (
-  <div className="fixed inset-0 flex items-start justify-center z-50 p-4 pt-9">
-    <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-      <div className="p-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <div
-            className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              isDeleting ? "bg-red-200" : "bg-red-100"
-            }`}
-          >
-            <FaTrash
-              className={`${
-                isDeleting ? "text-red-700" : "text-red-600"
-              }`}
-            />
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-start justify-center z-50 p-4 pt-9">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    isDeleting ? "bg-red-200" : "bg-red-100"
+                  }`}
+                >
+                  <FaTrash
+                    className={`${
+                      isDeleting ? "text-red-700" : "text-red-600"
+                    }`}
+                  />
+                </div>
+
+                <h3 className="text-lg font-semibold text-gray-800">
+                  {isDeleting ? "Deleting Product..." : "Confirm Deletion"}
+                </h3>
+              </div>
+
+              <p className="text-gray-600 mb-6">
+                {isDeleting
+                  ? "Please wait while the product is being permanently deleted."
+                  : "Are you sure you want to delete this product? This action cannot be undone."}
+              </p>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <span>Deleting</span>
+                    </>
+                  ) : (
+                    <span>Delete</span>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
-
-          <h3 className="text-lg font-semibold text-gray-800">
-            {isDeleting ? "Deleting Product..." : "Confirm Deletion"}
-          </h3>
         </div>
-
-        <p className="text-gray-600 mb-6">
-          {isDeleting
-            ? "Please wait while the product is being permanently deleted."
-            : "Are you sure you want to delete this product? This action cannot be undone."}
-        </p>
-
-     
-        <div className="flex space-x-3">
-          <button
-            onClick={() => setShowDeleteModal(false)}
-            disabled={isDeleting}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={confirmDelete}
-            disabled={isDeleting}
-            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-          >
-            {isDeleting ? (
-              <>
-                <span>Deleting</span>
-              </>
-            ) : (
-              <span>Delete</span>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
+        <div className="bg-linear-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
             <div>
               <div className="flex items-center space-x-3 mb-2">
@@ -741,7 +733,9 @@ const ProductEdit = () => {
                 </button>
                 <h2 className="text-2xl font-bold">Edit Product</h2>
               </div>
-              <p className="text-blue-100">Update product details and settings</p>
+              <p className="text-blue-100">
+                Update product details and settings
+              </p>
             </div>
             <div className="mt-4 lg:mt-0">
               <div className="flex items-center space-x-2">
@@ -769,7 +763,7 @@ const ProductEdit = () => {
             {/* Product Info Card */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <div className="flex flex-col lg:flex-row items-start lg:items-center space-y-4 lg:space-y-0 lg:space-x-6">
-                <div className="w-32 h-32 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
+                <div className="w-32 h-32 bg-gray-100 rounded-xl overflow-hidden shrink-0">
                   <img
                     src={product.mainImage}
                     alt={product.name}
@@ -812,9 +806,9 @@ const ProductEdit = () => {
                   </div>
                   <div className="flex items-center space-x-4 text-gray-600">
                     <div className="flex items-center space-x-2">
-                      <span className="text-lg">
-                        {getCategoryIcon(product.category)}
-                      </span>
+                      {React.createElement(getIconComponent(getCategoryIcon(product.category)), {
+                        className: "text-lg text-blue-500",
+                      })}
                       <span className="capitalize">{product.category}</span>
                     </div>
                     <span>•</span>
@@ -867,7 +861,9 @@ const ProductEdit = () => {
                       placeholder="Enter brand name"
                     />
                     {errors.brand && (
-                      <p className="mt-1 text-sm text-red-600">{errors.brand}</p>
+                      <p className="mt-1 text-sm text-red-600">
+                        {errors.brand}
+                      </p>
                     )}
                   </div>
                   <div className="lg:col-span-2">
@@ -897,7 +893,9 @@ const ProductEdit = () => {
                       onChange={handleChange}
                       rows={4}
                       className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.description ? "border-red-300" : "border-gray-300"
+                        errors.description
+                          ? "border-red-300"
+                          : "border-gray-300"
                       }`}
                       placeholder="Detailed product description"
                     />
@@ -954,7 +952,9 @@ const ProductEdit = () => {
                       />
                     </div>
                     {errors.price && (
-                      <p className="mt-1 text-sm text-red-600">{errors.price}</p>
+                      <p className="mt-1 text-sm text-red-600">
+                        {errors.price}
+                      </p>
                     )}
                   </div>
                   <div>
@@ -1032,7 +1032,9 @@ const ProductEdit = () => {
                       onChange={handleChange}
                       disabled={!formData.category}
                       className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.subcategory ? "border-red-300" : "border-gray-300"
+                        errors.subcategory
+                          ? "border-red-300"
+                          : "border-gray-300"
                       }`}
                     >
                       <option value="">Select Subcategory</option>
@@ -1078,14 +1080,16 @@ const ProductEdit = () => {
                         >
                           <FaUpload className="text-gray-400 mr-2" />
                           <span className="text-gray-600">
-                            {mainImageFile ? "Change Main Image" : "Upload Main Image"}
+                            {mainImageFile
+                              ? "Change Main Image"
+                              : "Upload Main Image"}
                           </span>
                         </label>
                         <p className="mt-2 text-xs text-gray-500">
                           Recommended: Square image, 1000x1000px, max 5MB
                         </p>
                       </div>
-                     
+
                       {formData.mainImage && (
                         <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden border">
                           <img
@@ -1097,7 +1101,9 @@ const ProductEdit = () => {
                       )}
                     </div>
                     {errors.mainImage && (
-                      <p className="mt-1 text-sm text-red-600">{errors.mainImage}</p>
+                      <p className="mt-1 text-sm text-red-600">
+                        {errors.mainImage}
+                      </p>
                     )}
                   </div>
                   {/* Additional Images */}
@@ -1110,7 +1116,7 @@ const ProductEdit = () => {
                         {formData.images.length} images
                       </span>
                     </div>
-                   
+
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {/* Upload Button */}
                       <div>
@@ -1127,10 +1133,12 @@ const ProductEdit = () => {
                           className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-colors"
                         >
                           <FaFileImage className="text-gray-400 text-2xl mb-2" />
-                          <span className="text-sm text-gray-600">Add Images</span>
+                          <span className="text-sm text-gray-600">
+                            Add Images
+                          </span>
                         </label>
                       </div>
-                     
+
                       {/* Image Previews */}
                       {formData.images.map((image, index) => (
                         <div key={index} className="relative group">
@@ -1143,7 +1151,12 @@ const ProductEdit = () => {
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleRemoveAdditionalImage(index, !image.startsWith('blob:'))}
+                            onClick={() =>
+                              handleRemoveAdditionalImage(
+                                index,
+                                !image.startsWith("blob:")
+                              )
+                            }
                             className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                           >
                             <FaTimes className="text-xs" />
@@ -1448,7 +1461,9 @@ const ProductEdit = () => {
                       placeholder="Enter stock quantity"
                     />
                     {errors.stock && (
-                      <p className="mt-1 text-sm text-red-600">{errors.stock}</p>
+                      <p className="mt-1 text-sm text-red-600">
+                        {errors.stock}
+                      </p>
                     )}
                   </div>
                   <div>
@@ -1620,95 +1635,97 @@ const ProductEdit = () => {
                     {formatCurrency(
                       parseFloat(formData.price) * parseInt(formData.stock)
                     )}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Rating</p>
-                <div className="flex items-center space-x-2">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <FaStar
-                        key={i}
-                        className={`text-lg ${
-                          i < Math.floor(formData.rating)
-                            ? "text-yellow-400"
-                            : i < formData.rating
-                            ? "text-yellow-300"
-                            : "text-gray-300"
-                        }`}
-                      />
-                    ))}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Rating</p>
+                  <div className="flex items-center space-x-2">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <FaStar
+                          key={i}
+                          className={`text-lg ${
+                            i < Math.floor(formData.rating)
+                              ? "text-yellow-400"
+                              : i < formData.rating
+                              ? "text-yellow-300"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="font-bold text-gray-800">
+                      {formData.rating}
+                    </span>
+                    <span className="text-gray-500">
+                      ({formData.reviewCount})
+                    </span>
                   </div>
-                  <span className="font-bold text-gray-800">
-                    {formData.rating}
-                  </span>
-                  <span className="text-gray-500">
-                    ({formData.reviewCount})
-                  </span>
                 </div>
               </div>
             </div>
-          </div>
-          {/* Activity Log */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h4 className="font-semibold text-gray-800 mb-4 flex items-center space-x-2">
-              <FaHistory className="text-blue-500" />
-              <span>Recent Activity</span>
-            </h4>
-            <div className="space-y-4">
-              {activityLogs.slice(0, 5).map((log) => (
-                <div
-                  key={log.id}
-                  className="pb-4 border-b border-gray-100 last:border-0 last:pb-0"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-gray-800">{log.action}</p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {log.details}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-1 text-gray-500 text-sm">
-                      <span>{formatDate(log.timestamp)}</span>
+            {/* Activity Log */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h4 className="font-semibold text-gray-800 mb-4 flex items-center space-x-2">
+                <FaHistory className="text-blue-500" />
+                <span>Recent Activity</span>
+              </h4>
+              <div className="space-y-4">
+                {activityLogs.slice(0, 5).map((log) => (
+                  <div
+                    key={log.id}
+                    className="pb-4 border-b border-gray-100 last:border-0 last:pb-0"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-gray-800">
+                          {log.action}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {log.details}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-1 text-gray-500 text-sm">
+                        <span>{formatDate(log.timestamp)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {activityLogs.length > 5 && (
-                <button className="w-full text-center text-blue-600 hover:text-blue-800 text-sm font-medium py-2">
-                  View All Activity
-                </button>
-              )}
+                ))}
+                {activityLogs.length > 5 && (
+                  <button className="w-full text-center text-blue-600 hover:text-blue-800 text-sm font-medium py-2">
+                    View All Activity
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-          {/* Information */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-            <div className="flex items-start space-x-3">
-              <FaInfoCircle className="text-blue-500 mt-1" />
-              <div>
-                <h4 className="font-semibold text-blue-800 mb-2">
-                  Editing Notes
-                </h4>
-                <ul className="space-y-2 text-sm text-blue-700">
-                  <li className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
-                    <span>Price changes affect inventory value</span>
-                  </li>
-                  <li className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
-                    <span>Stock updates are logged in activity</span>
-                  </li>
-                  <li className="flex items-start space-x-2">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
-                    <span>Featured products appear on homepage</span>
-                  </li>
-                </ul>
+            {/* Information */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+              <div className="flex items-start space-x-3">
+                <FaInfoCircle className="text-blue-500 mt-1" />
+                <div>
+                  <h4 className="font-semibold text-blue-800 mb-2">
+                    Editing Notes
+                  </h4>
+                  <ul className="space-y-2 text-sm text-blue-700">
+                    <li className="flex items-start space-x-2">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
+                      <span>Price changes affect inventory value</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
+                      <span>Stock updates are logged in activity</span>
+                    </li>
+                    <li className="flex items-start space-x-2">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
+                      <span>Featured products appear on homepage</span>
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
     </>
   );
 };

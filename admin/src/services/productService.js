@@ -59,3 +59,6 @@ export const bulkUpdateProducts = async (ids, data) => {
     data,
   });
 };
+
+
+
