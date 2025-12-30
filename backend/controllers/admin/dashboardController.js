@@ -6,6 +6,8 @@ import Transaction from "../../models/Transaction.js";
 
 export const getDashboardStats = async (req, res) => {
   try {
+    
+
     const [
       totalProducts,
       totalOrders,
@@ -38,8 +40,7 @@ export const getDashboardStats = async (req, res) => {
     ]);
 
     const revenueResult = totalRevenue[0] || { total: 0 };
-
-    res.status(200).json({
+    const responsePayload = {
       success: true,
       data: {
         totalProducts,
@@ -54,7 +55,9 @@ export const getDashboardStats = async (req, res) => {
         userGrowth: 15.2,
         productGrowth: 5.7
       }
-    });
+    };
+
+    res.status(200).json(responsePayload);
   } catch (error) {
     res.status(500).json({
       success: false,

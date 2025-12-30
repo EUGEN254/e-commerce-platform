@@ -1,7 +1,7 @@
 import Category from "../../models/Category.js";
 import mongoose from "mongoose";
 import Product from "../../models/Product.js";
-import{v2 as cloudinary} from"cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 
 // Utility function to delete images from Cloudinary
 const deleteFromCloudinary = async (publicId) => {
@@ -60,6 +60,8 @@ const getAllCategories = async (req, res) => {
     const sortOptions = {};
     sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
 
+    
+
     const categories = await Category.find(query)
       .sort(sortOptions)
       .skip(skip)
@@ -103,6 +105,8 @@ const getAllCategories = async (req, res) => {
 const getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
+
+    
 
     let category;
     if (mongoose.Types.ObjectId.isValid(id)) {
@@ -162,15 +166,21 @@ const createCategory = async (req, res) => {
         subcategories = JSON.parse(req.body.subcategories);
       } catch (error) {
         // Handle JSON parsing - fallback to array or string splitting
-        if (typeof req.body.subcategories === 'string') {
-          if (req.body.subcategories.includes('[')) {
+        if (typeof req.body.subcategories === "string") {
+          if (req.body.subcategories.includes("[")) {
             try {
               subcategories = JSON.parse(req.body.subcategories);
             } catch (e) {
-              subcategories = req.body.subcategories.split(',').map(s => s.trim()).filter(Boolean);
+              subcategories = req.body.subcategories
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean);
             }
           } else {
-            subcategories = req.body.subcategories.split(',').map(s => s.trim()).filter(Boolean);
+            subcategories = req.body.subcategories
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
           }
         } else if (Array.isArray(req.body.subcategories)) {
           subcategories = req.body.subcategories;
@@ -281,7 +291,9 @@ const createCategory = async (req, res) => {
       type: type.trim(),
       isMainCategory: isMainCategory === true || isMainCategory === "true",
       subcategories: Array.isArray(subcategories) ? subcategories : [],
-      subcategoriesDetailed: Array.isArray(subcategoriesDetailed) ? subcategoriesDetailed : [],
+      subcategoriesDetailed: Array.isArray(subcategoriesDetailed)
+        ? subcategoriesDetailed
+        : [],
       description: description || "",
       featured: featured === true || featured === "true",
       order: order ? parseInt(order) : 0,
@@ -291,6 +303,8 @@ const createCategory = async (req, res) => {
     };
 
     const category = await Category.create(categoryData);
+
+    
 
     res.status(201).json({
       success: true,
@@ -351,7 +365,7 @@ const updateCategory = async (req, res) => {
     }
 
     // Parse subcategories if they come as JSON strings
-    if (updates.subcategories && typeof updates.subcategories === 'string') {
+    if (updates.subcategories && typeof updates.subcategories === "string") {
       try {
         updates.subcategories = JSON.parse(updates.subcategories);
       } catch (error) {
@@ -359,18 +373,23 @@ const updateCategory = async (req, res) => {
       }
     }
 
-    if (updates.subcategoriesDetailed && typeof updates.subcategoriesDetailed === 'string') {
+    if (
+      updates.subcategoriesDetailed &&
+      typeof updates.subcategoriesDetailed === "string"
+    ) {
       try {
-        updates.subcategoriesDetailed = JSON.parse(updates.subcategoriesDetailed);
+        updates.subcategoriesDetailed = JSON.parse(
+          updates.subcategoriesDetailed
+        );
       } catch (error) {
         // If parsing fails, keep as is
       }
     }
 
     // Store old image data for cleanup
-      // Store old image URLs for cleanup
-      const oldImageUrl = category.image;
-      const oldBannerUrl = category.bannerImage;
+    // Store old image URLs for cleanup
+    const oldImageUrl = category.image;
+    const oldBannerUrl = category.bannerImage;
 
     // Process uploaded images
     const imageFile = req.files?.image?.[0];
@@ -378,31 +397,31 @@ const updateCategory = async (req, res) => {
 
     // Handle image updates
     if (imageFile) {
-        try {
-          // Upload to Cloudinary
-          const imageResult = await cloudinary.uploader.upload(imageFile.path, {
-            folder: "ecommerce/categories/images",
-            public_id: `${updates.id || category.id}-image-${Date.now()}`,
-            overwrite: false,
-          });
-          updates.image = imageResult.secure_url;
-        } catch (uploadError) {
-          updates.image = category.image;
-        }
+      try {
+        // Upload to Cloudinary
+        const imageResult = await cloudinary.uploader.upload(imageFile.path, {
+          folder: "ecommerce/categories/images",
+          public_id: `${updates.id || category.id}-image-${Date.now()}`,
+          overwrite: false,
+        });
+        updates.image = imageResult.secure_url;
+      } catch (uploadError) {
+        updates.image = category.image;
+      }
     }
 
     if (bannerFile) {
-        try {
-          // Upload to Cloudinary
-          const bannerResult = await cloudinary.uploader.upload(bannerFile.path, {
-            folder: "ecommerce/categories/banners",
-            public_id: `${updates.id || category.id}-banner-${Date.now()}`,
-            overwrite: false,
-          });
-          updates.bannerImage = bannerResult.secure_url;
-        } catch (uploadError) {
-          updates.bannerImage = category.bannerImage;
-        }
+      try {
+        // Upload to Cloudinary
+        const bannerResult = await cloudinary.uploader.upload(bannerFile.path, {
+          folder: "ecommerce/categories/banners",
+          public_id: `${updates.id || category.id}-banner-${Date.now()}`,
+          overwrite: false,
+        });
+        updates.bannerImage = bannerResult.secure_url;
+      } catch (uploadError) {
+        updates.bannerImage = category.bannerImage;
+      }
     }
 
     // Prevent updating ID if provided
@@ -432,6 +451,7 @@ const updateCategory = async (req, res) => {
       message: "Category updated successfully",
       data: category,
     });
+    
   } catch (error) {
     // Clean up newly uploaded images if update fails
     if (req.files?.image?.[0]?.filename) {
@@ -462,8 +482,8 @@ const updateCategoryStatus = async (req, res) => {
     const { id } = req.params;
     const updates = req.body || {};
     const allowedUpdates = {};
-    const allowed = ['isActive', 'featured'];
-    
+    const allowed = ["isActive", "featured"];
+
     Object.keys(updates).forEach((key) => {
       if (allowed.includes(key)) {
         allowedUpdates[key] = updates[key];
@@ -473,30 +493,31 @@ const updateCategoryStatus = async (req, res) => {
     const updatedCategory = await Category.findByIdAndUpdate(
       id,
       { $set: allowedUpdates },
-      { 
+      {
         new: true,
         runValidators: true,
-        lean: true 
+        lean: true,
       }
     );
 
     if (!updatedCategory) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Category not found' 
+      return res.status(404).json({
+        success: false,
+        message: "Category not found",
       });
     }
 
-    res.json({ 
-      success: true, 
-      message: 'Category updated successfully', 
-      data: updatedCategory 
+    res.json({
+      success: true,
+      message: "Category updated successfully",
+      data: updatedCategory,
     });
+    
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error updating category status', 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      message: "Error updating category status",
+      error: error.message,
     });
   }
 };
@@ -536,6 +557,7 @@ const deleteCategory = async (req, res) => {
         type: category.type,
       },
     });
+    
   } catch (error) {
     if (error.name === "CastError") {
       return res.status(400).json({
@@ -599,6 +621,7 @@ const hardDeleteCategory = async (req, res) => {
       success: true,
       message: "Category permanently deleted",
     });
+    
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -649,6 +672,7 @@ const bulkUpdateCategories = async (req, res) => {
       message: `${result.modifiedCount} categories updated successfully`,
       data: result,
     });
+    
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -936,33 +960,38 @@ const getProductsCountForAllCategories = async (req, res) => {
     const categories = await Category.find({})
       .sort({ order: 1, name: 1 })
       .lean();
-    
+
     // Get product counts for each category
     const categoriesWithCounts = await Promise.all(
       categories.map(async (category) => {
         // Count products in this category
         // Adjust field name based on your Product model
-        const productCount = await Product.countDocuments({ 
+        const productCount = await Product.countDocuments({
           $or: [
-            { category: category.id },        // If Product has 'category' field
-            { categoryId: category.id },      // If Product has 'categoryId' field
-            { categoryId: category._id },     // If Product has categoryId as ObjectId
-            { "categories": category.id }     // If Product has categories array
-          ]
+            { category: category.id }, // If Product has 'category' field
+            { categoryId: category.id }, // If Product has 'categoryId' field
+            { categoryId: category._id }, // If Product has categoryId as ObjectId
+            { categories: category.id }, // If Product has categories array
+          ],
         });
-        
+
         return {
           ...category,
-          totalProducts: productCount || 0
+          totalProducts: productCount || 0,
         };
       })
     );
-    
+
     // Calculate summary statistics
     const totalCategories = categories.length;
-    const totalProducts = categoriesWithCounts.reduce((sum, cat) => sum + (cat.totalProducts || 0), 0);
-    const categoriesWithProducts = categoriesWithCounts.filter(cat => (cat.totalProducts || 0) > 0).length;
-    
+    const totalProducts = categoriesWithCounts.reduce(
+      (sum, cat) => sum + (cat.totalProducts || 0),
+      0
+    );
+    const categoriesWithProducts = categoriesWithCounts.filter(
+      (cat) => (cat.totalProducts || 0) > 0
+    ).length;
+
     res.json({
       success: true,
       count: categories.length,
@@ -971,18 +1000,17 @@ const getProductsCountForAllCategories = async (req, res) => {
         totalCategories,
         totalProducts,
         categoriesWithProducts,
-        categoriesWithoutProducts: totalCategories - categoriesWithProducts
-      }
+        categoriesWithoutProducts: totalCategories - categoriesWithProducts,
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch products count for categories',
-      error: error.message
+      message: "Failed to fetch products count for categories",
+      error: error.message,
     });
   }
 };
-
 
 export {
   createCategory,

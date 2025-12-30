@@ -1,6 +1,6 @@
 // src/App.js
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
 import UsersList from "./pages/users/UsersList";
@@ -20,6 +20,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import ProductDetails from "./pages/products/ProductDetails";
 import Inventory from "./pages/products/Inventory";
 import CategoryDetails from "./pages/categories/CategoryDetails";
+import { useAuth } from "./context/AuthContext";
 
 // Placeholder components for other pages
 const PlaceholderPage = ({ title }) => (
@@ -33,12 +34,17 @@ const PlaceholderPage = ({ title }) => (
 );
 
 function App() {
+  const { admin, loading } = useAuth();
+
   return (
     <div className="h-screen">
       <Toaster />
       <Routes>
-        {/* Public route */}
-        <Route path="/login" element={<AuthLogin />} />
+        {/* Public route - redirect to dashboard if logged in */}
+        <Route 
+          path="/login" 
+          element={admin && !loading ? <Navigate to="/dashboard" replace /> : <AuthLogin />} 
+        />
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>

@@ -22,6 +22,9 @@ import {
   FaTimesCircle
 } from 'react-icons/fa';
 import * as userService from '../../services/userService';
+import { toast } from 'sonner';
+import Spinner from '../../components/ui/Spinner';
+import ConfirmationModal from '../../components/ui/ConfirmationModal';
 
 const UserEdit = () => {
   const { id } = useParams();
@@ -101,16 +104,15 @@ const UserEdit = () => {
 
   // Load activity logs
   const loadActivityLogs = async () => {
-    // Mock activity logs
-    const mockLogs = [
-      { id: 1, action: 'User Created', timestamp: '2024-01-10T10:30:00Z', details: 'Account created via admin panel' },
-      { id: 2, action: 'Email Verified', timestamp: '2024-01-10T11:15:00Z', details: 'Email verification completed' },
-      { id: 3, action: 'Profile Updated', timestamp: '2024-01-12T14:20:00Z', details: 'Updated name and email' },
-      { id: 4, action: 'Password Reset', timestamp: '2024-01-13T09:45:00Z', details: 'Password reset requested' },
-      { id: 5, action: 'Login Success', timestamp: '2024-01-15T08:30:00Z', details: 'Successful login from IP: 192.168.1.1' },
-    ];
-    
-    setActivityLogs(mockLogs);
+    try {
+      const res = await userService.getUserActivity(id);
+      const events = res.data?.data || res.data || [];
+      setActivityLogs(events.map((ev, idx) => ({ id: idx + 1, action: ev.action, timestamp: ev.timestamp, details: ev.details })));
+    } catch (error) {
+      console.error('Error loading activity:', error);
+      // Fallback to empty list
+      setActivityLogs([]);
+    }
   };
 
   // Handle input changes
@@ -234,7 +236,12 @@ const UserEdit = () => {
 
   // Handle password reset
   const handlePasswordReset = async () => {
-    if (!validatePasswordReset()) return;
+    if (!validatePasswordReset()) {
+      toast.error('Please fix the password errors before proceeding.');
+      return;
+    }
+
+    toast.info('Resetting password...');
 
     setIsSaving(true);
     try {
@@ -252,11 +259,11 @@ const UserEdit = () => {
       setPasswordData({ newPassword: '', confirmPassword: '' });
       setShowPasswordReset(false);
 
-      setSuccessMessage('Password reset successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      toast.success('Password reset successfully!');
     } catch (error) {
       console.error('Error resetting password:', error);
       const msg = error.response?.data?.message || error.message || 'Failed to reset password. Please try again.';
+      toast.error(msg);
       setErrors({ submit: msg });
     } finally {
       setIsSaving(false);
@@ -265,6 +272,7 @@ const UserEdit = () => {
 
   // Handle resend verification
   const handleResendVerification = async () => {
+    toast.info('Sending verification code...');
     setIsSaving(true);
     try {
       const newCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -281,15 +289,15 @@ const UserEdit = () => {
         id: activityLogs.length + 1,
         action: 'Verification Code Sent',
         timestamp: new Date().toISOString(),
-        details: `New verification code sent: ${newCode}`
+        details: `New verification code sent (masked): ${newCode.replace(/.(?=.{2})/g, '*')}`
       };
 
       setActivityLogs(prev => [newLog, ...prev]);
-      setSuccessMessage('Verification code sent successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      toast.success('Verification code sent successfully!');
     } catch (error) {
       console.error('Error sending verification:', error);
       const msg = error.response?.data?.message || error.message || 'Failed to send verification code.';
+      toast.error(msg);
       setErrors({ submit: msg });
     } finally {
       setIsSaving(false);
@@ -297,23 +305,28 @@ const UserEdit = () => {
   };
 
   // Handle delete user
-  const handleDeleteUser = async () => {
-    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
-    }
-    
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false);
+
+  const handleDeleteUser = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    toast.info('Deleting user...');
     setIsSaving(true);
-    
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Deleting user:', id);
+      await userService.deleteUser(id);
+      toast.success('User deleted successfully');
       navigate('/users');
-      
     } catch (error) {
       console.error('Error deleting user:', error);
-      setErrors({ submit: 'Failed to delete user.' });
+      const msg = error.response?.data?.message || 'Failed to delete user.';
+      toast.error(msg);
+      setErrors({ submit: msg });
       setIsSaving(false);
+    } finally {
+      setShowDeleteModal(false);
     }
   };
 
@@ -340,8 +353,8 @@ const UserEdit = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading user data...</p>
+          <div className="mx-auto mb-4"><Spinner /></div>
+          <p className="text-gray-600 mt-4">Loading user data...</p>
         </div>
       </div>
     );
@@ -601,7 +614,7 @@ const UserEdit = () => {
                   >
                     {isSaving ? (
                       <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <Spinner size={16} className="text-white" />
                         <span>Saving...</span>
                       </>
                     ) : (
@@ -630,6 +643,7 @@ const UserEdit = () => {
               {/* Password Reset */}
               <div className="space-y-3">
                 <button
+                  type="button"
                   onClick={() => setShowPasswordReset(!showPasswordReset)}
                   className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
                 >
@@ -656,6 +670,9 @@ const UserEdit = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Enter new password"
                       />
+                        {errors.newPassword && (
+                          <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
+                        )}
                       {passwordData.newPassword && (
                         <div className="mt-2">
                           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -667,7 +684,7 @@ const UserEdit = () => {
                         </div>
                       )}
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Confirm Password
@@ -680,9 +697,13 @@ const UserEdit = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="Confirm new password"
                       />
+                      {errors.confirmPassword && (
+                        <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                      )}
                     </div>
-                    
+
                     <button
+                      type="button"
                       onClick={handlePasswordReset}
                       disabled={isSaving}
                       className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
@@ -694,6 +715,7 @@ const UserEdit = () => {
 
                 {/* Delete User */}
                 <button
+                  type="button"
                   onClick={handleDeleteUser}
                   disabled={isSaving}
                   className="w-full text-left p-3 rounded-lg border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
@@ -766,6 +788,14 @@ const UserEdit = () => {
           </div>
         </div>
       </div>
+      <ConfirmationModal
+        open={showDeleteModal}
+        title="Delete user"
+        description="Are you sure you want to delete this user? This action cannot be undone."
+        onCancel={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        isLoading={isSaving}
+      />
     </div>
   );
 };

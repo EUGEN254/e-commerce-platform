@@ -28,10 +28,12 @@ import {
   getRecentActivities,
 } from "../../controllers/admin/dashboardController.js";
 import {
+  createUser,
   getAllUsers,
   getUserById,
   updateUser,
   deleteUser,
+  getUserActivity,
 } from "../../controllers/admin/adminUser.js";
 import {
   createCategory,
@@ -127,8 +129,10 @@ adminRouter.get("/categories/stats", AdminAuth, getCategoryStats);
 adminRouter.get("/categories/products-count/all", AdminAuth, getProductsCountForAllCategories);
 
 // Admin user management
+adminRouter.post('/users', AdminAuth, createUser);
 adminRouter.get('/users', AdminAuth, getAllUsers);
 adminRouter.get('/users/:id', AdminAuth, getUserById);
+adminRouter.get('/users/:id/activity', AdminAuth, getUserActivity);
 adminRouter.patch('/users/:id', AdminAuth, updateUser);
 adminRouter.delete('/users/:id', AdminAuth, deleteUser);
 

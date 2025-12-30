@@ -1,27 +1,43 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useState, useEffect } from "react";
+import Spinner from '../components/ui/Spinner';
 
 const ProtectedRoute = () => {
   const { admin, loading } = useAuth();
+  const [showSpinner, setShowSpinner] = useState(false);
 
-  // Show loader while checking auth
-  if (loading) {
+  // Only show spinner if loading takes longer than 500ms
+  useEffect(() => {
+    if (!loading) {
+      setShowSpinner(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowSpinner(true);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  // Not logged in → redirect to login
+  if (!admin && !loading) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // While loading, show spinner only if it takes longer than 500ms
+  if (loading && showSpinner) {
     return (
       <div className="fixed inset-0 bg-gray-900 flex items-center justify-center z-50">
         <div className="flex flex-col items-center space-y-4">
-          {/* Spinner */}
-          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <Spinner size={40} className="text-blue-500" />
         </div>
       </div>
     );
   }
 
-  // Not logged in → redirect to login
-  if (!admin) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Logged in → allow access
+  // Still loading but under 500ms, or logged in → allow access
   return <Outlet />;
 };
 

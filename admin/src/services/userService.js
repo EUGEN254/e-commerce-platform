@@ -1,22 +1,27 @@
-import axios from "../utils/axiosInstance";
+import axiosInstance from "../utils/axiosInstance";
 
-export const getUsers = (params = {}) => {
-  return axios.get("/api/admin/users", { params });
+const getUsers = (params = {}) => {
+  return axiosInstance.get("/api/admin/users", { params });
 };
 
-export const getUserById = (id) => {
-  return axios.get(`/api/admin/users/${id}`);
+const getUserById = (id) => {
+  return axiosInstance.get(`/api/admin/users/${id}`);
 };
 
-export const updateUser = (id, data) => {
-  return axios.patch(`/api/admin/users/${id}`, data);
+const updateUser = (id, data) => {
+  return axiosInstance.patch(`/api/admin/users/${id}`, data);
 };
 
-export const deleteUser = (id) => {
-  return axios.delete(`/api/admin/users/${id}`);
+const deleteUser = (id) => {
+  return axiosInstance.delete(`/api/admin/users/${id}`);
 };
 
-export const createUser = (data) => {
-  // Use public registration endpoint to create a user
-  return axios.post('/api/auth/register', data);
+const createUser = (data) => {
+  return axiosInstance.post('/api/admin/users', data);
 };
+
+const getUserActivity = (id) => {
+  return axiosInstance.get(`/api/admin/users/${id}/activity`);
+};
+
+export { getUsers, getUserById, updateUser, deleteUser, createUser, getUserActivity };

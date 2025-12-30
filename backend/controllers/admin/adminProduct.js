@@ -190,6 +190,8 @@ const createProduct = async (req, res) => {
     // Create product in database
     const product = await Product.create(productData);
 
+    
+
     res.status(201).json({ 
       success: true, 
       message: "Product created successfully", 
@@ -286,6 +288,8 @@ const getAllProducts = async (req, res) => {
       sort = { [sortField]: sortOrder };
     }
 
+    
+
     // Execute query with pagination
     const products = await Product.find(filter)
       .sort(sort)
@@ -297,7 +301,7 @@ const getAllProducts = async (req, res) => {
     // Get total count for pagination
     const total = await Product.countDocuments(filter);
 
-    res.status(200).json({
+    const response = {
       success: true,
       data: products,
       pagination: {
@@ -306,7 +310,9 @@ const getAllProducts = async (req, res) => {
         total,
         pages: Math.ceil(total / limit)
       }
-    });
+    };
+
+    res.status(200).json(response);
   } catch (error) {
     logger.error("Get All Products Error:", error);
     res.status(500).json({ 
@@ -329,7 +335,9 @@ const getProductById = async (req, res) => {
     }
 
     const { id } = req.params;
+
     
+
     const product = await Product.findById(id)
       .select('-__v -createdBy')
       .lean();
@@ -553,6 +561,7 @@ const updateProduct = async (req, res) => {
       message: "Product updated successfully",
       data: updatedProduct
     });
+    
   } catch (error) {
     logger.error("Update Product Error:", error);
     
@@ -631,6 +640,7 @@ const deleteProduct = async (req, res) => {
       success: true,
       message: "Product deleted successfully"
     });
+    
   } catch (error) {
     logger.error("Delete Product Error:", error);
     

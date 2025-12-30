@@ -1,5 +1,6 @@
 // src/pages/users/UsersList.jsx
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { 
   FaSearch, 
   FaFilter, 
@@ -19,11 +20,74 @@ import {
   FaKey,
   FaSync,
   FaBan,
-  FaCheck
+  FaCheck,
+  FaExclamationTriangle
 } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
-import { getUsers } from '../../services/userService';
+import { getUsers, deleteUser } from '../../services/userService';
+
+// Confirmation Modal Component
+const DeleteConfirmationModal = ({ isOpen, userName, userEmail, onConfirm, onCancel, isBulk = false, count = 0 }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+       
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="sm:flex sm:items-start">
+              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                <FaExclamationTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  Delete {isBulk ? 'Users' : 'User'}
+                </h3>
+                <div className="mt-2">
+                  {isBulk ? (
+                    <p className="text-sm text-gray-600">
+                      Are you sure you want to delete {count} selected user{count > 1 ? 's' : ''}? This action cannot be undone.
+                    </p>
+                  ) : (
+                    <div>
+                      <p className="text-sm text-gray-600">
+                        Are you sure you want to delete this user?
+                      </p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        <strong>{userName || 'User'}</strong> ({userEmail})
+                      </p>
+                    </div>
+                  )}
+                  <p className="text-sm text-red-500 mt-3 font-medium">
+                    This action cannot be undone. All user data will be permanently deleted.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const UsersList = () => {
   const [users, setUsers] = useState([]);
@@ -37,6 +101,16 @@ const UsersList = () => {
   const [sortDirection, setSortDirection] = useState('desc');
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Modal state for deletion
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    userId: null,
+    userName: '',
+    userEmail: '',
+    isBulk: false,
+    count: 0
+  });
 
   // Fetch users from backend
   useEffect(() => {
@@ -112,9 +186,47 @@ const UsersList = () => {
   };
 
   const handleDeleteUser = (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    const user = users.find(u => u._id === userId);
+    setDeleteModal({
+      isOpen: true,
+      userId,
+      userName: user?.name || 'User',
+      userEmail: user?.email || '',
+      isBulk: false,
+      count: 0
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    const { userId } = deleteModal;
+    try {
+      await deleteUser(userId);
       setUsers(prev => prev.filter(user => user._id !== userId));
       setSelectedUsers(prev => prev.filter(id => id !== userId));
+      toast.success('User deleted successfully ✓');
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to delete user';
+      toast.error(errorMsg);
+      console.error('Error deleting user:', error);
+    } finally {
+      setDeleteModal({ isOpen: false, userId: null, userName: '', userEmail: '', isBulk: false, count: 0 });
+    }
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    try {
+      for (const userId of selectedUsers) {
+        await deleteUser(userId);
+      }
+      setUsers(prev => prev.filter(user => !selectedUsers.includes(user._id)));
+      setSelectedUsers([]);
+      toast.success(`${selectedUsers.length} user(s) deleted successfully ✓`);
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Failed to delete users';
+      toast.error(errorMsg);
+      console.error('Error deleting users:', error);
+    } finally {
+      setDeleteModal({ isOpen: false, userId: null, userName: '', userEmail: '', isBulk: false, count: 0 });
     }
   };
 
@@ -132,7 +244,7 @@ const UsersList = () => {
           : user
       ));
       setIsLoading(false);
-      alert('Verification code sent to user email');
+      toast.success('Verification code sent to user email ✓');
     }, 1000);
   };
 
@@ -165,6 +277,17 @@ const UsersList = () => {
 
   return (
     <div className="space-y-6">
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModal.isOpen}
+        userName={deleteModal.userName}
+        userEmail={deleteModal.userEmail}
+        isBulk={deleteModal.isBulk}
+        count={deleteModal.count}
+        onConfirm={deleteModal.isBulk ? handleConfirmBulkDelete : handleConfirmDelete}
+        onCancel={() => setDeleteModal({ isOpen: false, userId: null, userName: '', userEmail: '', isBulk: false, count: 0 })}
+      />
+
       {/* Header with Stats */}
       <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
@@ -238,10 +361,14 @@ const UsersList = () => {
                 </button>
                 <button 
                   onClick={() => {
-                    if (window.confirm(`Delete ${selectedUsers.length} users?`)) {
-                      setUsers(prev => prev.filter(user => !selectedUsers.includes(user._id)));
-                      setSelectedUsers([]);
-                    }
+                    setDeleteModal({
+                      isOpen: true,
+                      userId: null,
+                      userName: '',
+                      userEmail: '',
+                      isBulk: true,
+                      count: selectedUsers.length
+                    });
                   }}
                   className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
                 >

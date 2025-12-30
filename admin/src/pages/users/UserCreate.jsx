@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUser } from '../../services/userService';
+import { toast } from 'sonner';
 import { 
   FaUserPlus, 
   FaArrowLeft, 
@@ -12,8 +13,62 @@ import {
   FaTimes,
   FaKey,
   FaInfoCircle,
-  FaPaperPlane
+  FaEye,
+  FaEyeSlash,
+  FaExclamationTriangle
 } from 'react-icons/fa';
+
+// Confirmation Modal Component
+const ConfirmationModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Create', cancelText = 'Cancel', isDangerous = false }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        
+
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="sm:flex sm:items-start">
+              <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${isDangerous ? 'bg-red-100' : 'bg-blue-100'} sm:mx-0 sm:h-10 sm:w-10`}>
+                {isDangerous ? 
+                  <FaExclamationTriangle className="h-6 w-6 text-red-600" /> :
+                  <FaUserPlus className="h-6 w-6 text-blue-600" />
+                }
+              </div>
+              <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">{title}</h3>
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600">{message}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button
+              type="button"
+              onClick={onConfirm}
+              className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                isDangerous 
+                  ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' 
+                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+              } sm:ml-3 sm:w-auto sm:text-sm`}
+            >
+              {confirmText}
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+            >
+              {cancelText}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const UserCreate = () => {
   const navigate = useNavigate();
@@ -28,10 +83,15 @@ const UserCreate = () => {
     sendVerificationEmail: true
   });
   
+  // Password visibility toggles
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
   // Form errors
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [generatedPassword, setGeneratedPassword] = useState('');
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   
   // Password strength
   const [passwordStrength, setPasswordStrength] = useState({
@@ -92,7 +152,8 @@ const UserCreate = () => {
       password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     
-    setFormData(prev => ({ ...prev, password }));
+    setFormData(prev => ({ ...prev, password, confirmPassword: password }));
+    setGeneratedPassword(password);
     checkPasswordStrength(password);
   };
 
@@ -120,15 +181,22 @@ const UserCreate = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
+  // Handle form submission - show confirmation modal
+  const handleSubmit = (e) => {
     e.preventDefault();
     
     if (!validateForm()) {
+      toast.error('Please fix the form errors');
       return;
     }
     
+    setShowConfirmationModal(true);
+  };
+
+  // Actual submission after confirmation
+  const handleConfirmCreate = async () => {
     setIsSubmitting(true);
+    setShowConfirmationModal(false);
     
     try {
       const payload = {
@@ -136,21 +204,44 @@ const UserCreate = () => {
         email: formData.email.toLowerCase().trim(),
         password: formData.password,
         confirmPassword: formData.confirmPassword,
+        isVerified: formData.isVerified,
+        sendVerificationEmail: formData.sendVerificationEmail && !formData.isVerified
       };
 
       const resp = await createUser(payload);
       const data = resp.data || resp;
+      
       if (data.success) {
-        setSuccessMessage(data.message || `User ${formData.email} created successfully!`);
+        toast.success('User created successfully! 🎉');
+        
+        if (formData.sendVerificationEmail && !formData.isVerified) {
+          toast.info('Verification email has been sent to the user');
+        }
+        
+        if (formData.isVerified) {
+          toast.info('User is already verified and can login immediately');
+        }
+        
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          isVerified: false,
+          sendVerificationEmail: true
+        });
+        setGeneratedPassword('');
+        
         setTimeout(() => navigate('/users'), 1500);
       } else {
-        setErrors({ submit: data.message || 'Failed to create user' });
+        toast.error(data.message || 'Failed to create user');
       }
       
     } catch (error) {
       console.error('Error creating user:', error);
-      const msg = error.response?.data?.message || error.message || 'Failed to create user. Please try again.';
-      setErrors({ submit: msg });
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to create user. Please try again.';
+      toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -172,6 +263,17 @@ const UserCreate = () => {
 
   return (
     <div className="space-y-6">
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showConfirmationModal}
+        title="Create New User"
+        message={`Are you sure you want to create a user with email "${formData.email}"?${formData.sendVerificationEmail && !formData.isVerified ? ' A verification email will be sent.' : ''}`}
+        confirmText="Create User"
+        cancelText="Cancel"
+        onConfirm={handleConfirmCreate}
+        onCancel={() => setShowConfirmationModal(false)}
+      />
+
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
@@ -194,29 +296,6 @@ const UserCreate = () => {
           </div>
         </div>
       </div>
-
-      {/* Success Message */}
-      {successMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-          <div className="flex items-center space-x-3">
-            <FaCheck className="text-green-600" />
-            <div>
-              <p className="text-green-800 font-medium">{successMessage}</p>
-              <p className="text-green-600 text-sm">Redirecting to users list...</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {errors.submit && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <div className="flex items-center space-x-3">
-            <FaTimes className="text-red-600" />
-            <p className="text-red-800">{errors.submit}</p>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Form */}
@@ -306,16 +385,23 @@ const UserCreate = () => {
                     <div className="relative">
                       <FaLock className="absolute left-3 top-3 text-gray-400" />
                       <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        className={`pl-10 pr-4 py-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        className={`pl-10 pr-10 py-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                           errors.password ? 'border-red-300' : 'border-gray-300'
                         }`}
                         placeholder="••••••••"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? <FaEyeSlash /> : <FaEye />}
+                      </button>
                     </div>
                     {errors.password && (
                       <p className="mt-1 text-sm text-red-600">{errors.password}</p>
@@ -371,16 +457,23 @@ const UserCreate = () => {
                     <div className="relative">
                       <FaLock className="absolute left-3 top-3 text-gray-400" />
                       <input
-                        type="password"
+                        type={showConfirmPassword ? "text" : "password"}
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className={`pl-10 pr-4 py-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        className={`pl-10 pr-10 py-2 w-full border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                           errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
                         }`}
                         placeholder="••••••••"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      >
+                        {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                      </button>
                     </div>
                     {errors.confirmPassword && (
                       <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
@@ -452,6 +545,34 @@ const UserCreate = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Generated Password Display */}
+              {generatedPassword && (
+                <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <FaKey className="text-blue-600 mt-1" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-blue-900 mb-2">Generated Password</h4>
+                      <div className="bg-white border border-blue-200 rounded p-3 font-mono text-sm flex items-center justify-between">
+                        <code className="text-blue-900 break-all">{generatedPassword}</code>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(generatedPassword);
+                            toast.success('Password copied to clipboard! 📋');
+                          }}
+                          className="ml-2 px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                      <p className="text-sm text-blue-700 mt-2">
+                        Share this password with the user. They can change it after first login.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Form Actions */}
               <div className="pt-6 border-t border-gray-200">

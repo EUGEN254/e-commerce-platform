@@ -1,32 +1,41 @@
 // ProtectedRoute.jsx - MINIMAL VERSION
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 
 const ProtectedRoute = ({ children, requireAuth = true }) => {
   const { user, loading } = useUser();
   const location = useLocation();
+  const [showPlaceholder, setShowPlaceholder] = useState(false);
 
-  // No artificial delay: render as soon as loading finishes to avoid flicker
+  // Only show placeholder if loading takes longer than 500ms
+  useEffect(() => {
+    if (!loading) {
+      setShowPlaceholder(false);
+      return;
+    }
 
-  // Debug logs to help diagnose layout flicker
-  // Debugging removed; keep placeholder logic minimal to avoid flicker
+    const timer = setTimeout(() => {
+      setShowPlaceholder(true);
+    }, 500);
 
-  // Preserve layout while auth state is being determined to avoid
-  // content reflow/flicker (keeps footer position stable).
-  if (loading) {
-    // Placeholder fills available space so layout (footer) stays stable while auth loads
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  if (requireAuth && !user && !loading) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (!requireAuth && user && !loading) {
+    return <Navigate to="/" replace />;
+  }
+
+  // If still loading and placeholder should show, preserve layout
+  if (loading && showPlaceholder) {
     return <div className="flex-1" aria-hidden />;
   }
 
-  if (requireAuth && !user) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (!requireAuth && user) {
-    return <Navigate to="/" replace />;
-  }
-
+  // If loading but under 500ms, or fully loaded, render children
   return children;
 };
 
