@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
 import {
   FaBox,
   FaShoppingCart,
