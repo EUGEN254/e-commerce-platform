@@ -1,7 +1,7 @@
-// src/pages/categories/CategoryCreate.jsx
-import React, { useState, useEffect } from 'react';
+// src/pages/categories/CategoryCreate.jsx - CLEAN VERSION
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {toast} from "sonner"
+import { toast } from "sonner";
 import { 
   FaTags, 
   FaArrowLeft, 
@@ -20,78 +20,70 @@ import {
   FaMinus,
   FaFolder,
   FaFolderOpen,
-  FaSortNumericDown,
   FaCamera,
   FaCloudUploadAlt,
-  FaSearch
+  FaSearch,
+  FaBox,
+  FaPalette,
+  FaRuler
 } from 'react-icons/fa';
-import * as categoryIconService from '../../services/icons'; // Your icon service
-import categoryService from '../../services/categoryService'; // Your API service
+import * as categoryIconService from '../../services/icons';
+import categoryService from '../../services/categoryService';
+import { getProductTypeConfigs } from '../../utils/productConfigs'; // Import from utils
 
 const CategoryCreate = () => {
   const navigate = useNavigate();
   
-  // Get icons from service
   const categoryIcons = categoryIconService.categoryIcons;
   
-  // Form state
   const [formData, setFormData] = useState({
-    // Basic Info
     id: '',
     name: '',
     icon: 'FaTag',
     path: '',
-    type: '', // Empty by default - user can type their own type
+    type: '',
     
-    // Details
+    // NEW FIELDS
+    productType: '',
+    defaultColors: [],
+    defaultSizes: [],
+    sizeMeaning: '',
+    
     description: '',
     isMainCategory: false,
-    
-    // Subcategories
     subcategories: [],
     subcategoriesDetailed: [],
-    
-    // Images - Changed to files
     imageFile: null,
     bannerImageFile: null,
     imagePreview: '',
     bannerImagePreview: '',
-    
-    // Settings
-    order: 0,
     featured: false,
     isActive: true
   });
   
-  // Subcategory form state
   const [subcategoryForm, setSubcategoryForm] = useState({
     name: '',
     description: ''
   });
   
-  // Form errors
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [iconSearch, setIconSearch] = useState('');
   const [showIconPicker, setShowIconPicker] = useState(false);
   
-  // Filter icons based on search
   const filteredIcons = categoryIcons.filter(icon => 
     icon.label.toLowerCase().includes(iconSearch.toLowerCase()) ||
     icon.value.toLowerCase().includes(iconSearch.toLowerCase())
   );
 
-  // Auto-generate path from name
   const generatePath = (name) => {
     return '/' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   };
 
-  // Auto-generate ID from name
   const generateId = (name) => {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   };
 
-  // Handle input changes
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     
@@ -100,12 +92,10 @@ const CategoryCreate = () => {
       [name]: type === 'checkbox' ? checked : value
     }));
     
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
     
-    // Auto-generate path and ID from name
     if (name === 'name') {
       const generatedId = generateId(value);
       const generatedPath = generatePath(value);
@@ -117,7 +107,6 @@ const CategoryCreate = () => {
       }));
     }
     
-    // Update path if ID changes
     if (name === 'id' && value) {
       setFormData(prev => ({
         ...prev,
@@ -126,7 +115,19 @@ const CategoryCreate = () => {
     }
   };
 
-  // Handle icon selection
+  const handleProductTypeChange = (e) => {
+    const productType = e.target.value.toLowerCase();
+    const configs = getProductTypeConfigs(productType);
+    
+    setFormData(prev => ({ 
+      ...prev, 
+      productType: productType,
+      sizeMeaning: configs.sizeMeaning,
+      defaultColors: configs.colors,
+      defaultSizes: configs.sizes
+    }));
+  };
+
   const handleIconSelect = (iconValue) => {
     setFormData(prev => ({
       ...prev,
@@ -136,25 +137,21 @@ const CategoryCreate = () => {
     setIconSearch('');
   };
 
-  // Handle image upload
   const handleImageUpload = (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!validTypes.includes(file.type)) {
       setErrors(prev => ({ ...prev, [type]: 'Only JPG, PNG, WebP, or GIF images are allowed' }));
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setErrors(prev => ({ ...prev, [type]: 'Image size must be less than 5MB' }));
       return;
     }
 
-    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       if (type === 'image') {
@@ -171,7 +168,6 @@ const CategoryCreate = () => {
         }));
       }
       
-      // Clear error
       if (errors[type]) {
         setErrors(prev => ({ ...prev, [type]: '' }));
       }
@@ -179,7 +175,6 @@ const CategoryCreate = () => {
     reader.readAsDataURL(file);
   };
 
-  // Remove image
   const handleRemoveImage = (type) => {
     if (type === 'image') {
       setFormData(prev => ({
@@ -196,7 +191,6 @@ const CategoryCreate = () => {
     }
   };
 
-  // Handle subcategory input changes
   const handleSubcategoryChange = (e) => {
     const { name, value } = e.target;
     setSubcategoryForm(prev => ({
@@ -205,7 +199,6 @@ const CategoryCreate = () => {
     }));
   };
 
-  // Add subcategory
   const handleAddSubcategory = () => {
     if (!subcategoryForm.name.trim()) {
       setErrors(prev => ({ ...prev, subcategoryName: 'Subcategory name is required' }));
@@ -224,19 +217,16 @@ const CategoryCreate = () => {
       subcategoriesDetailed: [...prev.subcategoriesDetailed, newSubcategory]
     }));
     
-    // Clear form
     setSubcategoryForm({
       name: '',
       description: ''
     });
     
-    // Clear error
     if (errors.subcategoryName) {
       setErrors(prev => ({ ...prev, subcategoryName: '' }));
     }
   };
 
-  // Remove subcategory
   const handleRemoveSubcategory = (index) => {
     setFormData(prev => ({
       ...prev,
@@ -245,7 +235,6 @@ const CategoryCreate = () => {
     }));
   };
 
-  // Validate form
   const validateForm = () => {
     const newErrors = {};
     
@@ -256,42 +245,38 @@ const CategoryCreate = () => {
     if (!formData.icon.trim()) newErrors.icon = 'Icon is required';
     if (!formData.path.trim()) newErrors.path = 'Path is required';
     if (!formData.type.trim()) newErrors.type = 'Category type is required';
+    if (!formData.productType.trim()) newErrors.productType = 'Product type is required';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission with file uploads
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
     
     setIsSubmitting(true);
     
     try {
-      // Create FormData for file uploads
       const formDataToSend = new FormData();
       
-      // Add basic fields
       formDataToSend.append('id', formData.id.toLowerCase().trim());
       formDataToSend.append('name', formData.name.trim());
       formDataToSend.append('icon', formData.icon);
       formDataToSend.append('path', formData.path.trim());
       formDataToSend.append('type', formData.type.trim());
+      formDataToSend.append('productType', formData.productType.trim());
+      formDataToSend.append('defaultColors', JSON.stringify(formData.defaultColors));
+      formDataToSend.append('defaultSizes', JSON.stringify(formData.defaultSizes));
+      formDataToSend.append('sizeMeaning', formData.sizeMeaning);
       formDataToSend.append('isMainCategory', formData.isMainCategory);
       formDataToSend.append('description', formData.description.trim());
       formDataToSend.append('featured', formData.featured);
-      formDataToSend.append('order', formData.order);
       formDataToSend.append('isActive', formData.isActive);
-      
-      // Add subcategories as JSON
       formDataToSend.append('subcategories', JSON.stringify(formData.subcategories));
       formDataToSend.append('subcategoriesDetailed', JSON.stringify(formData.subcategoriesDetailed));
       
-      // Add image files if they exist
       if (formData.imageFile) {
         formDataToSend.append('image', formData.imageFile);
       }
@@ -299,13 +284,11 @@ const CategoryCreate = () => {
         formDataToSend.append('bannerImage', formData.bannerImageFile);
       }
       
-      // Call API service
       const response = await categoryService.createCategory(formDataToSend);
       
       if (response.success) {
         toast.success(`Category "${formData.name}" created successfully!`);
         
-        // Reset form after 2 seconds and redirect
         setTimeout(() => {
           navigate('/categories');
         }, 2000);
@@ -316,37 +299,30 @@ const CategoryCreate = () => {
     } catch (error) {
       console.error('Error creating category:', error);
     
-    // Handle different error formats
-    if (error.response) {
-      // Axios error with response
-      const errorMessage = error.response.data?.message || 
-                          error.response.data?.error ||
-                          error.response.statusText ||
-                          "Failed to create category.";
-      toast.error(errorMessage);
-      
-      // If there are validation errors
-      if (error.response.data?.errors) {
-        error.response.data.errors.forEach(err => {
-          toast.error(err);
-        });
+      if (error.response) {
+        const errorMessage = error.response.data?.message || 
+                            error.response.data?.error ||
+                            error.response.statusText ||
+                            "Failed to create category.";
+        toast.error(errorMessage);
+        
+        if (error.response.data?.errors) {
+          error.response.data.errors.forEach(err => {
+            toast.error(err);
+          });
+        }
+      } else if (error.request) {
+        toast.error("Network error. Please check your connection.");
+      } else if (error.message) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to create category. Please try again.");
       }
-    } else if (error.request) {
-      // Network error - no response received
-      toast.error("Network error. Please check your connection.");
-    } else if (error.message) {
-      // Error thrown in service
-      toast.error(error.message);
-    } else {
-      // Unknown error
-      toast.error("Failed to create category. Please try again.");
-    }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Get icon preview component
   const IconPreview = categoryIconService.getIconComponent(formData.icon);
 
   return (
@@ -364,7 +340,7 @@ const CategoryCreate = () => {
               </button>
               <h2 className="text-2xl font-bold">Add New Category</h2>
             </div>
-            <p className="text-blue-100">Create a new product category with subcategories</p>
+            <p className="text-blue-100">Create a new product category with product configuration</p>
           </div>
           <div className="mt-4 lg:mt-0">
             <div className="flex items-center space-x-2">
@@ -374,7 +350,6 @@ const CategoryCreate = () => {
         </div>
       </div>
 
-      {/* Error Message */}
       {errors.submit && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
           <div className="flex items-center space-x-3">
@@ -411,7 +386,7 @@ const CategoryCreate = () => {
                 <p className="mt-1 text-sm text-red-600">{errors.name}</p>
               )}
               <p className="mt-1 text-xs text-gray-500">
-                This will be auto-generated: ID: {formData.id}, Path: {formData.path}
+                Auto-generates: ID: {formData.id}, Path: {formData.path}
               </p>
             </div>
 
@@ -432,9 +407,6 @@ const CategoryCreate = () => {
               {errors.id && (
                 <p className="mt-1 text-sm text-red-600">{errors.id}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
-                Lowercase letters, numbers, and hyphens only
-              </p>
             </div>
 
             <div>
@@ -460,7 +432,6 @@ const CategoryCreate = () => {
                   </div>
                 </div>
                 
-                {/* Icon Picker Modal */}
                 {showIconPicker && (
                   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
@@ -568,21 +539,18 @@ const CategoryCreate = () => {
               {errors.path && (
                 <p className="mt-1 text-sm text-red-600">{errors.path}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
-                URL path for this category
-              </p>
             </div>
           </div>
         </div>
 
-        {/* Category Type & Settings */}
+        {/* Product Configuration - NEW SECTION */}
         <div className="bg-white rounded-xl shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center space-x-2">
-            <FaLayerGroup className="text-blue-500" />
-            <span>Category Type & Settings</span>
+            <FaBox className="text-blue-500" />
+            <span>Product Configuration</span>
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category Type *
@@ -595,37 +563,119 @@ const CategoryCreate = () => {
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.type ? 'border-red-300' : 'border-gray-300'
                 }`}
-                placeholder="e.g., Electronics, Fashion, Home, etc."
+                placeholder="e.g., Electronics, Fashion, Home"
               />
               {errors.type && (
                 <p className="mt-1 text-sm text-red-600">{errors.type}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
-                Enter your own category type (e.g., "Electronics", "Fashion", "Home Decor")
-              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Display Order
+                Product Type *
               </label>
-              <div className="relative">
-                <FaSortNumericDown className="absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="number"
-                  name="order"
-                  value={formData.order}
-                  onChange={handleChange}
-                  min="0"
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Display order"
-                />
-              </div>
+              <input
+                type="text"
+                name="productType"
+                value={formData.productType}
+                onChange={handleProductTypeChange}
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.productType ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="e.g., phone, t-shirt, shoes, laptop"
+                list="productTypeSuggestions"
+              />
+              <datalist id="productTypeSuggestions">
+                <option value="phone" />
+                <option value="laptop" />
+                <option value="tablet" />
+                <option value="t-shirt" />
+                <option value="shirt" />
+                <option value="pants" />
+                <option value="jeans" />
+                <option value="shoes" />
+                <option value="sneakers" />
+                <option value="watch" />
+                <option value="book" />
+                <option value="furniture" />
+                <option value="bag" />
+                <option value="jacket" />
+              </datalist>
+              {errors.productType && (
+                <p className="mt-1 text-sm text-red-600">{errors.productType}</p>
+              )}
               <p className="mt-1 text-xs text-gray-500">
-                Lower numbers appear first
+                This tells the system what colors and sizes mean for products
               </p>
             </div>
 
+            {formData.productType && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Size System
+                  </label>
+                  <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <FaRuler className="text-gray-400" />
+                      <div>
+                        <p className="font-medium">{formData.sizeMeaning}</p>
+                        <p className="text-sm text-gray-600">
+                          {getProductTypeConfigs(formData.productType).sizeDescription}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Default Sizes
+                  </label>
+                  <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="flex flex-wrap gap-2">
+                      {formData.defaultSizes.map((size, index) => (
+                        <span key={index} className="px-3 py-1 bg-white border border-gray-300 text-gray-700 rounded-full text-sm">
+                          {size}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {formData.productType && formData.defaultColors.length > 0 && (
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Default Colors
+              </label>
+              <div className="flex flex-wrap gap-4">
+                {formData.defaultColors.map((color, index) => (
+                  <div key={index} className="flex flex-col items-center">
+                    <div 
+                      className="w-12 h-12 rounded-full border border-gray-300 shadow-sm"
+                      style={{ backgroundColor: color.hex }}
+                      title={color.name}
+                    />
+                    <span className="text-xs mt-2 text-gray-700">{color.name}</span>
+                    <span className="text-xs text-gray-500">({color.type})</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Category Settings */}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+            <FaLayerGroup className="text-blue-500" />
+            <span>Category Settings</span>
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <input
@@ -670,31 +720,20 @@ const CategoryCreate = () => {
                 </label>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Description */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center space-x-2">
-            <FaList className="text-blue-500" />
-            <span>Description</span>
-          </h3>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Category Description
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Describe this category..."
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Optional: This appears on category pages
-            </p>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Describe this category..."
+              />
+            </div>
           </div>
         </div>
 
@@ -705,13 +744,12 @@ const CategoryCreate = () => {
             <span>Subcategories</span>
           </h3>
           
-          {/* Subcategory Input Form */}
           <div className="bg-gray-50 rounded-lg p-6 mb-6">
             <h4 className="font-medium text-gray-800 mb-4">Add New Subcategory</h4>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Subcategory Name *
+                  Subcategory Name
                 </label>
                 <input
                   type="text"
@@ -727,7 +765,7 @@ const CategoryCreate = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description (Optional)
+                  Description
                 </label>
                 <input
                   type="text"
@@ -748,13 +786,9 @@ const CategoryCreate = () => {
                 <FaPlus />
                 <span>Add Subcategory</span>
               </button>
-              <p className="mt-2 text-xs text-gray-500">
-                Subcategories help organize products within this category
-              </p>
             </div>
           </div>
 
-          {/* Subcategories List */}
           {formData.subcategoriesDetailed.length > 0 ? (
             <div>
               <h4 className="font-medium text-gray-800 mb-4">
@@ -774,7 +808,6 @@ const CategoryCreate = () => {
                         type="button"
                         onClick={() => handleRemoveSubcategory(index)}
                         className="text-gray-500 hover:text-red-500 p-1"
-                        title="Remove subcategory"
                       >
                         <FaTrash />
                       </button>
@@ -795,7 +828,6 @@ const CategoryCreate = () => {
             <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
               <FaFolderOpen className="text-4xl text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500">No subcategories added yet</p>
-              <p className="text-sm text-gray-400 mt-1">Add subcategories to organize products further</p>
             </div>
           )}
         </div>
@@ -808,10 +840,9 @@ const CategoryCreate = () => {
           </h3>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Category Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
-                Category Image (Optional)
+                Category Image
               </label>
               <div className="space-y-4">
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
@@ -853,17 +884,12 @@ const CategoryCreate = () => {
                 {errors.image && (
                   <p className="mt-1 text-sm text-red-600">{errors.image}</p>
                 )}
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <FaInfoCircle />
-                  <span>Used as thumbnail in category listings (300x300 recommended)</span>
-                </div>
               </div>
             </div>
 
-            {/* Banner Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
-                Banner Image (Optional)
+                Banner Image
               </label>
               <div className="space-y-4">
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
@@ -905,101 +931,8 @@ const CategoryCreate = () => {
                 {errors.bannerImage && (
                   <p className="mt-1 text-sm text-red-600">{errors.bannerImage}</p>
                 )}
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <FaInfoCircle />
-                  <span>Used as header banner on category page (1200x300 recommended)</span>
-                </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Preview Card */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center space-x-2">
-            <FaCheck className="text-blue-500" />
-            <span>Category Preview</span>
-          </h3>
-          
-          <div className="bg-gray-50 rounded-lg p-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-20 h-20 bg-white border border-gray-200 rounded-lg flex items-center justify-center text-2xl">
-               {IconPreview && <IconPreview />}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center space-x-3">
-                  <h4 className="text-xl font-bold text-gray-800">{formData.name || 'Category Name'}</h4>
-                  {formData.featured && (
-                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium flex items-center space-x-1">
-                      <FaStar className="text-xs" />
-                      <span>Featured</span>
-                    </span>
-                  )}
-                  {!formData.isActive && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
-                      Inactive
-                    </span>
-                  )}
-                </div>
-                <p className="text-gray-600 mt-2">{formData.description || 'No description provided'}</p>
-                <div className="flex flex-wrap items-center gap-3 mt-3">
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                    {formData.type || 'Type'}
-                  </span>
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                    Order: {formData.order}
-                  </span>
-                  <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
-                    ID: {formData.id || 'category-id'}
-                  </span>
-                  {formData.isMainCategory && (
-                    <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
-                      Main Category
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            {/* Image Previews */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {formData.imagePreview && (
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">Category Image:</p>
-                  <img 
-                    src={formData.imagePreview} 
-                    alt="Category preview" 
-                    className="w-32 h-32 object-cover rounded-lg border"
-                  />
-                </div>
-              )}
-              {formData.bannerImagePreview && (
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">Banner Image:</p>
-                  <img 
-                    src={formData.bannerImagePreview} 
-                    alt="Banner preview" 
-                    className="w-full h-24 object-cover rounded-lg border"
-                  />
-                </div>
-              )}
-            </div>
-            
-            {formData.subcategories.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h5 className="font-medium text-gray-800 mb-3">Subcategories:</h5>
-                <div className="flex flex-wrap gap-2">
-                  {formData.subcategories.map((subcat, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm"
-                    >
-                      {subcat}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -1008,7 +941,6 @@ const CategoryCreate = () => {
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
             <div className="text-sm text-gray-600">
               <p>Fields marked with * are required</p>
-              <p className="mt-1">Auto-generated fields update as you type the category name</p>
             </div>
             
             <div className="flex space-x-4">
@@ -1042,37 +974,18 @@ const CategoryCreate = () => {
         </div>
       </form>
 
-      {/* Information Card */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
         <div className="flex items-start space-x-3">
           <FaInfoCircle className="text-blue-500 mt-1" />
           <div>
-            <h4 className="font-semibold text-blue-800 mb-2">Category Creation Tips</h4>
+            <h4 className="font-semibold text-blue-800 mb-2">Product Configuration Guide</h4>
             <ul className="space-y-2 text-sm text-blue-700">
-              <li className="flex items-start space-x-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
-                <span>Use descriptive names that customers will understand</span>
-              </li>
-              <li className="flex items-start space-x-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
-                <span>Choose relevant icons that represent the category</span>
-              </li>
-              <li className="flex items-start space-x-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
-                <span>Main categories appear in the main navigation menu</span>
-              </li>
-              <li className="flex items-start space-x-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
-                <span>Featured categories are highlighted on the homepage</span>
-              </li>
-              <li className="flex items-start space-x-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
-                <span>Use subcategories to organize products within categories</span>
-              </li>
-              <li className="flex items-start space-x-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5"></div>
-                <span>Order field determines display sequence (lower numbers first)</span>
-              </li>
+              <li><strong>Product Type</strong> tells the system what products go in this category</li>
+              <li><strong>Phone</strong> → Colors = phone finishes, Sizes = storage capacity</li>
+              <li><strong>T-shirt</strong> → Colors = fabric colors, Sizes = clothing sizes</li>
+              <li><strong>Shoes</strong> → Colors = upper colors, Sizes = shoe sizes</li>
+              <li><strong>Watch</strong> → Colors = case/strap colors, Sizes = case size</li>
+              <li>Products added to this category will use these colors and sizes</li>
             </ul>
           </div>
         </div>

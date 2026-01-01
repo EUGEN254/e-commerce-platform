@@ -7,9 +7,15 @@ import { useUser } from "../context/UserContext";
 
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useUser();
   const { totalItems } = useCart();
+
+  const handleToggleMobileMenu = () => {
+    setMobileMenuOpen((prev) => !prev);
+    setMobileProfileOpen(false);
+  };
 
   const navLinks = [
     { name: "Home", path: "/" },
@@ -217,85 +223,41 @@ const Navbar = () => {
               </span>
             </button>
 
-            {user && (
+            {user ? (
               <div className="relative group">
                 <button className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                    {user.name
-                      ? user.name.charAt(0).toUpperCase()
-                      : user.email.charAt(0).toUpperCase()}
+                    {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="hidden lg:flex items-center space-x-1">
+                    <span className="text-sm font-medium">Profile</span>
+                    <svg className="w-4 h-4 text-gray-400 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                   </div>
                 </button>
 
-                {/* Dropdown menu */}
+                {/* Desktop dropdown (hover) */}
                 <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border py-1 hidden group-hover:block z-50">
-                  <button
-                    onClick={() => navigate("/profile")}
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center space-x-2"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
+                  <button onClick={() => navigate('/profile')} className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center space-x-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     <span>My Profile</span>
                   </button>
-
-                  <button
-                    onClick={() => navigate("/my-orders")}
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center space-x-2"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                      />
-                    </svg>
+                  <button onClick={() => navigate('/my-orders')} className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center space-x-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                     <span>My Orders</span>
                   </button>
-
                   <div className="border-t my-1"></div>
-
-                  <button
-                    onClick={logout}
-                    className="w-full text-left px-4 py-3 hover:bg-red-50 text-red-600 flex items-center space-x-2"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                      />
-                    </svg>
+                  <button onClick={logout} className="w-full text-left px-4 py-3 hover:bg-red-50 text-red-600 flex items-center space-x-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                     <span>Logout</span>
                   </button>
                 </div>
               </div>
-            )}
+            ) : null }
 
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={handleToggleMobileMenu}
               className="p-2"
             >
               {mobileMenuOpen ? (
@@ -307,15 +269,8 @@ const Navbar = () => {
           </div>
         </div>
       </nav>
-
-      {/* Mobile Menu with higher z-index */}
-      <div
-        className={`md:hidden fixed inset-x-0 top-20 z-[9999] transition-all duration-300 ease-in-out ${
-          mobileMenuOpen
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 -translate-y-4 pointer-events-none"
-        }`}
-      >
+      {/* Mobile Top Menu (stays at top) */}
+      <div className={`md:hidden fixed inset-x-0 top-20 z-[9999] transition-all duration-300 ease-in-out ${mobileMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
         <div className="bg-white rounded-xl shadow-2xl border border-gray-200 mx-4 p-4 space-y-2">
           {navLinks.map((link, index) => (
             <Link
@@ -331,7 +286,7 @@ const Navbar = () => {
           <div className="border-t border-gray-100 pt-3 space-y-3">
             <button
               onClick={() => {
-                navigate("/cart");
+                navigate('/cart');
                 setMobileMenuOpen(false);
               }}
               className="w-full flex items-center justify-center py-3 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-base font-medium"
@@ -344,7 +299,7 @@ const Navbar = () => {
               <div className="space-y-2">
                 <button
                   onClick={() => {
-                    navigate("/");
+                    navigate('/create-account', { state: { mode: 'signin' } });
                     setMobileMenuOpen(false);
                   }}
                   className="w-full flex items-center justify-center py-3 px-4 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-base font-medium"
@@ -354,7 +309,7 @@ const Navbar = () => {
                 </button>
                 <button
                   onClick={() => {
-                    navigate("/create-account");
+                    navigate('/create-account');
                     setMobileMenuOpen(false);
                   }}
                   className="w-full py-3 px-4 bg-white border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-base font-medium"
@@ -366,7 +321,7 @@ const Navbar = () => {
               <div className="space-y-2">
                 <button
                   onClick={() => {
-                    navigate("/profile");
+                    navigate('/profile');
                     setMobileMenuOpen(false);
                   }}
                   className="w-full py-3 px-4 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors text-base font-medium"

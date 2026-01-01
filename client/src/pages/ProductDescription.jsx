@@ -21,6 +21,8 @@ import { useProducts } from "../context/ProductContext";
 import assets from "../assets/assets";
 import { Skeleton, SkeletonText } from "../components/ui/Skeleton";
 import { useCart } from "../context/CartContext";
+import Price from "../components/ui/Price";
+import { logError } from "../utils/errorHandler";
 
 const ProductDescription = () => {
   const { id } = useParams();
@@ -90,7 +92,7 @@ const ProductDescription = () => {
         }
       }
     } catch (error) {
-      console.error("Error fetching product:", error);
+      logError("ProductDescription loadProduct", error);
       setProduct(null);
     } finally {
       setIsLoading(false);
@@ -621,21 +623,12 @@ const ProductDescription = () => {
                 {/* Price */}
                 <div className="mb-6">
                   <div className="flex items-baseline gap-3">
-                    <span className="text-3xl font-bold text-gray-800">
-                      {currSymbol}{product.price?.toFixed(2) || "0.00"}
-                    </span>
-                    {product.originalPrice &&
-                      product.originalPrice > product.price && (
-                        <>
-                          <span className="text-xl text-gray-500 line-through">
-                            {currSymbol}{product.originalPrice.toFixed(2)}
-                          </span>
-                          <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-sm font-bold">
-                            Save {currSymbol}
-                            {(product.originalPrice - product.price).toFixed(2)}
-                          </span>
-                        </>
-                      )}
+                    <Price amount={product.price} originalAmount={product.originalPrice} className="text-3xl" />
+                    {product.originalPrice && product.originalPrice > product.price && (
+                      <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-sm font-bold">
+                        Save <Price amount={product.originalPrice - product.price} className="text-sm" />
+                      </span>
+                    )}
                   </div>
                   <p className="text-gray-600 text-sm mt-1">
                     Including all taxes

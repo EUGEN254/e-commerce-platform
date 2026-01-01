@@ -1,6 +1,6 @@
 // src/pages/categories/CategoriesList.jsx
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   FaSearch,
   FaFilter,
@@ -29,6 +29,8 @@ import {
 import { toast } from "sonner";
 import { useProducts } from "../../context/ProductContext";
 import { getIconComponent } from "../../services/icons";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
+import ConfirmationModal from "../../components/ui/ConfirmationModal";
 
 const CategoriesList = () => {
   // Get all necessary functions and state from ProductContext
@@ -53,6 +55,16 @@ const CategoriesList = () => {
   const [sortDirection, setSortDirection] = useState("asc");
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [expandedCategory, setExpandedCategory] = useState(null);
+  
+  // Modal state for confirmations
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    action: null,
+    actionData: null,
+  });
+  const navigate = useNavigate();
 
   // Fetch categories and stats on component mount
   useEffect(() => {
@@ -96,8 +108,10 @@ const CategoriesList = () => {
   // Extract unique types from categories
   const types = [
     "all",
-    ...new Set(categories.map((c) => c.type).filter(Boolean)),
+    ...new Set(categories.map((c) => c.productType).filter(Boolean)),
   ];
+
+ 
 
   // Filter and sort categories
   const filteredCategories = categories
@@ -189,14 +203,21 @@ const CategoriesList = () => {
   };
 
   // Handle category actions
-  const handleDeleteCategory = async (categoryId) => {
-    if (!window.confirm("Are you sure you want to delete this category?")) {
-      return;
-    }
+  const handleDeleteCategory = (categoryId) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Category",
+      message: "Are you sure you want to delete this category? This action cannot be undone.",
+      action: "deleteCategory",
+      actionData: categoryId,
+    });
+  };
 
+  const executeDeleteCategory = async (categoryId) => {
     try {
       await deleteCategory(categoryId);
       setSelectedCategories((prev) => prev.filter((id) => id !== categoryId));
+      toast.success("Category deleted successfully");
     } catch (error) {
       console.error("Error deleting category:", error);
       toast.error(error.message || "Failed to delete category");
@@ -257,17 +278,23 @@ const CategoriesList = () => {
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedCategories.length === 0) return;
 
-    if (!window.confirm(`Delete ${selectedCategories.length} categories?`)) {
-      return;
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Categories",
+      message: `Are you sure you want to delete ${selectedCategories.length} categor${selectedCategories.length > 1 ? "ies" : "y"}? This action cannot be undone.`,
+      action: "bulkDeleteCategories",
+      actionData: selectedCategories,
+    });
+  };
 
+  const executeBulkDelete = async (categoryIds) => {
     try {
-      await bulkDeleteCategories(selectedCategories);
+      await bulkDeleteCategories(categoryIds);
       setSelectedCategories([]);
-      toast.success(`${selectedCategories.length} categories deleted!`);
+      toast.success(`${categoryIds.length} categor${categoryIds.length > 1 ? "ies" : "y"} deleted!`);
     } catch (error) {
       console.error("Error bulk deleting categories:", error);
       toast.error("Failed to delete categories");
@@ -318,14 +345,28 @@ const CategoriesList = () => {
     toast.info("Export feature coming soon!");
   };
 
+  // Handle modal confirmation
+  const handleModalConfirm = async () => {
+    try {
+      if (confirmModal.action === "deleteCategory") {
+        await executeDeleteCategory(confirmModal.actionData);
+      } else if (confirmModal.action === "bulkDeleteCategories") {
+        await executeBulkDelete(confirmModal.actionData);
+      }
+    } finally {
+      setConfirmModal({ isOpen: false, title: "", message: "", action: null, actionData: null });
+    }
+  };
+
+  const handleModalCancel = () => {
+    setConfirmModal({ isOpen: false, title: "", message: "", action: null, actionData: null });
+  };
+
   // Loading state
   if (categoriesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading categories...</p>
-        </div>
+        <LoadingSpinner message="Loading categories..." />
       </div>
     );
   }
@@ -588,7 +629,9 @@ const CategoriesList = () => {
 
                   return (
                     <React.Fragment key={category._id}>
-                      <tr className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr 
+                      onClick={()=>navigate(`/categories/${category._id}`)}
+                      className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-3 px-4">
                           <input
                             type="checkbox"
@@ -665,7 +708,7 @@ const CategoriesList = () => {
                             </div>
                             <div>
                               <p className="font-medium text-gray-800 capitalize">
-                                {category.type || "Uncategorized"}
+                                {category.productType || "Uncategorized"}
                               </p>
                               <p className="text-xs text-gray-500">
                                 {category.path || `/${category.id}`}
@@ -959,6 +1002,18 @@ const CategoriesList = () => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDanger={true}
+        onConfirm={handleModalConfirm}
+        onCancel={handleModalCancel}
+      />
     </div>
   );
 };

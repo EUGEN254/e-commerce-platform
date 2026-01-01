@@ -13,10 +13,10 @@ const AdminAuth = async (req, res, next) => {
       });
     }
 
-    // Verify token
+    // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Validate payload
+    // Ensure token payload contains the admin id
     if (!decoded?.id) {
       return res.status(401).json({
         success: false,
@@ -33,7 +33,7 @@ const AdminAuth = async (req, res, next) => {
       });
     }
 
-    // Optional role check 
+    // Ensure admin has required role
     if (admin.role !== "MainAdmin") {
       return res.status(403).json({
         success: false,
@@ -44,7 +44,7 @@ const AdminAuth = async (req, res, next) => {
     req.admin = admin;
     next();
   } catch (error) {
-    // Clear cookie with SAME options used when setting
+    // Clear admin cookie using the same options used when setting it
     res.clearCookie("adminToken", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

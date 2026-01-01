@@ -30,6 +30,7 @@ import {
   getTimeRemainingColor,
   getDiscountText,
 } from "../utils/offerHelper";
+import Price from "../components/ui/Price";
 import { useOffers } from "../context/Offers";
 import { SkeletonCard } from "../components/ui/Skeleton";
 import { useCart } from "../context/CartContext";
@@ -100,16 +101,9 @@ const OfferCard = ({ offer, onClick, onShopNow, viewMode = "grid" }) => {
           <div className="space-y-3">
             {/* Price */}
             <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xl font-bold text-gray-900">
-                  {currSymbol} {offer.offerPrice?.toFixed(2) || "0.00"}
-                </span>
-                {offer.originalPrice && (
-                  <span className="ml-2 text-sm text-gray-500 line-through">
-                     {currSymbol} {offer.originalPrice?.toFixed(2)}
-                  </span>
-                )}
-              </div>
+                <div>
+                  <Price amount={offer.offerPrice} originalAmount={offer.originalPrice} />
+                </div>
 
               {/* Time Remaining */}
               <div
@@ -244,14 +238,7 @@ const OfferCard = ({ offer, onClick, onShopNow, viewMode = "grid" }) => {
             <div className="mt-auto">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <span className="text-3xl font-bold text-gray-900">
-                    ${offer.offerPrice?.toFixed(2) || "0.00"}
-                  </span>
-                  {offer.originalPrice && (
-                    <span className="ml-3 text-lg text-gray-500 line-through">
-                      ${offer.originalPrice?.toFixed(2)}
-                    </span>
-                  )}
+                  <Price amount={offer.offerPrice} originalAmount={offer.originalPrice} className="text-3xl" />
                 </div>
 
                 {/* Stats */}

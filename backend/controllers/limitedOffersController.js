@@ -3,8 +3,7 @@ import { v2 as cloudinary } from "cloudinary";
 import LimitedOffer from "../models/LimitedOffer.js";
 import logger from "../utils/logger.js";
 
-
-// Helper function for image upload
+// Uploads a file to Cloudinary and returns the secure URL
 const uploadToCloudinary = async (file, folder = "ecommerce/limited-offers") => {
   try {
     const result = await cloudinary.uploader.upload(file.path, {
@@ -97,11 +96,11 @@ export const createLimitedOffer = async (req, res) => {
     let additionalImages = [];
 
     if (req.files) {
-      // Main image
+      // Handle main image upload
       if (req.files.image) {
         imageUrl = await uploadToCloudinary(req.files.image[0]);
       } else if (req.files.images && req.files.images[0]) {
-        // Fallback to first image if no specific 'image' field
+        // Use the first uploaded image as the main image when no specific field provided
         imageUrl = await uploadToCloudinary(req.files.images[0]);
       }
 

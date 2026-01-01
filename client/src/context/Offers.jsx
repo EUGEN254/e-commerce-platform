@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
 import axios from "axios";
+import { logError } from "../utils/errorHandler";
 
 // Create Context
 const OfferContext = createContext();
@@ -65,7 +66,7 @@ export const OfferProvider = ({ children }) => {
       }
       return [];
     } catch (err) {
-      console.error("Error fetching offers:", err);
+      logError("fetchOffers", err);
       setError(err.response?.data?.message || "Failed to load offers");
       return [];
     } finally {
@@ -83,10 +84,10 @@ export const OfferProvider = ({ children }) => {
       }
       return [];
     } catch (err) {
-      console.error("Error fetching active offers:", err);
+      logError("fetchActiveOffers", err);
       return [];
     }
-  }, []);
+  }, [backendUrl]);
 
   // Get a single offer by ID
   const getOfferById = useCallback(async (offerId) => {
@@ -98,19 +99,19 @@ export const OfferProvider = ({ children }) => {
       }
       return null;
     } catch (err) {
-      console.error("Error fetching offer:", err);
+      logError("getOfferById", err);
       return null;
     }
-  }, []);
+  }, [backendUrl]);
 
   // Track offer click (for analytics)
   const trackOfferClick = useCallback(async (offerId) => {
     try {
       await axios.put(`${backendUrl}/api/limited-offers/${offerId}/click`);
     } catch (err) {
-      console.error("Error tracking click:", err);
+      logError("trackOfferClick", err);
     }
-  }, []);
+  }, [backendUrl]);
 
   // Filter offers with multiple criteria
   const filterOffers = useCallback((filters = {}) => {

@@ -22,7 +22,7 @@ export const otpAttemptsMiddleware = async (req, res, next) => {
       return next();
     }
 
-    // Check if locked
+    // If record is locked, reject with a rate-limit response
     if (otpRecord.lockUntil && otpRecord.lockUntil > new Date()) {
       return res.status(429).json({
         success: false,
@@ -37,7 +37,7 @@ export const otpAttemptsMiddleware = async (req, res, next) => {
       await otpRecord.save();
     }
 
-    // Check attempts limit
+    // Enforce attempts limit and set lockout when exceeded
     if (otpRecord.attempts >= OTP_ATTEMPTS_LIMIT) {
       otpRecord.lockUntil = new Date(Date.now() + OTP_LOCKOUT_TIME);
       await otpRecord.save();

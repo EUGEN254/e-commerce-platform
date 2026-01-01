@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useProducts } from "../../context/ProductContext";
 import { toast } from "sonner";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import {
   FaArrowLeft,
   FaEdit,
@@ -174,7 +175,7 @@ const ProductDetails = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <FaSpinner className="animate-spin text-4xl text-blue-500" />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }

@@ -1,7 +1,8 @@
-// src/pages/products/ProductCreate.jsx
+// src/pages/products/ProductCreate.jsx - COMPLETE UPDATED
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import {
   FaBox,
   FaArrowLeft,
@@ -21,99 +22,114 @@ import {
   FaStar,
   FaFire,
   FaSave,
+  FaInfo,
 } from "react-icons/fa";
 import { createProduct } from "../../services/productService";
 import { useProducts } from "../../context/ProductContext";
 
 const ProductCreate = () => {
   const navigate = useNavigate();
-  const { 
-    curreSymbol, 
-    categories, 
-    fetchCategories, 
-    categoriesLoading 
-  } = useProducts();
+  const { curreSymbol, categories, fetchCategories, categoriesLoading } =
+    useProducts();
 
   // Initialize form state
   const [formData, setFormData] = useState({
-    // Basic Info
     name: "",
     description: "",
     shortDescription: "",
-
-    // Pricing
     price: "",
     originalPrice: "",
     discount: "",
-
-    // Categorization
     category: "",
     subcategory: "",
     brand: "",
-
-    // Images
     mainImage: "",
     images: [],
-
-    // Variants
     colors: [],
     sizes: [],
-
-    // Details
     tags: [],
     features: [],
     specs: [{ key: "", value: "" }],
-
-    // Stock & Status
     stock: "",
     inStock: true,
     isFeatured: false,
     status: "active",
   });
 
-  // Form errors
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-
-  // File states
   const [mainImageFile, setMainImageFile] = useState(null);
   const [additionalImageFiles, setAdditionalImageFiles] = useState([]);
   const [mainImagePreview, setMainImagePreview] = useState("");
   const [additionalImagePreviews, setAdditionalImagePreviews] = useState([]);
-
-  // Temporary states
   const [tagInput, setTagInput] = useState("");
   const [featureInput, setFeatureInput] = useState("");
 
-  // Fetch categories on component mount
+  // State for category-specific data
+  const [categoryData, setCategoryData] = useState({
+    colors: [],
+    sizes: [],
+    productType: "",
+    sizeMeaning: "",
+  });
+
+  // Fetch categories
   useEffect(() => {
     if (categories.length === 0) {
       fetchCategories();
     }
   }, [categories, fetchCategories]);
 
-  // Common sizes
-  const commonSizes = {
-    fashion: ["XS", "S", "M", "L", "XL", "XXL"],
-    shoes: ["7", "8", "9", "10", "11", "12"],
-    clothing: ["XS", "S", "M", "L", "XL", "XXL"],
-    default: ["One Size"],
-  };
+  // Update category data when category changes
+  useEffect(() => {
+    if (formData.category) {
+      const selectedCategory = categories.find(
+        (cat) => cat.id === formData.category || cat._id === formData.category
+      );
 
-  // Common colors
+      if (selectedCategory) {
+        // Set category-specific colors and sizes
+        setCategoryData({
+          colors: selectedCategory.defaultColors || [],
+          sizes: selectedCategory.defaultSizes || [],
+          productType: selectedCategory.productType || "",
+          sizeMeaning: selectedCategory.sizeMeaning || "",
+        });
+
+        // Reset product colors and sizes
+        setFormData(prev => ({
+          ...prev,
+          colors: [],
+          sizes: []
+        }));
+
+        // Show info
+        toast.info(`Loaded ${selectedCategory.productType} options`, {
+          duration: 2000,
+        });
+      }
+    } else {
+      // Reset category data
+      setCategoryData({
+        colors: [],
+        sizes: [],
+        productType: "",
+        sizeMeaning: "",
+      });
+    }
+  }, [formData.category, categories]);
+
+  // Common fallback colors
   const commonColors = [
-    { name: "Black", hex: "#000000", value: "black" },
-    { name: "White", hex: "#FFFFFF", value: "white" },
-    { name: "Red", hex: "#DC2626", value: "red" },
-    { name: "Blue", hex: "#2563EB", value: "blue" },
-    { name: "Green", hex: "#059669", value: "green" },
-    { name: "Yellow", hex: "#D97706", value: "yellow" },
-    { name: "Purple", hex: "#7C3AED", value: "purple" },
-    { name: "Gray", hex: "#6B7280", value: "gray" },
-    { name: "Brown", hex: "#92400E", value: "brown" },
-    { name: "Pink", hex: "#DB2777", value: "pink" },
+    { name: "Black", hex: "#000000", value: "black", type: "color" },
+    { name: "White", hex: "#FFFFFF", value: "white", type: "color" },
+    { name: "Red", hex: "#DC2626", value: "red", type: "color" },
+    { name: "Blue", hex: "#2563EB", value: "blue", type: "color" },
+    { name: "Green", hex: "#059669", value: "green", type: "color" },
   ];
+
+  // Common fallback sizes
+  const commonSizes = ["One Size"];
 
   // Handle input changes
   const handleChange = (e) => {
@@ -124,7 +140,6 @@ const ProductCreate = () => {
       [name]: type === "checkbox" ? checked : value,
     }));
 
-    // Clear error for this field
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -146,7 +161,7 @@ const ProductCreate = () => {
       }
     }
 
-    // Auto-calculate price if discount is provided
+    // Auto-calculate price
     if (name === "discount" && formData.originalPrice) {
       const originalPrice = parseFloat(formData.originalPrice);
       const discount = parseFloat(value) || 0;
@@ -157,35 +172,28 @@ const ProductCreate = () => {
     }
   };
 
-  // Get subcategories based on selected category
+  // Get subcategories
   const getSubcategories = () => {
     if (!formData.category) return [];
-    
+
     const selectedCategory = categories.find(
-      cat => cat.id === formData.category || cat._id === formData.category
+      (cat) => cat.id === formData.category || cat._id === formData.category
     );
-    
-    return  selectedCategory?.subcategories || [];
+
+    return selectedCategory?.subcategories || [];
   };
 
-  // Get available sizes based on category
-  const getAvailableSizes = () => {
-    if (!formData.category) return commonSizes.default;
-    
-    const selectedCategory = categories.find(
-      cat => cat.id === formData.category || cat._id === formData.category
-    );
-    
-    const categoryType = selectedCategory?.type?.toLowerCase();
-    
-    if (categoryType && commonSizes[categoryType]) {
-      return commonSizes[categoryType];
-    }
-    
-    return commonSizes.default;
+  // Get colors to display (use category colors if available, otherwise common colors)
+  const getDisplayColors = () => {
+    return categoryData.colors.length > 0 ? categoryData.colors : commonColors;
   };
 
-  // Main image handler
+  // Get sizes to display
+  const getDisplaySizes = () => {
+    return categoryData.sizes.length > 0 ? categoryData.sizes : commonSizes;
+  };
+
+  // Image handlers
   const handleMainImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -199,7 +207,6 @@ const ProductCreate = () => {
     }
   };
 
-  // Additional images handler
   const handleAdditionalImagesChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 0) {
@@ -213,7 +220,6 @@ const ProductCreate = () => {
     }
   };
 
-  // Remove additional image
   const handleRemoveAdditionalImage = (index) => {
     const newFiles = [...additionalImageFiles];
     const newPreviews = [...additionalImagePreviews];
@@ -228,7 +234,6 @@ const ProductCreate = () => {
     }));
   };
 
-  // Clear main image
   const handleClearMainImage = () => {
     if (mainImagePreview) {
       URL.revokeObjectURL(mainImagePreview);
@@ -258,7 +263,10 @@ const ProductCreate = () => {
 
   // Feature handlers
   const handleAddFeature = () => {
-    if (featureInput.trim() && !formData.features.includes(featureInput.trim())) {
+    if (
+      featureInput.trim() &&
+      !formData.features.includes(featureInput.trim())
+    ) {
       setFormData((prev) => ({
         ...prev,
         features: [...prev.features, featureInput.trim()],
@@ -420,10 +428,7 @@ const ProductCreate = () => {
   if (categoriesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading categories...</p>
-        </div>
+        <LoadingSpinner message="Loading categories..." />
       </div>
     );
   }
@@ -454,31 +459,6 @@ const ProductCreate = () => {
           </div>
         </div>
       </div>
-
-      {/* Success Message */}
-      {successMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-          <div className="flex items-center space-x-3">
-            <FaCheck className="text-green-600" />
-            <div>
-              <p className="text-green-800 font-medium">{successMessage}</p>
-              <p className="text-green-600 text-sm">
-                Redirecting to products list...
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {errors.submit && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <div className="flex items-center space-x-3">
-            <FaTimes className="text-red-600" />
-            <p className="text-red-800">{errors.submit}</p>
-          </div>
-        </div>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
@@ -571,6 +551,7 @@ const ProductCreate = () => {
         {/* Pricing */}
         <div className="bg-white rounded-xl shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center space-x-2">
+            <FaDollarSign className="text-blue-500" />
             <span>Pricing</span>
           </h3>
 
@@ -679,8 +660,8 @@ const ProductCreate = () => {
                 <option value="">Select Category</option>
                 {categories.map((cat) => (
                   <option key={cat.id || cat._id} value={cat.id || cat._id}>
-                    {cat.name} 
-                    {cat.type && ` (${cat.type})`}
+                    {cat.name}
+                    {cat.productType && ` (${cat.productType})`}
                   </option>
                 ))}
               </select>
@@ -704,11 +685,15 @@ const ProductCreate = () => {
               >
                 <option value="">Select Subcategory</option>
                 {getSubcategories().map((sub) => (
-                  <option 
-                    key={sub.name || sub} 
-                    value={typeof sub === 'string' ? sub.toLowerCase() : sub.name.toLowerCase()}
+                  <option
+                    key={sub.name || sub}
+                    value={
+                      typeof sub === "string"
+                        ? sub.toLowerCase()
+                        : sub.name.toLowerCase()
+                    }
                   >
-                    {typeof sub === 'string' ? sub : sub.name}
+                    {typeof sub === "string" ? sub : sub.name}
                   </option>
                 ))}
               </select>
@@ -886,62 +871,103 @@ const ProductCreate = () => {
           <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center space-x-2">
             <FaPalette className="text-blue-500" />
             <span>Variants</span>
+            {categoryData.productType && (
+              <span className="text-sm text-gray-500 ml-2">
+                ({categoryData.productType})
+              </span>
+            )}
           </h3>
+
+          {/* Category Info */}
+          {formData.category && categoryData.productType && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <FaInfo className="text-blue-500 mt-1" />
+                <div>
+                  <p className="text-blue-800 font-medium">
+                    Using {categoryData.productType} configuration
+                  </p>
+                  {categoryData.sizeMeaning && (
+                    <p className="text-sm text-blue-600">
+                      Sizes represent: <span className="font-medium">{categoryData.sizeMeaning}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Colors */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 Available Colors
+                {!formData.category && (
+                  <span className="text-red-500 ml-2">(Select category first)</span>
+                )}
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                {commonColors.map((color) => (
-                  <button
-                    key={color.value}
-                    type="button"
-                    onClick={() => handleColorToggle(color)}
-                    className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                      formData.colors.find((c) => c.value === color.value)
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-full mb-2 border border-gray-300"
-                      style={{ backgroundColor: color.hex }}
-                    />
-                    <span className="text-xs font-medium text-gray-700">
-                      {color.name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              {formData.colors.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-sm text-gray-600 mb-2">Selected Colors:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.colors.map((color, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center space-x-2 px-3 py-1 bg-gray-100 rounded-full"
+              
+              {formData.category ? (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    {getDisplayColors().map((color) => (
+                      <button
+                        key={color.value}
+                        type="button"
+                        onClick={() => handleColorToggle(color)}
+                        className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
+                          formData.colors.find((c) => c.value === color.value)
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
                       >
                         <div
-                          className="w-3 h-3 rounded-full"
+                          className="w-10 h-10 rounded-full mb-2 border border-gray-300"
                           style={{ backgroundColor: color.hex }}
                         />
-                        <span className="text-sm text-gray-700">
+                        <span className="text-xs font-medium text-gray-700">
                           {color.name}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => handleColorToggle(color)}
-                          className="text-gray-500 hover:text-red-500"
-                        >
-                          <FaTimes className="text-xs" />
-                        </button>
-                      </div>
+                        {color.type && (
+                          <span className="text-xs text-gray-500 mt-1">({color.type})</span>
+                        )}
+                      </button>
                     ))}
                   </div>
+                  
+                  {formData.colors.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-600 mb-2">Selected Colors:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {formData.colors.map((color, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center space-x-2 px-3 py-1 bg-gray-100 rounded-full"
+                          >
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: color.hex }}
+                            />
+                            <span className="text-sm text-gray-700">
+                              {color.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleColorToggle(color)}
+                              className="text-gray-500 hover:text-red-500"
+                            >
+                              <FaTimes className="text-xs" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                  <FaPalette className="text-3xl text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">Select a category to see available colors</p>
                 </div>
               )}
             </div>
@@ -950,50 +976,61 @@ const ProductCreate = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-4">
                 Available Sizes
-              </label>
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {getAvailableSizes().map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => handleSizeToggle(size)}
-                      className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                        formData.sizes.includes(size)
-                          ? "border-blue-500 bg-blue-500 text-white"
-                          : "border-gray-300 text-gray-700 hover:border-blue-300"
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-
-                {formData.sizes.length > 0 && (
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2">
-                      Selected Sizes:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {formData.sizes.map((size, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center space-x-2 px-3 py-1 bg-gray-100 rounded-full"
-                        >
-                          <span className="text-sm text-gray-700">{size}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleSizeToggle(size)}
-                            className="text-gray-500 hover:text-red-500"
-                          >
-                            <FaTimes className="text-xs" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                {!formData.category && (
+                  <span className="text-red-500 ml-2">(Select category first)</span>
                 )}
-              </div>
+              </label>
+              
+              {formData.category ? (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {getDisplaySizes().map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => handleSizeToggle(size)}
+                        className={`px-4 py-2 rounded-lg border-2 transition-all ${
+                          formData.sizes.includes(size)
+                            ? "border-blue-500 bg-blue-500 text-white"
+                            : "border-gray-300 text-gray-700 hover:border-blue-300"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+
+                  {formData.sizes.length > 0 && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Selected Sizes:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {formData.sizes.map((size, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center space-x-2 px-3 py-1 bg-gray-100 rounded-full"
+                          >
+                            <span className="text-sm text-gray-700">{size}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleSizeToggle(size)}
+                              className="text-gray-500 hover:text-red-500"
+                            >
+                              <FaTimes className="text-xs" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+                  <FaRuler className="text-3xl text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">Select a category to see available sizes</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

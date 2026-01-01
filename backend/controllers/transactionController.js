@@ -49,7 +49,7 @@ export const initiateMpesaPayment = async (req, res) => {
       return res.status(403).json({ success: false, message: "Unauthorized" });
     }
 
-    
+      // Validate `orderId` format to avoid Mongoose CastError
 
     // Prevent duplicate pending transactions for same order
     const existingTX = await Transaction.findOne({ orderId, status: { $in: ["PENDING", "PROCESSING"] } });
@@ -161,7 +161,7 @@ export const mpesaCallback = async (req, res) => {
       return;
     }
 
-    // Verify paid amount within tolerance
+    // Confirm the paid amount matches expected value within allowed tolerance
     if (Math.abs(paidAmount - Number(transaction.amount)) > 0.01) {
       transaction.status = "FAILED";
       transaction.callbackReceived = true;

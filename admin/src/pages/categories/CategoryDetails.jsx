@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import { getIconComponent } from "../../services/icons";
 import { useProducts } from "../../context/ProductContext";
 import { formatCurrency } from "../../utils/formatCurrency";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 
 const CategoryDetails = () => {
   const { id } = useParams();
@@ -203,10 +204,7 @@ const CategoryDetails = () => {
   if (categoriesLoading || !category) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading category details...</p>
-        </div>
+        <LoadingSpinner message="Loading category details..." />
       </div>
     );
   }
@@ -580,10 +578,7 @@ const CategoryDetails = () => {
             </div>
 
             {productsLoading ? (
-              <div className="text-center py-8">
-                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                <p className="mt-4 text-gray-600">Loading products...</p>
-              </div>
+              <LoadingSpinner size="sm" message="Loading products..." />
             ) : products.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.slice(0, 9).map((product) => (

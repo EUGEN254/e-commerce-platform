@@ -3,6 +3,10 @@ import "./index.css";
 import App from "./App.jsx";
 import { BrowserRouter } from "react-router-dom";
 import axios from "axios";
+import { suppressConsoleLogs } from "./utils/errorHandler";
+
+// Suppress console logs in production
+suppressConsoleLogs();
 
 // Import all providers
 import { CartProvider } from "./context/CartContext.jsx";

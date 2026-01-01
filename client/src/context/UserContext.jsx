@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import axios from "axios";
 import { toast } from "sonner";
+import { logError } from "../utils/errorHandler";
 
 
 const UserContext = createContext();
@@ -158,7 +159,7 @@ const checkAuth = useCallback(async () => {
           };
         }
       } catch (error) {
-        console.error("Verification error:", error);
+        logError("verifyEmail", error);
         return {
           success: false,
           message:
@@ -188,7 +189,7 @@ const checkAuth = useCallback(async () => {
         countdown: data.countdown, // ADD THIS
       };
     } catch (error) {
-      console.error("Resend error:", error);
+      logError("resendVerificationCode", error);
       return {
         success: false,
         message:
@@ -215,7 +216,7 @@ const logout = useCallback(async () => {
     );
     toast.success(res.data.message);
   } catch (error) {
-    console.error("Logout error:", error);
+    logError("logout", error);
     toast.error("Logout failed");
   }
 }, [backendUrl]);
@@ -227,7 +228,7 @@ const logout = useCallback(async () => {
       });
       setWishlist(response.data.data || []);
     } catch (error) {
-      console.error("Error fetching wishlist:", error);
+      logError("fetchWishlist", error);
     }
   }, [backendUrl]);
 
@@ -242,7 +243,7 @@ const logout = useCallback(async () => {
         setWishlist(response.data.data || []);
         return { success: true, inWishlist: response.data.inWishlist };
       } catch (error) {
-        console.error("Error toggling wishlist:", error);
+        logError("toggleWishlist", error);
         return { success: false };
       }
     },

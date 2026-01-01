@@ -14,7 +14,7 @@ const loginAdmin = async (req, res) => {
       });
     }
 
-    // Normalize email
+    // Normalize email to lowercase for consistent lookup
     const normalizedEmail = email.toLowerCase();
 
     // 401 — Unauthorized (generic message)
@@ -35,7 +35,7 @@ const loginAdmin = async (req, res) => {
       });
     }
 
-    // Generate minimal JWT payload
+    // Create JWT token with a minimal payload
     const token = generateToken(
       { id: admin._id, role: admin.role },
       rememberMe
@@ -52,7 +52,7 @@ const loginAdmin = async (req, res) => {
         : 24 * 60 * 60 * 1000,   // 1 day
     };
 
-    // Set cookie
+    // Set admin authentication cookie
     res.cookie("adminToken", token, cookieOptions);
 
     // Remove password safely

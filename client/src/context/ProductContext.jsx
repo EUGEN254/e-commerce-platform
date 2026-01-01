@@ -8,6 +8,7 @@ import React, {
   useRef,
 } from "react";
 import axios from "axios";
+import { logError } from "../utils/errorHandler";
 
 const ProductContext = createContext();
 
@@ -43,7 +44,7 @@ export function ProductProvider({ children }) {
       cacheRef.current.bySubcategory.clear();
     } catch (err) {
       setError(err.message);
-      console.error("Error fetching products:", err);
+      logError("fetchProducts", err);
     } finally {
       setLoading(false);
     }
@@ -54,7 +55,7 @@ export function ProductProvider({ children }) {
       const response = await axios.get(`${backendUrl}/api/products/featured`);
       setFeaturedProducts(response.data.data || []);
     } catch (err) {
-      console.error("Error fetching featured products:", err);
+      logError("fetchFeaturedProducts", err);
     }
   }, [backendUrl]);
 
@@ -63,7 +64,7 @@ export function ProductProvider({ children }) {
       const response = await axios.get(`${backendUrl}/api/categories`);
       setCategories(response.data.data || []);
     } catch (err) {
-      console.error("Error fetching categories:", err);
+      logError("fetchCategories", err);
     }
   }, [backendUrl]);
 
@@ -80,7 +81,7 @@ export function ProductProvider({ children }) {
         const response = await axios.get(`${backendUrl}/api/products/${id}`);
         return response.data.data;
       } catch (err) {
-        console.error("Error fetching product:", err);
+        logError("getProductById", err);
         return null;
       }
     },
@@ -114,7 +115,7 @@ export function ProductProvider({ children }) {
 
         return results;
       } catch (err) {
-        console.error("Error searching products:", err);
+        logError("searchProducts", err);
 
         // Fallback to client-side search
         const lowerQuery = query.toLowerCase();
@@ -162,7 +163,7 @@ export function ProductProvider({ children }) {
         cacheRef.current.byCategory.set(category, result);
         return result;
       } catch (err) {
-        console.error("Error fetching products by category:", err);
+        logError("getProductsByCategory", err);
 
         // Return whatever we have
         cacheRef.current.byCategory.set(category, filteredFromState);
@@ -205,7 +206,7 @@ export function ProductProvider({ children }) {
         cacheRef.current.bySubcategory.set(cacheKey, result);
         return result;
       } catch (err) {
-        console.error("Error fetching products by subcategory:", err);
+        logError("getProductsBySubcategory", err);
 
         // Return whatever we have
         cacheRef.current.bySubcategory.set(cacheKey, filteredFromState);

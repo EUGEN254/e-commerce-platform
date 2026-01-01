@@ -69,7 +69,7 @@ export const stkPush = async ({ phoneNumber, amount, orderId }) => {
     throw new Error("Invalid amount. Must be between 1 and 999999");
   }
 
-  // Ensure phone is in 254xxxxxxxx format
+  // Normalize phone to 254xxxxxxxx format
   let formattedPhone = phoneNumber.startsWith("0")
     ? `254${phoneNumber.slice(1)}`
     : phoneNumber.startsWith("+254")

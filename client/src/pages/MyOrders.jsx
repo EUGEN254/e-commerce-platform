@@ -24,7 +24,8 @@ import {
   FaExclamationCircle,
 } from "react-icons/fa";
 import { useCart } from "../context/CartContext";
-import { formatCurrency } from "../utils/formatCurrency";
+import formatCurrency from "../utils/formatCurrency";
+import { logError } from "../utils/errorHandler";
 
 const MyOrders = () => {
   const [activeFilter, setActiveFilter] = useState("all");
@@ -68,7 +69,7 @@ const MyOrders = () => {
         setError(response.data.message || "Failed to fetch orders");
       }
     } catch (err) {
-      console.error("Error fetching orders:", err);
+      logError("MyOrders fetchOrders", err);
       setError(
         err.response?.data?.message ||
           "Failed to load orders. Please try again."

@@ -24,6 +24,7 @@ import {
 import { formatCurrency } from "../../utils/formatCurrency";
 import { useProducts } from "../../context/ProductContext";
 import { getIconComponent } from "../../services/icons";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 
 // Delete Confirmation Modal Component
 const DeleteConfirmationModal = ({
@@ -73,12 +74,9 @@ const DeleteConfirmationModal = ({
               className="w-full inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isLoading ? (
-                <>
-                  <FaSpinner className="animate-spin mr-2" />
-                  Deleting...
-                </>
+                <span>Deleting...</span>
               ) : (
-                "Delete"
+                <span>Delete</span>
               )}
             </button>
             <button
@@ -219,6 +217,7 @@ const ProductsList = () => {
       if (isBulkDelete) {
         await bulkDelete(selectedProducts);
         setSelectedProducts([]);
+        fetchProducts();
       } else {
         await deleteProduct(productId);
         setSelectedProducts((prev) => prev.filter((id) => id !== productId));
@@ -261,7 +260,7 @@ const ProductsList = () => {
   };
 
   // Apply filters to API
-  const applyFilters = useCallback(() => {
+  const applyFilters = useCallback((skipCache = false) => {
     const filters = {};
     if (searchTerm) filters.search = searchTerm;
     
@@ -274,6 +273,11 @@ const ProductsList = () => {
     if (selectedStock !== "all") filters.stock = selectedStock;
     if (sortField)
       filters.sort = `${sortDirection === "desc" ? "-" : ""}${sortField}`;
+
+    // Add skipCache flag if refresh was clicked
+    if (skipCache) {
+      filters.skipCache = true;
+    }
 
     console.log("Sending filters to API:", filters);
     fetchProducts(filters);
@@ -342,7 +346,6 @@ const ProductsList = () => {
     );
   };
 
-
   // Format date
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -351,25 +354,6 @@ const ProductsList = () => {
       day: "numeric",
       year: "numeric",
     });
-  };
-
-  // Get category icon
-  // Get category icon from utility
-  const getCategoryIcon = (category) => {
-    const iconMap = {
-      shoes: "FaShoePrints",
-      electronics: "FaLaptop",
-      clothing: "FaTshirt",
-      mobile: "FaMobileAlt",
-      accessories: "FaShoppingBag",
-      home: "FaHome",
-      beauty: "GiLipstick",
-      sports: "GiWeightLiftingUp",
-      books: "FaBook",
-      fashion: "GiLargeDress",
-    };
-    
-    return iconMap[category] || "FaBox";
   };
 
   // Calculate statistics
@@ -585,7 +569,7 @@ const ProductsList = () => {
               </Link>
 
               <button
-                onClick={applyFilters}
+                onClick={() => applyFilters(true)}
                 disabled={loading || isDeleting}
                 className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
               >
@@ -661,9 +645,7 @@ const ProductsList = () => {
       {/* Products Table */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
         {showTableSpinner ? (
-          <div className="flex justify-center items-center py-12">
-            <FaSpinner className="animate-spin text-4xl text-blue-500" />
-          </div>
+          <LoadingSpinner />
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -798,7 +780,7 @@ const ProductsList = () => {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-2">
-                            {React.createElement(getIconComponent(getCategoryIcon(product.category)), {
+                            {React.createElement(getIconComponent(product.category), {
                               className: "text-lg text-blue-500",
                             })}
                             <div className="min-w-0">

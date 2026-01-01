@@ -13,6 +13,7 @@ import { cn } from "../lib/utils";
 import { Button } from "../components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import Price from "../components/ui/Price";
 import { Badge } from "../components/ui/badge";
 import truncateToThreeWords from "../utils/truncateToThreeWords.js";
 
@@ -128,12 +129,93 @@ export function Cart() {
 
         {/* GRID LAYOUT - Better mobile responsiveness */}
         <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
-          {/* LEFT — CART ITEMS (SCROLLABLE) */}
+          {/* LEFT — CART ITEMS (TABLE on desktop, CARDS on mobile) */}
           <div className="lg:col-span-2 order-2 lg:order-1">
             <div className="bg-card rounded-xl sm:rounded-2xl shadow-lg overflow-hidden">
-              {/* Scrollable container with better mobile handling */}
+              {/* Desktop: Compact Table */}
+              <div className="hidden lg:block p-4">
+                <div className="max-h-[calc(100vh-180px)] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin", scrollbarColor: "#cbd5e1 transparent" }}>
+                  <div className="overflow-x-auto">
+                    <table className="w-full table-fixed">
+                      <thead className="text-sm text-muted-foreground border-b sticky top-0 bg-card z-10">
+                      <tr>
+                        <th className="text-left py-2">Product</th>
+                        <th className="text-left py-2">Price</th>
+                        <th className="text-center py-2">Quantity</th>
+                        <th className="text-right py-2">Subtotal</th>
+                        <th className="text-right py-2">Actions</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      {cart.map((item) => (
+                        <tr key={item.cartItemId} className="border-b last:border-b-0 hover:bg-muted/40">
+                          <td className="py-4 pr-4">
+                            <div className="flex items-center gap-4">
+                              <img
+                                src={item.image || item.mainImage}
+                                alt={item.name}
+                                className="w-16 h-16 object-cover rounded-md"
+                                onError={(e) => (e.target.src = '/placeholder-image.jpg')}
+                              />
+                              <div className="min-w-0">
+                                <button
+                                  onClick={() => navigate(`/product/${item.id}`)}
+                                  className="text-left font-semibold hover:text-primary truncate"
+                                >
+                                  {item.name}
+                                </button>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {(item.selectedColor || item.selectedSize) && (
+                                    <span>
+                                      {item.selectedColor && `Color: ${item.selectedColor.name || item.selectedColor.value}`}
+                                      {item.selectedSize && ` • Size: ${item.selectedSize}`}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4">
+                            <div className="font-medium"><Price amount={(item.price || 0)} /></div>
+                          </td>
+                          <td className="py-4 text-center">
+                            <div className="inline-flex items-center border rounded-md overflow-hidden">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
+                                disabled={item.quantity <= 1}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <div className="px-4">{item.quantity}</div>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
+                                disabled={item.stock && item.quantity >= item.stock}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                          <td className="py-4 text-right font-bold"><Price amount={((item.price || 0) * item.quantity)} /></td>
+                          <td className="py-4 text-right">
+                            <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.cartItemId)} className="text-destructive">
+                              <Trash2 className="h-4 w-4 mr-1" /> Remove
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile: Card Stack (existing) */}
               <div
-                className="max-h-[calc(100vh-300px)] sm:max-h-[calc(100vh-200px)] overflow-y-auto pr-1 sm:pr-2"
+                className="max-h-[calc(100vh-180px)] sm:max-h-[calc(100vh-120px)] overflow-y-auto pr-1 sm:pr-2 lg:hidden"
                 style={{
                   scrollbarWidth: "thin",
                   scrollbarColor: "#cbd5e1 transparent",
@@ -142,7 +224,7 @@ export function Cart() {
                 <AnimatePresence>
                   {cart.map((item, index) => (
                     <motion.div
-                      key={item.id}
+                      key={item.cartItemId}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{
@@ -173,9 +255,7 @@ export function Cart() {
                             src={item.image || item.mainImage}
                             alt={item.name}
                             className="w-full h-full object-cover rounded-lg"
-                            onError={(e) =>
-                              (e.target.src = "/placeholder-image.jpg")
-                            }
+                            onError={(e) => (e.target.src = "/placeholder-image.jpg")}
                           />
                         </div>
 
@@ -195,9 +275,7 @@ export function Cart() {
                             <div className="flex flex-wrap gap-2 mt-1">
                               {item.selectedColor && (
                                 <Badge variant="outline" className="text-xs">
-                                  Color:{" "}
-                                  {item.selectedColor.name ||
-                                    item.selectedColor.value}
+                                  Color: {item.selectedColor.name || item.selectedColor.value}
                                 </Badge>
                               )}
                               {item.selectedSize && (
@@ -215,15 +293,7 @@ export function Cart() {
 
                           {/* Price - Mobile layout */}
                           <div className="flex items-center gap-2 mt-2">
-                            <span className="font-bold text-base sm:text-lg">
-                              {currSymbol}{(item.price || 0).toFixed(2)}
-                            </span>
-                            {item.originalPrice &&
-                              item.originalPrice > item.price && (
-                                <span className="text-xs sm:text-sm text-muted-foreground line-through">
-                                  {currSymbol}{(item.originalPrice || 0).toFixed(2)}
-                                </span>
-                              )}
+                            <Price amount={(item.price || 0)} originalAmount={(item.originalPrice || 0)} />
                           </div>
 
                           {/* Mobile-only actions */}
@@ -232,26 +302,18 @@ export function Cart() {
                               <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={() =>
-                                  updateQuantity(item.id, item.quantity - 1)
-                                }
+                                onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
                                 disabled={item.quantity <= 1}
                                 className="h-8 w-8"
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
-                              <span className="w-6 text-center font-medium">
-                                {item.quantity}
-                              </span>
+                              <span className="w-6 text-center font-medium">{item.quantity}</span>
                               <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={() =>
-                                  updateQuantity(item.id, item.quantity + 1)
-                                }
-                                disabled={
-                                  item.stock && item.quantity >= item.stock
-                                }
+                                onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
+                                disabled={item.stock && item.quantity >= item.stock}
                                 className="h-8 w-8"
                               >
                                 <Plus className="h-3 w-3" />
@@ -260,11 +322,10 @@ export function Cart() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => removeFromCart(item.id)}
+                              onClick={() => removeFromCart(item.cartItemId)}
                               className="text-destructive text-xs"
                             >
-                              <Trash2 className="h-3 w-3 mr-1" />
-                              Remove
+                              <Trash2 className="h-3 w-3 mr-1" /> Remove
                             </Button>
                           </div>
                         </div>
@@ -288,23 +349,17 @@ export function Cart() {
                           <Button
                             variant="outline"
                             size="icon"
-                            onClick={() =>
-                              updateQuantity(item.id, item.quantity - 1)
-                            }
+                            onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
                             disabled={item.quantity <= 1}
                             className="flex-shrink-0"
                           >
                             <Minus className="h-4 w-4" />
                           </Button>
-                          <span className="w-8 text-center font-medium">
-                            {item.quantity}
-                          </span>
+                          <span className="w-8 text-center font-medium">{item.quantity}</span>
                           <Button
                             variant="outline"
                             size="icon"
-                            onClick={() =>
-                              updateQuantity(item.id, item.quantity + 1)
-                            }
+                            onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
                             disabled={item.stock && item.quantity >= item.stock}
                             className="flex-shrink-0"
                           >
@@ -314,13 +369,11 @@ export function Cart() {
 
                         {/* Subtotal & Remove */}
                         <div className="ml-4 md:ml-6 text-right flex-shrink-0 min-w-[100px]">
-                          <p className="font-bold text-base md:text-lg">
-                            {currSymbol} {((item.price || 0) * item.quantity).toFixed(2)}
-                          </p>
+                          <p className="font-bold text-base md:text-lg"><Price amount={((item.price || 0) * item.quantity)} /></p>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeFromCart(item.id)}
+                            onClick={() => removeFromCart(item.cartItemId)}
                             className="text-destructive mt-2"
                           >
                             <Trash2 className="h-4 w-4 mr-1" />
@@ -332,22 +385,12 @@ export function Cart() {
                       {/* Mobile Subtotal - Hidden on desktop */}
                       <div className="sm:hidden w-full pt-3 border-t">
                         <div className="flex justify-between items-center">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/product/${item.id}`)}
-                            className="gap-1 text-xs"
-                          >
-                            <Eye className="h-3 w-3" />
-                            View Product Details
+                          <Button variant="ghost" size="sm" onClick={() => navigate(`/product/${item.id}`)} className="gap-1 text-xs">
+                            <Eye className="h-3 w-3" /> View Product Details
                           </Button>
                           <div className="text-right">
-                            <p className="text-xs text-muted-foreground">
-                              Subtotal:
-                            </p>
-                            <p className="font-bold">
-                              {currSymbol}{((item.price || 0) * item.quantity).toFixed(2)}
-                            </p>
+                            <p className="text-xs text-muted-foreground">Subtotal:</p>
+                            <p className="font-bold"><Price amount={((item.price || 0) * item.quantity)} /></p>
                           </div>
                         </div>
                       </div>
@@ -370,18 +413,14 @@ export function Cart() {
                   <span className="text-muted-foreground">
                     Items ({itemCount})
                   </span>
-                  <span className="font-medium">
-                    {currSymbol}{estimatedTotals.subtotal}
-                  </span>
+                  <span className="font-medium"><Price amount={Number(estimatedTotals.subtotal)} /></span>
                 </div>
 
                 {/* Option 1: Show shipping as "Calculated at checkout" */}
                 <div className="flex justify-between text-sm sm:text-base">
                   <span className="text-muted-foreground">Shipping</span>
                   <div className="text-right">
-                    <span className="font-medium">
-                      {currSymbol}{estimatedTotals.shipping}
-                    </span>
+                    <span className="font-medium"><Price amount={Number(estimatedTotals.shipping)} /></span>
                     <p className="text-xs text-muted-foreground">
                       Calculated at checkout
                     </p>
@@ -403,15 +442,13 @@ export function Cart() {
 
                 <div className="flex justify-between text-sm sm:text-base">
                   <span className="text-muted-foreground">Estimated Tax (16%)</span>
-                  <span className="font-medium">
-                    {currSymbol}{estimatedTotals.tax}
-                  </span>
+                  <span className="font-medium"><Price amount={Number(estimatedTotals.tax)} /></span>
                 </div>
 
                 <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between font-bold text-base sm:text-lg mb-2">
                     <span>Estimated Total</span>
-                    <span>{currSymbol}{estimatedTotals.total}</span>
+                    <span><Price amount={Number(estimatedTotals.total)} /></span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     *Final total calculated after shipping address

@@ -4,6 +4,8 @@ import {
   logoutAdminRequest,
   getAdminProfile,
 } from "../services/authService.js";
+import { setupGlobalErrorHandling } from "../utils/axiosInstance.js";
+import { getErrorMessage } from "../utils/errorHandler.js";
 import { toast } from "sonner";
 
 const AuthContext = createContext();
@@ -12,6 +14,21 @@ export const AuthProvider = ({ children }) => {
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Setup global error interceptor on mount
+  useEffect(() => {
+    setupGlobalErrorHandling(() => {
+      // Callback when 401/403 error occurs
+      handleAuthError();
+    });
+  }, []);
+
+  // Handle authentication errors (401/403)
+  const handleAuthError = () => {
+    setAdmin(null);
+    // Don't show toast here, let individual operations show their own error
+    // Only clear the admin state to force re-login
+  };
+
   // Auto-login on refresh
   useEffect(() => {
     const fetchAdmin = async () => {
@@ -19,6 +36,7 @@ export const AuthProvider = ({ children }) => {
         const res = await getAdminProfile();
         setAdmin(res.data.adminData);
       } catch (error) {
+        // Silently fail - user is not logged in
         setAdmin(null);
       } finally {
         setLoading(false);
@@ -32,13 +50,28 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const res = await loginAdminRequest({ email, password, rememberMe });
-      setAdmin(res.data.adminData);
-      toast.success(res.data.message);
-      return { success: true, message: res.data.message };
+      
+      // Handle different response structures
+      const adminData = res.data?.adminData || res.data?.data?.adminData || res.data?.admin;
+      
+      if (!adminData) {
+        throw new Error('Invalid response format from server');
+      }
+
+      setAdmin(adminData);
+      toast.success(res.data?.message || "Login successful!");
+      
+      return { 
+        success: true, 
+        message: res.data?.message || "Login successful!" 
+      };
     } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      toast.error(errorMessage);
+      
       return {
         success: false,
-        message: error.response?.data?.message || "Login failed. Try again.",
+        message: errorMessage,
       };
     } finally {
       setLoading(false);
@@ -47,11 +80,14 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      const res = await logoutAdminRequest();
+      await logoutAdminRequest();
       setAdmin(null);
-      toast.success(res.data.message);
+      toast.success("Logged out successfully!");
     } catch (error) {
-      toast.error("Logout failed");
+      const errorMessage = getErrorMessage(error);
+      // Still logout on error
+      setAdmin(null);
+      toast.error("Logout error: " + errorMessage);
     }
   };
 
@@ -62,4 +98,12 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  
+  return context;
+};

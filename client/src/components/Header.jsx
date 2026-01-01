@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Skeleton } from "./ui/Skeleton";
 import { getTimeRemainingColor } from "../utils/offerHelper";
+import Price from "./ui/Price";
 import { useOffers } from "../context/Offers";
 
 const Header = () => {
@@ -139,7 +140,7 @@ const Header = () => {
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                           
                           <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold">
-                            ${offer.offerPrice?.toFixed(2) || "0.00"}
+                              <Price amount={offer.offerPrice} className="text-xs font-bold" />
                           </div>
                           
                           {discountPercentage > 0 && (

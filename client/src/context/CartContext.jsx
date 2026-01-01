@@ -112,20 +112,22 @@ export function CartProvider({ children }) {
     });
   };
 
-  const removeFromCart = useCallback((productId) => {
+  const removeFromCart = useCallback((cartItemId) => {
     setItems((prev) => {
-      const removeItem = prev.find((item) => item.id === productId);
+      const removeItem = prev.find((item) => item.cartItemId === cartItemId);
       if (removeItem) {
         toast.info(`Removed ${removeItem.name} from cart`);
       }
-      return prev.filter((item) => item.id !== productId);
+      return prev.filter((item) => item.cartItemId !== cartItemId);
     });
   }, []);
 
-  const updateQuantity = useCallback((productId, quantity) => {
+  const updateQuantity = useCallback((cartItemId, quantity) => {
     if (quantity < 1) return;
     setItems((prev) =>
-      prev.map((item) => (item.id === productId ? { ...item, quantity } : item))
+      prev.map((item) =>
+        item.cartItemId === cartItemId ? { ...item, quantity } : item
+      )
     );
   }, []);
 

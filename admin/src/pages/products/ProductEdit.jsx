@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import {
   FaBox,
   FaArrowLeft,
@@ -562,9 +563,7 @@ const ProductEdit = () => {
     }
   };
 
-  // Format currency (use shared util)
-  // imported from utils at top
-  // Format date
+  // Format currency 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -601,10 +600,7 @@ const ProductEdit = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading product data...</p>
-        </div>
+        <LoadingSpinner message="Loading product data..." />
       </div>
     );
   }

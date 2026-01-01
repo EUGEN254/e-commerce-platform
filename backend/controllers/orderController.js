@@ -6,7 +6,7 @@ export const createOrder = async (req, res) => {
     const userId = req.user._id;
     const { shippingInfo, paymentMethod, items, cartTotals } = req.body;
 
-    // Validate required fields
+    // Ensure required fields are present
     if (!shippingInfo || !items || items.length === 0) {
       return res.status(400).json({
         success: false,
@@ -21,7 +21,7 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Validate items array
+    // Validate items array structure
     if (!Array.isArray(items) || items.some(item => !item.productId || item.price === undefined)) {
       return res.status(400).json({
         success: false,
@@ -102,7 +102,7 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Map items to schema format with validation
+    // Format items for database storage and validate each entry
     const formattedItems = items.map((item) => ({
       productId: item.productId,
       name: item.name || "Unknown Product",
@@ -111,7 +111,7 @@ export const createOrder = async (req, res) => {
       Subtotal: Number((item.price * item.quantity).toFixed(2)),
     }));
 
-    // Create order in database
+    // Persist order to the database
     const order = await Order.create({
       orderNumber: uuidv4(),
       userId,
@@ -177,10 +177,10 @@ export const getUserOrders = async (req, res) => {
       ];
     }
 
-    // Get total count for pagination
+    // Compute total count for pagination
     const totalOrders = await Order.countDocuments(query);
 
-    // Get orders with pagination
+    // Fetch orders with pagination
     const orders = await Order.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)

@@ -178,7 +178,7 @@ export const getRecentActivities = async (req, res) => {
   }
 };
 
-// Helper function to generate mock sales data
+// Generate mock sales data for dashboard (placeholder)
 const generateMockSalesData = (range) => {
   const data = [];
   const now = new Date();

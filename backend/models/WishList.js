@@ -22,7 +22,7 @@ const wishlistSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Ensure unique products in wishlist
+// Validate that wishlist items contain unique products
 wishlistSchema.path('items').validate(function(value) {
   const productIds = value.map(item => item.product.toString());
   return new Set(productIds).size === productIds.length;

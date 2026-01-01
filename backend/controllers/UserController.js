@@ -18,7 +18,7 @@ const registerUser = async (req, res) => {
   try {
     const { name, email, password, confirmPassword } = req.body;
 
-    // check if all required fields are present
+    // Validate required request fields
     if (!name || !email || !password || !confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -26,7 +26,7 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // check if passwords match
+    // Ensure provided passwords match
     if (password !== confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -44,7 +44,7 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // check if user already exists
+    // Look up existing user by email
     const existingUser = await User.findOne({ email });
 
     // If user exists but is not verified, resend verification
@@ -180,7 +180,7 @@ const verifyEmail = async (req, res) => {
       });
     }
 
-    // Check if verification code matches and is not expired
+    // Ensure verification code matches and hasn't expired
     if (user.verificationCode !== verificationCode) {
       // Increment verification attempts
       user.verificationAttempts += 1;
@@ -331,7 +331,7 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // check if email is verified
+    // Ensure user's email is verified
     if (!user.isVerified) {
       return res.status(403).json({
         success: false,
@@ -342,7 +342,7 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // check password
+    // Verify provided password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({
@@ -484,7 +484,7 @@ const sendResetOtp = async (req, res) => {
   }
 };
 
-// Verify password reset OTP
+// Validate password reset OTP
 const verifyResetOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;

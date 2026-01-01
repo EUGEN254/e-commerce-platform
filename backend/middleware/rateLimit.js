@@ -7,7 +7,7 @@ export default function rateLimit({ windowMs = 60000, max = 5 } = {}) {
     const now = Date.now();
     const entry = limits.get(userKey) || { count: 0, start: now };
 
-    // reset window
+    // Reset window when it has expired
     if (now - entry.start > windowMs) {
       entry.count = 0;
       entry.start = now;

@@ -18,6 +18,7 @@ import OfferDetails from "./pages/OfferDetails";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ForgotPassword from "./pages/ForgotPassword";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const App = () => {
   const location = useLocation();
@@ -36,75 +37,77 @@ const App = () => {
   );
 
   return (
-    <div className="flex flex-col min-h-screen max-w-310 mx-auto">
-      {/* Toast Notifications */}
-       <Toaster/>
+    <ErrorBoundary>
+      <div className="flex flex-col min-h-screen max-w-310 mx-auto">
+        {/* Toast Notifications */}
+         <Toaster/>
 
-      {/* App Layout */}
-      <div className="flex-1 flex flex-col">
-        {!hideLayout && <Navbar />}
+        {/* App Layout */}
+        <div className="flex-1 flex flex-col">
+          {!hideLayout && <Navbar />}
 
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col">
-          <Routes>
-            {/* Authentication routes - No ProtectedRoute to prevent flash */}
+          {/* Main Content */}
+          <main className="flex-1 flex flex-col">
+            <Routes>
+              {/* Authentication routes - No ProtectedRoute to prevent flash */}
 
-            <Route
-              path="/create-account"
-              element={
-                <ProtectedRoute requireAuth={false}>
-                  <Auth />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reset-password"
-              element={
-                <ProtectedRoute requireAuth={false}>
-                  <ForgotPassword />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/create-account"
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <Auth />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reset-password"
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <ForgotPassword />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Main area - Public routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/shop" element={<Shope />} />
-            <Route path="/shop/:category" element={<Shope />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/product/:id" element={<ProductDescription />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/offers" element={<Offers />} />
-            <Route path="/offers/:id" element={<OfferDetails />} />
-            <Route path="/checkout" element={<Checkout />} />
+              {/* Main area - Public routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/shop" element={<Shope />} />
+              <Route path="/shop/:category" element={<Shope />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/product/:id" element={<ProductDescription />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/offers" element={<Offers />} />
+              <Route path="/offers/:id" element={<OfferDetails />} />
+              <Route path="/checkout" element={<Checkout />} />
 
-            {/* Protected routes - Require authentication */}
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected routes - Require authentication */}
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/my-orders"
-              element={
-                <ProtectedRoute>
-                  <MyOrders />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/my-orders"
+                element={
+                  <ProtectedRoute>
+                    <MyOrders />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Not found route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </main>
+              {/* Not found route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </main>
 
-        {!hideLayout && <Footer />}
+          {!hideLayout && <Footer />}
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 

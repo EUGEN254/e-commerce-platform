@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import {
   FaBox,
   FaShoppingCart,
@@ -21,7 +22,6 @@ import {
   FaWarehouse,
   FaCreditCard,
   FaPercent,
-  FaSpinner,
   FaFilter,
   FaCalendarAlt,
   FaSync,
@@ -361,10 +361,7 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="text-center">
-          <FaSpinner className="animate-spin text-4xl text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
+        <LoadingSpinner size="lg" message="Loading dashboard..." />
       </div>
     );
   }

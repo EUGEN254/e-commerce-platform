@@ -19,6 +19,12 @@ import {
   bulkUpdateProducts,
 } from "../services/productService.js";
 import categoryService from "../services/categoryService.js";
+import {
+  getCache,
+  setCache,
+  removeCache,
+} from "../utils/cache.js";
+import { getErrorMessage } from "../utils/errorHandler.js";
 
 const ProductContext = createContext();
 
@@ -83,13 +89,30 @@ export const ProductProvider = ({ children }) => {
 
   // Fetch all products with filters
   const fetchProducts = useCallback(async (params = {}) => {
+    // Create cache key from params
+    const cacheKey = `products_${JSON.stringify(params)}`;
+    
+    // Check if we have cached data (skip cache if explicitly requested)
+    if (!params.skipCache) {
+      const cachedData = getCache(cacheKey);
+      if (cachedData) {
+        setProducts(cachedData.data);
+        setPagination(cachedData.pagination);
+        return {
+          success: true,
+          data: cachedData.data,
+          pagination: cachedData.pagination,
+          message: "Data from cache",
+          isCache: true,
+        };
+      }
+    }
+
     setLoading(true);
     setError(null);
     try {
       const response = await getProducts(params);
-
-
-      // The response from axios contains data in response.data
+      
       // The API returns { success, data, pagination } structure
       const responseData = response.data;
 
@@ -112,6 +135,13 @@ export const ProductProvider = ({ children }) => {
       setProducts(productsData);
       setPagination(paginationData);
 
+      // Cache the results (5 minutes)
+      setCache(
+        cacheKey,
+        { data: productsData, pagination: paginationData },
+        5 * 60 * 1000
+      );
+
       return {
         success: true,
         data: productsData,
@@ -119,11 +149,8 @@ export const ProductProvider = ({ children }) => {
         message: responseData.message,
       };
     } catch (error) {
-      console.error("Error in fetchProducts:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to fetch products";
+      const errorMessage = getErrorMessage(error) || "Failed to fetch products";
+      console.error("Error in fetchProducts:", errorMessage, error);
       setError(errorMessage);
       toast.error(errorMessage);
       return { success: false, error: errorMessage };
@@ -147,11 +174,8 @@ export const ProductProvider = ({ children }) => {
         message: responseData.message,
       };
     } catch (error) {
-      console.error("Error in fetchProductById:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to fetch product details";
+      const errorMessage = getErrorMessage(error) || "Failed to fetch product details";
+      console.error("Error in fetchProductById:", errorMessage, error);
       setError(errorMessage);
       toast.error(errorMessage);
       return { success: false, error: errorMessage };
@@ -182,10 +206,7 @@ export const ProductProvider = ({ children }) => {
       };
     } catch (error) {
       console.error("Error in createProduct:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to create product";
+      const errorMessage = getErrorMessage(error) || "Failed to create product";
       setError(errorMessage);
       toast.error(errorMessage);
       return { success: false, error: errorMessage };
@@ -221,10 +242,7 @@ export const ProductProvider = ({ children }) => {
       };
     } catch (error) {
       console.error("Error in updateProduct:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to update product";
+      const errorMessage = getErrorMessage(error) || "Failed to update product";
       setError(errorMessage);
       toast.error(errorMessage);
       return { success: false, error: errorMessage };
@@ -249,16 +267,22 @@ export const ProductProvider = ({ children }) => {
         setProduct(null);
       }
 
+      // Invalidate product cache
+      removeCache("products_all");
+      // Clear all product-related caches
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("app_cache_products_")) {
+          localStorage.removeItem(key);
+        }
+      });
+
       return {
         success: responseData.success || true,
         message: responseData.message,
       };
     } catch (error) {
       console.error("Error in deleteProduct:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to delete product";
+      const errorMessage = getErrorMessage(error) || "Failed to delete product";
       setError(errorMessage);
       toast.error(errorMessage);
       return { success: false, error: errorMessage };
@@ -291,10 +315,7 @@ export const ProductProvider = ({ children }) => {
       };
     } catch (error) {
       console.error("Error in updateStatus:", error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to update status";
+      const errorMessage = getErrorMessage(error) || "Failed to update status";
       toast.error(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
@@ -358,6 +379,15 @@ export const ProductProvider = ({ children }) => {
       // Remove from local state
       setProducts((prev) => prev.filter((p) => !ids.includes(p._id)));
 
+      // Invalidate product cache
+      removeCache("products_all");
+      // Clear all product-related caches
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("app_cache_products_")) {
+          localStorage.removeItem(key);
+        }
+      });
+
       return {
         success: responseData.success || true,
         message: responseData.message,
@@ -376,7 +406,23 @@ export const ProductProvider = ({ children }) => {
   };
 
   // Fetch categories for product form dropdowns
-  const fetchCategories = useCallback(async () => {
+  const fetchCategories = useCallback(async (skipCache = false) => {
+    const cacheKey = "categories_active";
+    
+    // Check cache first
+    if (!skipCache) {
+      const cachedCategories = getCache(cacheKey);
+      if (cachedCategories) {
+        setCategories(cachedCategories);
+        return {
+          success: true,
+          data: cachedCategories,
+          message: "Data from cache",
+          isCache: true,
+        };
+      }
+    }
+
     setCategoriesLoading(true);
     try {
       const response = await categoryService.getAllCategories({
@@ -393,6 +439,11 @@ export const ProductProvider = ({ children }) => {
         : responseData?.data || [];
 
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+
+      // Cache categories (10 minutes)
+      if (Array.isArray(categoriesData)) {
+        setCache(cacheKey, categoriesData, 10 * 60 * 1000);
+      }
 
       return {
         success: true,
@@ -652,6 +703,15 @@ export const ProductProvider = ({ children }) => {
 
       toast.success(responseData.message || "Categories deleted successfully");
 
+      // Invalidate category cache
+      removeCache("categories_active");
+      // Clear all category-related caches
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("app_cache_categor")) {
+          localStorage.removeItem(key);
+        }
+      });
+
       return {
         success: true,
         message: responseData.message,
@@ -666,10 +726,6 @@ export const ProductProvider = ({ children }) => {
     }
   };
 
-  // Update category order
-  // Display order endpoints removed; no updateCategoryOrder function
-
-  // Auto-reorder removed
 
   // Get products count by category
   const getProductsCountByCategory = async (categoryId) => {

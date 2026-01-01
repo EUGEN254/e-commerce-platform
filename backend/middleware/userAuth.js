@@ -13,7 +13,7 @@ const userAuth = async (req, res, next) => {
 
     const decode = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Check if token has required fields
+    // Ensure token payload includes required fields
     if (!decode.id) {
       return res.status(401).json({
         success: false,
@@ -21,7 +21,7 @@ const userAuth = async (req, res, next) => {
       });
     }
 
-    // Check if token indicates user is verified
+    // If token indicates the account is not verified, reject the request
     if (decode.isVerified === false) {
       res.clearCookie("token");
       return res.status(403).json({

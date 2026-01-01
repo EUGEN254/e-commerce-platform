@@ -26,6 +26,7 @@ import {
   FaTag
 } from 'react-icons/fa';
 import { formatCurrency } from '../../utils/formatCurrency';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
 const OrderDetails = () => {
   const { id } = useParams();
@@ -200,10 +201,7 @@ const OrderDetails = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading order details...</p>
-        </div>
+        <LoadingSpinner message="Loading order details..." />
       </div>
     );
   }

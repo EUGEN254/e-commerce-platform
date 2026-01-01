@@ -150,7 +150,7 @@ const getCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if ID is MongoDB ObjectId or category id string
+    // Determine whether `id` is a MongoDB ObjectId or a category identifier string
     let category;
     if (mongoose.Types.ObjectId.isValid(id)) {
       category = await Category.findById(id);

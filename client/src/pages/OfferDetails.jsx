@@ -30,6 +30,8 @@ import {
 import { Skeleton } from "../components/ui/Skeleton";
 import { useOffers } from "../context/Offers";
 import { useCart } from "../context/CartContext";
+import Price from "../components/ui/Price";
+import { logError } from "../utils/errorHandler";
 
 const OfferDetails = () => {
   const { id } = useParams();
@@ -53,7 +55,7 @@ const OfferDetails = () => {
           navigate("/offers");
         }
       } catch (error) {
-        console.error("Error fetching offer:", error);
+        logError("OfferDetails fetchOffer", error);
         toast.error("Failed to load offer details");
         navigate("/offers");
       } finally {
@@ -100,7 +102,7 @@ const OfferDetails = () => {
           url: window.location.href,
         });
       } catch (error) {
-        console.error("Error sharing:", error);
+        logError("OfferDetails handleShare", error);
       }
     } else {
       navigator.clipboard.writeText(window.location.href);
@@ -263,18 +265,11 @@ const OfferDetails = () => {
             {/* Price Section */}
             <div className="space-y-3">
               <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-bold text-gray-900">
-                  {currSymbol}{offer.offerPrice?.toFixed(2) || "0.00"}
-                </span>
+                <Price amount={offer.offerPrice} originalAmount={offer.originalPrice} className="text-4xl" />
                 {offer.originalPrice && (
-                  <>
-                    <span className="text-2xl text-gray-500 line-through">
-                      {currSymbol}{offer.originalPrice?.toFixed(2)}
-                    </span>
-                    <span className="text-lg font-bold text-red-600">
-                      Save {currSymbol}{savings.toFixed(2)}
-                    </span>
-                  </>
+                  <span className="text-lg font-bold text-red-600">
+                    Save {offer.originalPrice && <Price amount={savings} className="text-lg" />}
+                  </span>
                 )}
               </div>
 

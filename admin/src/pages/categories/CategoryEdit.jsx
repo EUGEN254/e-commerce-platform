@@ -34,6 +34,7 @@ import {
 import * as categoryIconService from '../../services/icons';
 import { useProducts } from '../../context/ProductContext';
 import categoryService from '../../services/categoryService';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
 const CategoryEdit = () => {
   const { id } = useParams();
@@ -585,10 +586,7 @@ const CategoryEdit = () => {
   if (categoriesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading category data...</p>
-        </div>
+        <LoadingSpinner message="Loading category data..." />
       </div>
     );
   }

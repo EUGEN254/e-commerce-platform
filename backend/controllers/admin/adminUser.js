@@ -12,7 +12,7 @@ export const createUser = async (req, res) => {
   try {
     const { name, email, password, confirmPassword, isVerified, sendVerificationEmail: sendEmail } = req.body;
 
-    // Validate required fields
+    // Validate required request fields
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -20,7 +20,7 @@ export const createUser = async (req, res) => {
       });
     }
 
-    // Validate password match
+    // Ensure passwords match
     if (password !== confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -38,7 +38,7 @@ export const createUser = async (req, res) => {
       });
     }
 
-    // Check if user already exists
+    // Check for existing user with the same email
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({

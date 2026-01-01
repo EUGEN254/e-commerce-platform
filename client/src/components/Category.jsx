@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { ProductCard } from "./ui/ProductCard";
 import { useProducts } from "../context/ProductContext";
 import { getIconComponent } from "../utils/icons";
+import { logError } from "../utils/errorHandler";
 
 const Categories = () => {
   const navigate = useNavigate();
@@ -40,7 +41,8 @@ const Categories = () => {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const scrollContainerRef = useRef(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(true);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
   
   // Debounce and caching refs
   const clickTimeoutRef = useRef(null);
@@ -120,7 +122,7 @@ const Categories = () => {
 
       setDisplayProducts(transformedProducts);
     } catch (error) {
-      console.error("Error loading products:", error);
+      logError("Category loadProducts", error);
       // Fallback to products in context
       const fallbackProducts = products.filter(
         (product) => product.category === selectedCategory &&
@@ -241,11 +243,19 @@ const Categories = () => {
   }, [categories]);
 
   const checkScrollPosition = useCallback(() => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setShowLeftArrow(scrollLeft > 0);
-      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+    const el = scrollContainerRef.current;
+    if (!el) {
+      setShowLeftArrow(false);
+      setShowRightArrow(false);
+      return;
     }
+
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    const canScrollLeft = scrollLeft > 0;
+    const canScrollRight = scrollWidth - clientWidth - 10 > scrollLeft;
+
+    setShowLeftArrow(Boolean(canScrollLeft));
+    setShowRightArrow(Boolean(canScrollRight));
   }, []);
 
   // Debounced scroll handler to prevent forced reflows
@@ -287,6 +297,13 @@ const Categories = () => {
       }
     };
   }, [checkScrollPosition]);
+
+  // Re-check scroll position after categories or displayProducts change
+  useEffect(() => {
+    // allow layout to settle
+    const t = setTimeout(() => checkScrollPosition(), 60);
+    return () => clearTimeout(t);
+  }, [categories, displayProducts, selectedCategory, checkScrollPosition]);
 
   // Show error state
   if (error) {

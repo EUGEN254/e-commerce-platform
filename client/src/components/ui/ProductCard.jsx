@@ -4,6 +4,7 @@ import { Badge } from './badge';
 import { Button } from './button';
 import { cn } from '../../lib/utils';
 import { useCart } from '../../context/CartContext';
+import Price from './Price';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
@@ -153,14 +154,7 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
           {/* Price and Add to Cart - Bottom aligned */}
           <div className="flex items-center justify-between mt-auto pt-4">
             <div className="flex items-center gap-2">
-              <span className="font-display font-bold text-lg text-foreground">
-                {currSymbol} {safeProduct.price.toFixed(2)}
-              </span>
-              {safeProduct.originalPrice && safeProduct.originalPrice > safeProduct.price && (
-                <span className="text-sm text-muted-foreground line-through">
-                  {currSymbol} {safeProduct.originalPrice.toFixed(2)}
-                </span>
-              )}
+              <Price amount={safeProduct.price} originalAmount={safeProduct.originalPrice} className="text-lg" />
             </div>
 
             <Button
@@ -250,14 +244,7 @@ export function ProductCard({ product, index = 0, viewMode = 'grid' }) {
 
         {/* Price */}
         <div className="flex items-center gap-2">
-          <span className="font-display font-bold text-lg text-foreground">
-           { currSymbol}{safeProduct.price.toFixed(2)}
-          </span>
-          {safeProduct.originalPrice && safeProduct.originalPrice > safeProduct.price && (
-            <span className="text-sm text-muted-foreground line-through">
-              {currSymbol}{safeProduct.originalPrice.toFixed(2)}
-            </span>
-          )}
+          <Price amount={safeProduct.price} originalAmount={safeProduct.originalPrice} className="text-lg" />
         </div>
 
         {/* Brand & Stock */}
