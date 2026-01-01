@@ -124,7 +124,7 @@ const CategoriesList = () => {
         category.id?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesType =
-        selectedType === "all" || category.type === selectedType;
+        selectedType === "all" || category.productType === selectedType;
 
       const matchesStatus =
         selectedStatus === "all" ||
@@ -588,11 +588,11 @@ const CategoriesList = () => {
                 </th>
                 <th
                   className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
-                  onClick={() => handleSort("type")}
+                  onClick={() => handleSort("productType")}
                 >
                   <div className="flex items-center space-x-1">
                     <span>Type</span>
-                    {getSortIcon("type")}
+                    {getSortIcon("productType")}
                   </div>
                 </th>
                 <th
@@ -916,51 +916,51 @@ const CategoriesList = () => {
             </h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {types
-              .filter((t) => t !== "all")
-              .map((type) => {
-                const count = categories.filter((c) => c.type === type).length;
-                const products = categories
-                  .filter((c) => c.type === type)
-                  .reduce((sum, cat) => sum + (cat.totalProducts || 0), 0);
-                const percentage = (count / categories.length) * 100;
+                {types
+                  .filter((t) => t !== "all")
+                  .map((type) => {
+                    const count = categories.filter((c) => c.productType === type).length;
+                    const products = categories
+                      .filter((c) => c.productType === type)
+                      .reduce((sum, cat) => sum + (cat.totalProducts || 0), 0);
+                    const percentage = categories.length ? (count / categories.length) * 100 : 0;
 
-                return (
-                  <div key={type} className="text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      {getCategoryIcon(
-                        categories.find((c) => c.type === type)?.icon
-                      )}
-                    </div>
-                    <p className="font-medium text-gray-800 capitalize">
-                      {type}
-                    </p>
-                    <div className="flex justify-center space-x-4 mt-2">
-                      <div>
-                        <p className="text-sm text-gray-500">Categories</p>
-                        <p className="text-xl font-bold text-gray-800">
-                          {count}
+                    return (
+                      <div key={type} className="text-center">
+                        <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          {getCategoryIcon(
+                            categories.find((c) => c.productType === type)?.icon
+                          )}
+                        </div>
+                        <p className="font-medium text-gray-800 capitalize">
+                          {type}
+                        </p>
+                        <div className="flex justify-center space-x-4 mt-2">
+                          <div>
+                            <p className="text-sm text-gray-500">Categories</p>
+                            <p className="text-xl font-bold text-gray-800">
+                              {count}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500">Products</p>
+                            <p className="text-xl font-bold text-blue-600">
+                              {products}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {percentage.toFixed(1)}% of total
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Products</p>
-                        <p className="text-xl font-bold text-blue-600">
-                          {products}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${percentage}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {percentage.toFixed(1)}% of total
-                    </p>
-                  </div>
-                );
-              })}
+                    );
+                  })}
           </div>
         </div>
       )}

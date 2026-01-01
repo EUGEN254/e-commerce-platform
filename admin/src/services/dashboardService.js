@@ -58,3 +58,15 @@ export const getCategoryDistribution = async () => {
     throw new Error(getErrorMessage(error));
   }
 };
+
+/**
+ * Get recent orders for admin dashboard
+ */
+export const getRecentOrders = async () => {
+  try {
+    return await axios.get('/api/admin/dashboard/recent-orders');
+  } catch (error) {
+    logError('getRecentOrders', error);
+    throw new Error(getErrorMessage(error));
+  }
+};

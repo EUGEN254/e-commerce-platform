@@ -1,11 +1,11 @@
 // src/pages/users/UsersList.jsx
-import React, { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { 
-  FaSearch, 
-  FaFilter, 
-  FaUserPlus, 
-  FaEdit, 
+import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
+import {
+  FaSearch,
+  FaFilter,
+  FaUserPlus,
+  FaEdit,
   FaTrash,
   FaEye,
   FaDownload,
@@ -21,20 +21,28 @@ import {
   FaSync,
   FaBan,
   FaCheck,
-  FaExclamationTriangle
-} from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+  FaExclamationTriangle,
+} from "react-icons/fa";
+import { Link } from "react-router-dom";
 
-import { getUsers, deleteUser } from '../../services/userService';
+import { getUsers, deleteUser } from "../../services/userService";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 
 // Confirmation Modal Component
-const DeleteConfirmationModal = ({ isOpen, userName, userEmail, onConfirm, onCancel, isBulk = false, count = 0 }) => {
+const DeleteConfirmationModal = ({
+  isOpen,
+  userName,
+  userEmail,
+  onConfirm,
+  onCancel,
+  isBulk = false,
+  count = 0,
+}) => {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-       
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="sm:flex sm:items-start">
@@ -43,12 +51,13 @@ const DeleteConfirmationModal = ({ isOpen, userName, userEmail, onConfirm, onCan
               </div>
               <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                 <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  Delete {isBulk ? 'Users' : 'User'}
+                  Delete {isBulk ? "Users" : "User"}
                 </h3>
                 <div className="mt-2">
                   {isBulk ? (
                     <p className="text-sm text-gray-600">
-                      Are you sure you want to delete {count} selected user{count > 1 ? 's' : ''}? This action cannot be undone.
+                      Are you sure you want to delete {count} selected user
+                      {count > 1 ? "s" : ""}? This action cannot be undone.
                     </p>
                   ) : (
                     <div>
@@ -56,12 +65,13 @@ const DeleteConfirmationModal = ({ isOpen, userName, userEmail, onConfirm, onCan
                         Are you sure you want to delete this user?
                       </p>
                       <p className="text-sm text-gray-500 mt-2">
-                        <strong>{userName || 'User'}</strong> ({userEmail})
+                        <strong>{userName || "User"}</strong> ({userEmail})
                       </p>
                     </div>
                   )}
                   <p className="text-sm text-red-500 mt-3 font-medium">
-                    This action cannot be undone. All user data will be permanently deleted.
+                    This action cannot be undone. All user data will be
+                    permanently deleted.
                   </p>
                 </div>
               </div>
@@ -95,34 +105,76 @@ const UsersList = () => {
   const [limit, setLimit] = useState(20);
 
   // State for search and filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'verified', 'unverified'
-  const [sortField, setSortField] = useState('createdAt');
-  const [sortDirection, setSortDirection] = useState('desc');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all"); // 'all', 'verified', 'unverified'
+  const [sortField, setSortField] = useState("createdAt");
+  const [sortDirection, setSortDirection] = useState("desc");
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Modal state for deletion
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     userId: null,
-    userName: '',
-    userEmail: '',
+    userName: "",
+    userEmail: "",
     isBulk: false,
-    count: 0
+    count: 0,
   });
 
   // Fetch users from backend
   useEffect(() => {
     const loadUsers = async () => {
       setIsLoading(true);
+      const CACHE_KEY_PREFIX = "users_cache_v1";
+      const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+      const makeCacheKey = () =>
+        `${CACHE_KEY_PREFIX}_${page}_${limit}_${searchTerm}_${filterStatus}_${sortField}_${sortDirection}`;
+
+      const getCached = (key) => {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          if (Date.now() - (parsed._cachedAt || 0) > CACHE_TTL) {
+            localStorage.removeItem(key);
+            return null;
+          }
+          return parsed.data;
+        } catch (e) {
+          return null;
+        }
+      };
+
+      const setCached = (key, data) => {
+        try {
+          localStorage.setItem(
+            key,
+            JSON.stringify({ _cachedAt: Date.now(), data })
+          );
+        } catch (e) {
+          // ignore
+        }
+      };
+
+      const cacheKey = makeCacheKey();
+      const cached = getCached(cacheKey);
+      if (cached && Array.isArray(cached.users) && cached.users.length > 0) {
+        setUsers(cached.users);
+        setIsLoading(false);
+        return;
+      }
       try {
         const resp = await getUsers({ page, limit });
         const data = resp.data || resp;
         const usersData = data.data || [];
         setUsers(usersData);
+        try {
+          setCached(cacheKey, { users: usersData });
+        } catch (e) {}
       } catch (err) {
-        console.error('Error loading users:', err);
+        console.error("Error loading users:", err);
       } finally {
         setIsLoading(false);
       }
@@ -133,28 +185,28 @@ const UsersList = () => {
 
   // Filter and sort users
   const filteredUsers = users
-    .filter(user => {
-      const matchesSearch = 
+    .filter((user) => {
+      const matchesSearch =
         user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = 
-        filterStatus === 'all' || 
-        (filterStatus === 'verified' && user.isVerified) ||
-        (filterStatus === 'unverified' && !user.isVerified);
-      
+
+      const matchesStatus =
+        filterStatus === "all" ||
+        (filterStatus === "verified" && user.isVerified) ||
+        (filterStatus === "unverified" && !user.isVerified);
+
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-      
-      if (sortField === 'createdAt' || sortField === 'updatedAt') {
+
+      if (sortField === "createdAt" || sortField === "updatedAt") {
         aValue = new Date(aValue);
         bValue = new Date(bValue);
       }
-      
-      if (sortDirection === 'asc') {
+
+      if (sortDirection === "asc") {
         return aValue > bValue ? 1 : -1;
       } else {
         return aValue < bValue ? 1 : -1;
@@ -163,9 +215,9 @@ const UsersList = () => {
 
   // Handle user selection
   const handleSelectUser = (userId) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
-        ? prev.filter(id => id !== userId)
+    setSelectedUsers((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
         : [...prev, userId]
     );
   };
@@ -174,26 +226,30 @@ const UsersList = () => {
     if (selectedUsers.length === filteredUsers.length) {
       setSelectedUsers([]);
     } else {
-      setSelectedUsers(filteredUsers.map(user => user._id));
+      setSelectedUsers(filteredUsers.map((user) => user._id));
     }
   };
 
   // Handle user actions
   const handleVerifyUser = (userId) => {
-    setUsers(prev => prev.map(user => 
-      user._id === userId ? { ...user, isVerified: true, verificationCode: null } : user
-    ));
+    setUsers((prev) =>
+      prev.map((user) =>
+        user._id === userId
+          ? { ...user, isVerified: true, verificationCode: null }
+          : user
+      )
+    );
   };
 
   const handleDeleteUser = (userId) => {
-    const user = users.find(u => u._id === userId);
+    const user = users.find((u) => u._id === userId);
     setDeleteModal({
       isOpen: true,
       userId,
-      userName: user?.name || 'User',
-      userEmail: user?.email || '',
+      userName: user?.name || "User",
+      userEmail: user?.email || "",
       isBulk: false,
-      count: 0
+      count: 0,
     });
   };
 
@@ -201,15 +257,22 @@ const UsersList = () => {
     const { userId } = deleteModal;
     try {
       await deleteUser(userId);
-      setUsers(prev => prev.filter(user => user._id !== userId));
-      setSelectedUsers(prev => prev.filter(id => id !== userId));
-      toast.success('User deleted successfully ✓');
+      setUsers((prev) => prev.filter((user) => user._id !== userId));
+      setSelectedUsers((prev) => prev.filter((id) => id !== userId));
+      toast.success("User deleted successfully ✓");
     } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Failed to delete user';
+      const errorMsg = error.response?.data?.message || "Failed to delete user";
       toast.error(errorMsg);
-      console.error('Error deleting user:', error);
+      console.error("Error deleting user:", error);
     } finally {
-      setDeleteModal({ isOpen: false, userId: null, userName: '', userEmail: '', isBulk: false, count: 0 });
+      setDeleteModal({
+        isOpen: false,
+        userId: null,
+        userName: "",
+        userEmail: "",
+        isBulk: false,
+        count: 0,
+      });
     }
   };
 
@@ -218,15 +281,25 @@ const UsersList = () => {
       for (const userId of selectedUsers) {
         await deleteUser(userId);
       }
-      setUsers(prev => prev.filter(user => !selectedUsers.includes(user._id)));
+      setUsers((prev) =>
+        prev.filter((user) => !selectedUsers.includes(user._id))
+      );
       setSelectedUsers([]);
       toast.success(`${selectedUsers.length} user(s) deleted successfully ✓`);
     } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Failed to delete users';
+      const errorMsg =
+        error.response?.data?.message || "Failed to delete users";
       toast.error(errorMsg);
-      console.error('Error deleting users:', error);
+      console.error("Error deleting users:", error);
     } finally {
-      setDeleteModal({ isOpen: false, userId: null, userName: '', userEmail: '', isBulk: false, count: 0 });
+      setDeleteModal({
+        isOpen: false,
+        userId: null,
+        userName: "",
+        userEmail: "",
+        isBulk: false,
+        count: 0,
+      });
     }
   };
 
@@ -234,45 +307,51 @@ const UsersList = () => {
     // Mock API call to resend verification
     setIsLoading(true);
     setTimeout(() => {
-      setUsers(prev => prev.map(user => 
-        user._id === userId 
-          ? { 
-              ...user, 
-              verificationCode: Math.floor(100000 + Math.random() * 900000).toString(),
-              verificationAttempts: user.verificationAttempts + 1
-            } 
-          : user
-      ));
+      setUsers((prev) =>
+        prev.map((user) =>
+          user._id === userId
+            ? {
+                ...user,
+                verificationCode: Math.floor(
+                  100000 + Math.random() * 900000
+                ).toString(),
+                verificationAttempts: user.verificationAttempts + 1,
+              }
+            : user
+        )
+      );
       setIsLoading(false);
-      toast.success('Verification code sent to user email ✓');
+      toast.success("Verification code sent to user email ✓");
     }, 1000);
   };
 
   // Format date
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   // Handle sort
   const handleSort = (field) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
 
   // Get sort icon
   const getSortIcon = (field) => {
     if (sortField !== field) return <FaSort className="text-gray-400" />;
-    return sortDirection === 'asc' 
-      ? <FaSortUp className="text-blue-500" /> 
-      : <FaSortDown className="text-blue-500" />;
+    return sortDirection === "asc" ? (
+      <FaSortUp className="text-blue-500" />
+    ) : (
+      <FaSortDown className="text-blue-500" />
+    );
   };
 
   return (
@@ -284,8 +363,19 @@ const UsersList = () => {
         userEmail={deleteModal.userEmail}
         isBulk={deleteModal.isBulk}
         count={deleteModal.count}
-        onConfirm={deleteModal.isBulk ? handleConfirmBulkDelete : handleConfirmDelete}
-        onCancel={() => setDeleteModal({ isOpen: false, userId: null, userName: '', userEmail: '', isBulk: false, count: 0 })}
+        onConfirm={
+          deleteModal.isBulk ? handleConfirmBulkDelete : handleConfirmDelete
+        }
+        onCancel={() =>
+          setDeleteModal({
+            isOpen: false,
+            userId: null,
+            userName: "",
+            userEmail: "",
+            isBulk: false,
+            count: 0,
+          })
+        }
       />
 
       {/* Header with Stats */}
@@ -293,7 +383,9 @@ const UsersList = () => {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
           <div>
             <h2 className="text-2xl font-bold mb-2">User Management</h2>
-            <p className="text-blue-100">Manage all users, verification status, and access</p>
+            <p className="text-blue-100">
+              Manage all users, verification status, and access
+            </p>
           </div>
           <div className="flex items-center space-x-4 mt-4 lg:mt-0">
             <div className="text-center">
@@ -302,11 +394,15 @@ const UsersList = () => {
             </div>
             <div className="text-center">
               <p className="text-sm text-blue-100">Verified</p>
-              <p className="text-2xl font-bold">{users.filter(u => u.isVerified).length}</p>
+              <p className="text-2xl font-bold">
+                {users.filter((u) => u.isVerified).length}
+              </p>
             </div>
             <div className="text-center">
               <p className="text-sm text-blue-100">Pending</p>
-              <p className="text-2xl font-bold">{users.filter(u => !u.isVerified).length}</p>
+              <p className="text-2xl font-bold">
+                {users.filter((u) => !u.isVerified).length}
+              </p>
             </div>
           </div>
         </div>
@@ -326,7 +422,7 @@ const UsersList = () => {
                 className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            
+
             <div className="relative">
               <select
                 value={filterStatus}
@@ -340,34 +436,40 @@ const UsersList = () => {
               <FaFilter className="absolute left-3 top-3 text-gray-400" />
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             {selectedUsers.length > 0 && (
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <span>{selectedUsers.length} selected</span>
-                <button 
+                <button
                   onClick={() => {
                     // Bulk verify
-                    setUsers(prev => prev.map(user => 
-                      selectedUsers.includes(user._id) 
-                        ? { ...user, isVerified: true, verificationCode: null }
-                        : user
-                    ));
+                    setUsers((prev) =>
+                      prev.map((user) =>
+                        selectedUsers.includes(user._id)
+                          ? {
+                              ...user,
+                              isVerified: true,
+                              verificationCode: null,
+                            }
+                          : user
+                      )
+                    );
                     setSelectedUsers([]);
                   }}
                   className="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
                 >
                   Verify Selected
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     setDeleteModal({
                       isOpen: true,
                       userId: null,
-                      userName: '',
-                      userEmail: '',
+                      userName: "",
+                      userEmail: "",
                       isBulk: true,
-                      count: selectedUsers.length
+                      count: selectedUsers.length,
                     });
                   }}
                   className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
@@ -376,7 +478,7 @@ const UsersList = () => {
                 </button>
               </div>
             )}
-            
+
             <Link
               to="/users/create"
               className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -384,7 +486,7 @@ const UsersList = () => {
               <FaUserPlus />
               <span>Add User</span>
             </Link>
-            
+
             <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
               <FaDownload />
               <span>Export</span>
@@ -395,217 +497,259 @@ const UsersList = () => {
 
       {/* Users Table */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="py-3 px-4 text-left">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
-                      onChange={handleSelectAll}
-                      className="rounded border-gray-300"
-                    />
-                  </div>
-                </th>
-                <th 
-                  className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
-                  onClick={() => handleSort('name')}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>User</span>
-                    {getSortIcon('name')}
-                  </div>
-                </th>
-                <th 
-                  className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
-                  onClick={() => handleSort('email')}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Email</span>
-                    {getSortIcon('email')}
-                  </div>
-                </th>
-                <th 
-                  className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
-                  onClick={() => handleSort('isVerified')}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Status</span>
-                    {getSortIcon('isVerified')}
-                  </div>
-                </th>
-                <th 
-                  className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
-                  onClick={() => handleSort('verificationAttempts')}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Attempts</span>
-                    {getSortIcon('verificationAttempts')}
-                  </div>
-                </th>
-                <th 
-                  className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
-                  onClick={() => handleSort('createdAt')}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>Joined</span>
-                    {getSortIcon('createdAt')}
-                  </div>
-                </th>
-                <th className="py-3 px-4 text-left text-gray-600 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
-                  <tr key={user._id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedUsers.includes(user._id)}
-                        onChange={() => handleSelectUser(user._id)}
-                        className="rounded border-gray-300"
-                      />
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
-                          <FaUserCircle className="text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-800">{user.name || 'No Name'}</p>
-                          <p className="text-sm text-gray-500">ID: {user._id}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-2">
-                        <FaEnvelope className="text-gray-400" />
-                        <span>{user.email}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-2">
-                        {user.isVerified ? (
-                          <>
-                            <FaCheckCircle className="text-green-500" />
-                            <span className="text-green-700 font-medium">Verified</span>
-                          </>
-                        ) : (
-                          <>
-                            <FaTimesCircle className="text-yellow-500" />
-                            <span className="text-yellow-700 font-medium">Unverified</span>
-                            {user.verificationCode && (
-                              <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                                Code: {user.verificationCode}
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-2">
-                        <FaKey className="text-gray-400" />
-                        <span className={user.verificationAttempts > 2 ? 'text-red-600 font-medium' : ''}>
-                          {user.verificationAttempts} attempt{user.verificationAttempts !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-2">
-                        <FaCalendar className="text-gray-400" />
-                        <span>{formatDate(user.createdAt)}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-2">
-                        <button 
-                          onClick={() => handleResendVerification(user._id)}
-                          disabled={isLoading || user.isVerified}
-                          className={`p-2 rounded ${user.isVerified 
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                            : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}`}
-                          title="Resend Verification"
-                        >
-                          <FaSync className={isLoading ? 'animate-spin' : ''} />
-                        </button>
-                        
-                        {!user.isVerified && (
-                          <button 
-                            onClick={() => handleVerifyUser(user._id)}
-                            className="p-2 rounded bg-green-100 text-green-600 hover:bg-green-200"
-                            title="Verify User"
-                          >
-                            <FaCheck />
-                          </button>
-                        )}
-                        
-                        <Link
-                          to={`/users/${user._id}/edit`}
-                          className="p-2 rounded bg-yellow-100 text-yellow-600 hover:bg-yellow-200"
-                          title="Edit User"
-                        >
-                          <FaEdit />
-                        </Link>
-                        
-                        <button 
-                          onClick={() => handleDeleteUser(user._id)}
-                          className="p-2 rounded bg-red-100 text-red-600 hover:bg-red-200"
-                          title="Delete User"
-                        >
-                          <FaTrash />
-                        </button>
-                        
-                        <Link
-                          to={`/users/${user._id}`}
-                          className="p-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200"
-                          title="View Details"
-                        >
-                          <FaEye />
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7" className="py-8 text-center text-gray-500">
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                      <FaUserCircle className="text-4xl text-gray-300" />
-                      <p>No users found</p>
-                      {searchTerm && (
-                        <p className="text-sm">Try adjusting your search or filters</p>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Pagination */}
-        {filteredUsers.length > 0 && (
-          <div className="px-6 py-4 border-t border-gray-100 flex justify-between items-center">
-            <div className="text-sm text-gray-600">
-              Showing {filteredUsers.length} of {users.length} users
-            </div>
-            <div className="flex items-center space-x-2">
-              <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
-                Previous
-              </button>
-              <span className="px-3 py-1 bg-blue-600 text-white rounded">1</span>
-              <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
-                2
-              </button>
-              <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
-                Next
-              </button>
-            </div>
+        {isLoading ? (
+          <div className="p-8 flex justify-center">
+            <LoadingSpinner size="lg" message="Loading users..." />
           </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="py-3 px-4 text-left">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={
+                            selectedUsers.length === filteredUsers.length &&
+                            filteredUsers.length > 0
+                          }
+                          onChange={handleSelectAll}
+                          className="rounded border-gray-300"
+                        />
+                      </div>
+                    </th>
+                    <th
+                      className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
+                      onClick={() => handleSort("name")}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>User</span>
+                        {getSortIcon("name")}
+                      </div>
+                    </th>
+                    <th
+                      className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
+                      onClick={() => handleSort("email")}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Email</span>
+                        {getSortIcon("email")}
+                      </div>
+                    </th>
+                    <th
+                      className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
+                      onClick={() => handleSort("isVerified")}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Status</span>
+                        {getSortIcon("isVerified")}
+                      </div>
+                    </th>
+                    <th
+                      className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
+                      onClick={() => handleSort("verificationAttempts")}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Attempts</span>
+                        {getSortIcon("verificationAttempts")}
+                      </div>
+                    </th>
+                    <th
+                      className="py-3 px-4 text-left text-gray-600 font-medium cursor-pointer"
+                      onClick={() => handleSort("createdAt")}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Joined</span>
+                        {getSortIcon("createdAt")}
+                      </div>
+                    </th>
+                    <th className="py-3 px-4 text-left text-gray-600 font-medium">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.length > 0 ? (
+                    filteredUsers.map((user) => (
+                      <tr
+                        key={user._id}
+                        className="border-b border-gray-100 hover:bg-gray-50"
+                      >
+                        <td className="py-3 px-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.includes(user._id)}
+                            onChange={() => handleSelectUser(user._id)}
+                            className="rounded border-gray-300"
+                          />
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
+                              <FaUserCircle className="text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">
+                                {user.name || "No Name"}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                ID: {user._id}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-2">
+                            <FaEnvelope className="text-gray-400" />
+                            <span>{user.email}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-2">
+                            {user.isVerified ? (
+                              <>
+                                <FaCheckCircle className="text-green-500" />
+                                <span className="text-green-700 font-medium">
+                                  Verified
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <FaTimesCircle className="text-yellow-500" />
+                                <span className="text-yellow-700 font-medium">
+                                  Unverified
+                                </span>
+                                {user.verificationCode && (
+                                  <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                    Code: {user.verificationCode}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-2">
+                            <FaKey className="text-gray-400" />
+                            <span
+                              className={
+                                user.verificationAttempts > 2
+                                  ? "text-red-600 font-medium"
+                                  : ""
+                              }
+                            >
+                              {user.verificationAttempts} attempt
+                              {user.verificationAttempts !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-2">
+                            <FaCalendar className="text-gray-400" />
+                            <span>{formatDate(user.createdAt)}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleResendVerification(user._id)}
+                              disabled={isLoading || user.isVerified}
+                              className={`p-2 rounded ${
+                                user.isVerified
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  : "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                              }`}
+                              title="Resend Verification"
+                            >
+                              <FaSync
+                                className={isLoading ? "animate-spin" : ""}
+                              />
+                            </button>
+
+                            {!user.isVerified && (
+                              <button
+                                onClick={() => handleVerifyUser(user._id)}
+                                className="p-2 rounded bg-green-100 text-green-600 hover:bg-green-200"
+                                title="Verify User"
+                              >
+                                <FaCheck />
+                              </button>
+                            )}
+
+                            <Link
+                              to={`/users/${user._id}/edit`}
+                              className="p-2 rounded bg-yellow-100 text-yellow-600 hover:bg-yellow-200"
+                              title="Edit User"
+                            >
+                              <FaEdit />
+                            </Link>
+
+                            <button
+                              onClick={() => handleDeleteUser(user._id)}
+                              className="p-2 rounded bg-red-100 text-red-600 hover:bg-red-200"
+                              title="Delete User"
+                            >
+                              <FaTrash />
+                            </button>
+
+                            <Link
+                              to={`/users/${user._id}`}
+                              className="p-2 rounded bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              title="View Details"
+                            >
+                              <FaEye />
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="7"
+                        className="py-8 text-center text-gray-500"
+                      >
+                        <div className="flex flex-col items-center justify-center space-y-2">
+                          <FaUserCircle className="text-4xl text-gray-300" />
+                          <p>No users found</p>
+                          {searchTerm && (
+                            <p className="text-sm">
+                              Try adjusting your search or filters
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {filteredUsers.length > 0 && (
+              <div className="px-6 py-4 border-t border-gray-100 flex justify-between items-center">
+                <div className="text-sm text-gray-600">
+                  Showing {filteredUsers.length} of {users.length} users
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
+                    Previous
+                  </button>
+                  <span className="px-3 py-1 bg-blue-600 text-white rounded">
+                    1
+                  </span>
+                  <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
+                    2
+                  </button>
+                  <button className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50">
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -616,9 +760,14 @@ const UsersList = () => {
             <div>
               <p className="text-gray-500">Verification Rate</p>
               <h3 className="text-2xl font-bold mt-2">
-                {users.length > 0 
-                  ? Math.round((users.filter(u => u.isVerified).length / users.length) * 100) 
-                  : 0}%
+                {users.length > 0
+                  ? Math.round(
+                      (users.filter((u) => u.isVerified).length /
+                        users.length) *
+                        100
+                    )
+                  : 0}
+                %
               </h3>
             </div>
             <div className="p-3 bg-green-100 rounded-full">
@@ -626,14 +775,19 @@ const UsersList = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500">Avg. Verification Attempts</p>
               <h3 className="text-2xl font-bold mt-2">
-                {users.length > 0 
-                  ? (users.reduce((sum, user) => sum + user.verificationAttempts, 0) / users.length).toFixed(1)
+                {users.length > 0
+                  ? (
+                      users.reduce(
+                        (sum, user) => sum + user.verificationAttempts,
+                        0
+                      ) / users.length
+                    ).toFixed(1)
                   : 0}
               </h3>
             </div>
@@ -642,7 +796,7 @@ const UsersList = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center justify-between">
             <div>
