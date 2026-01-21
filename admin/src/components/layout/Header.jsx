@@ -14,11 +14,13 @@ import {
   FaGlobe,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Header = ({ toggleSidebar, isSidebarOpen }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const { logout,admin } = useAuth();
 
@@ -222,7 +224,9 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
                   ))}
                 </div>
                 <div className="p-3 border-t border-gray-100">
-                  <button className="w-full text-center text-blue-600 hover:text-blue-800 font-medium py-2">
+                  <button 
+                  onClick={()=>navigate('/notifications')}
+                  className="w-full text-center text-blue-600 hover:text-blue-800 font-medium py-2">
                     View all notifications
                   </button>
                 </div>
@@ -232,7 +236,9 @@ const Header = ({ toggleSidebar, isSidebarOpen }) => {
 
           {/* Messages Dropdown */}
           <div className="relative">
-            <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative">
+            <button
+               onClick={()=>navigate('/messages')}
+             className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative">
               <FaEnvelope className="text-gray-600 text-sm" />
               {unreadMessages > 0 && (
                 <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">

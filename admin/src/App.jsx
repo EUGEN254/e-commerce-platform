@@ -21,6 +21,8 @@ import ProductDetails from "./pages/products/ProductDetails";
 import Inventory from "./pages/products/Inventory";
 import CategoryDetails from "./pages/categories/CategoryDetails";
 import { useAuth } from "./context/AuthContext";
+import Notification from "./pages/notifications/Notification";
+import Messages from "./pages/messages/Messages";
 
 // Placeholder components for other pages
 const PlaceholderPage = ({ title }) => (
@@ -41,9 +43,15 @@ function App() {
       <Toaster />
       <Routes>
         {/* Public route - redirect to dashboard if logged in */}
-        <Route 
-          path="/login" 
-          element={admin && !loading ? <Navigate to="/dashboard" replace /> : <AuthLogin />} 
+        <Route
+          path="/login"
+          element={
+            admin && !loading ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <AuthLogin />
+            )
+          }
         />
 
         {/* Protected routes */}
@@ -69,9 +77,12 @@ function App() {
             <Route path="categories/create" element={<CategoryCreate />} />
             <Route path="categories/:id" element={<CategoryDetails />} />
             <Route path="categories/:id/edit" element={<CategoryEdit />} />
-             
-           
 
+            {/* notification management */}
+            <Route path="notifications" element={<Notification />} />
+
+            {/* messages management */}
+            <Route path="messages" element={<Messages />} />
             {/* Orders */}
             <Route path="orders" element={<OrdersList />} />
             <Route path="orders/:id" element={<OrderDetails />} />

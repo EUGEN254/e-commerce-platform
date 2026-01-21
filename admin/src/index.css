@@ -3,6 +3,20 @@
 @import "tailwindcss";
 
 
+
+/* Remove focus outlines globally */
+*:focus {
+  outline: none !important;
+}
+
+/* Remove focus from Recharts specifically */
+.recharts-wrapper:focus,
+.recharts-tooltip-wrapper:focus,
+.recharts-default-tooltip:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Add these animations */
 @keyframes slideDown {
   from {
@@ -39,16 +53,17 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-
 /* Ensure full height */
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
   padding: 0;
 }
 
-body{
-  font-family: 'Plus Jakarta Sans', sans-serif;
+body {
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 /* Make sure all containers can expand */

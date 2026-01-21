@@ -20,13 +20,7 @@ import {
   getProductStats,
 } from "../../controllers/admin/adminProduct.js";
 
-import {
-  getDashboardStats,
-  getSalesData,
-  getCategoryDistribution,
-  getRecentOrders,
-  getRecentActivities,
-} from "../../controllers/admin/dashboardController.js";
+
 import {
   createUser,
   getAllUsers,
@@ -50,6 +44,7 @@ import {
   updateCategoryStatus,
   getProductsCountForAllCategories,
 } from "../../controllers/admin/adminCategory.js";
+import { getSalesSummary } from "../../controllers/admin/dashboardController.js";
 
 const adminRouter = express.Router();
 
@@ -82,6 +77,7 @@ adminRouter.put(
   updateProduct
 );
 
+adminRouter.get("/summary", AdminAuth, getSalesSummary);
 adminRouter.delete("/products/:id", AdminAuth, deleteProduct);
 adminRouter.patch("/products/:id/status", AdminAuth, updateProductStatus);
 adminRouter.patch("/products/:id/toggle-featured", AdminAuth, toggleFeatured);
@@ -89,12 +85,6 @@ adminRouter.post("/products/bulk-delete", AdminAuth, bulkDeleteProducts);
 adminRouter.post("/products/bulk-update", AdminAuth, bulkUpdateProducts);
 adminRouter.get("/products-stats", AdminAuth, getProductStats);
 
-// Dashboard routes
-adminRouter.get("/dashboard/stats", AdminAuth, getDashboardStats);
-adminRouter.get("/dashboard/sales", AdminAuth, getSalesData);
-adminRouter.get("/dashboard/categories", AdminAuth, getCategoryDistribution);
-adminRouter.get("/dashboard/recent-orders", AdminAuth, getRecentOrders);
-adminRouter.get("/dashboard/activities", AdminAuth, getRecentActivities);
 
 // category routes
 adminRouter.get("/categories", AdminAuth, getAllCategories);

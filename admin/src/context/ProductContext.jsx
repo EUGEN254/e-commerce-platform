@@ -19,11 +19,7 @@ import {
   bulkUpdateProducts,
 } from "../services/productService.js";
 import categoryService from "../services/categoryService.js";
-import {
-  getCache,
-  setCache,
-  removeCache,
-} from "../utils/cache.js";
+import { getCache, setCache, removeCache } from "../utils/cache.js";
 import { getErrorMessage } from "../utils/errorHandler.js";
 
 const ProductContext = createContext();
@@ -54,32 +50,40 @@ export const ProductProvider = ({ children }) => {
   const curreSymbol = "KES";
 
   // Helper function to calculate stats from categories
-  const calculateStatsFromCategories = useCallback((categoriesList = categories) => {
-    if (categoriesList.length === 0) {
+  const calculateStatsFromCategories = useCallback(
+    (categoriesList = categories) => {
+      if (categoriesList.length === 0) {
+        return {
+          totalCategories: 0,
+          totalProducts: 0,
+          featuredCategories: 0,
+          activeCategories: 0,
+        };
+      }
+
+      const totalCategories = categoriesList.length;
+      const activeCategories = categoriesList.filter(
+        (cat) => cat.isActive,
+      ).length;
+      const featuredCategories = categoriesList.filter(
+        (cat) => cat.featured,
+      ).length;
+
+      // Sum up products from all categories
+      const totalProducts = categoriesList.reduce(
+        (sum, cat) => sum + (cat.totalProducts || 0),
+        0,
+      );
+
       return {
-        totalCategories: 0,
-        totalProducts: 0,
-        featuredCategories: 0,
-        activeCategories: 0
+        totalCategories,
+        totalProducts,
+        activeCategories,
+        featuredCategories,
       };
-    }
-    
-    const totalCategories = categoriesList.length;
-    const activeCategories = categoriesList.filter(cat => cat.isActive).length;
-    const featuredCategories = categoriesList.filter(cat => cat.featured).length;
-    
-    // Sum up products from all categories
-    const totalProducts = categoriesList.reduce((sum, cat) => 
-      sum + (cat.totalProducts || 0), 0
-    );
-    
-    return {
-      totalCategories,
-      totalProducts,
-      activeCategories,
-      featuredCategories
-    };
-  }, [categories]);
+    },
+    [categories],
+  );
 
   // Update stats whenever categories change
   useEffect(() => {
@@ -91,7 +95,7 @@ export const ProductProvider = ({ children }) => {
   const fetchProducts = useCallback(async (params = {}) => {
     // Create cache key from params
     const cacheKey = `products_${JSON.stringify(params)}`;
-    
+
     // Check if we have cached data (skip cache if explicitly requested)
     if (!params.skipCache) {
       const cachedData = getCache(cacheKey);
@@ -112,7 +116,7 @@ export const ProductProvider = ({ children }) => {
     setError(null);
     try {
       const response = await getProducts(params);
-      
+
       // The API returns { success, data, pagination } structure
       const responseData = response.data;
 
@@ -139,7 +143,7 @@ export const ProductProvider = ({ children }) => {
       setCache(
         cacheKey,
         { data: productsData, pagination: paginationData },
-        5 * 60 * 1000
+        5 * 60 * 1000,
       );
 
       return {
@@ -174,7 +178,8 @@ export const ProductProvider = ({ children }) => {
         message: responseData.message,
       };
     } catch (error) {
-      const errorMessage = getErrorMessage(error) || "Failed to fetch product details";
+      const errorMessage =
+        getErrorMessage(error) || "Failed to fetch product details";
       console.error("Error in fetchProductById:", errorMessage, error);
       setError(errorMessage);
       toast.error(errorMessage);
@@ -228,7 +233,7 @@ export const ProductProvider = ({ children }) => {
       // Update in local state
       if (responseData.success && responseData.data) {
         setProducts((prev) =>
-          prev.map((p) => (p._id === id ? { ...p, ...responseData.data } : p))
+          prev.map((p) => (p._id === id ? { ...p, ...responseData.data } : p)),
         );
         if (product && product._id === id) {
           setProduct(responseData.data);
@@ -302,7 +307,7 @@ export const ProductProvider = ({ children }) => {
 
       // Update in local state
       setProducts((prev) =>
-        prev.map((p) => (p._id === id ? { ...p, status } : p))
+        prev.map((p) => (p._id === id ? { ...p, status } : p)),
       );
       if (product && product._id === id) {
         setProduct((prev) => ({ ...prev, status }));
@@ -333,8 +338,10 @@ export const ProductProvider = ({ children }) => {
       // Update in local state
       setProducts((prev) =>
         prev.map((p) =>
-          p._id === id ? { ...p, isFeatured: responseData.data?.isFeatured } : p
-        )
+          p._id === id
+            ? { ...p, isFeatured: responseData.data?.isFeatured }
+            : p,
+        ),
       );
       if (product && product._id === id) {
         setProduct((prev) => ({
@@ -346,7 +353,7 @@ export const ProductProvider = ({ children }) => {
       toast.success(
         responseData.data?.isFeatured
           ? "Product marked as featured!"
-          : "Product removed from featured!"
+          : "Product removed from featured!",
       );
 
       return {
@@ -408,7 +415,7 @@ export const ProductProvider = ({ children }) => {
   // Fetch categories for product form dropdowns
   const fetchCategories = useCallback(async (skipCache = false) => {
     const cacheKey = "categories_active";
-    
+
     // Check cache first
     if (!skipCache) {
       const cachedCategories = getCache(cacheKey);
@@ -497,7 +504,7 @@ export const ProductProvider = ({ children }) => {
             icon: category.icon,
             parentCategory: category.name,
             totalProducts: subcat.totalProducts || 0,
-          })
+          }),
         );
       }
 
@@ -513,11 +520,11 @@ export const ProductProvider = ({ children }) => {
     (categoryId) => {
       return (
         categories.find(
-          (cat) => cat.id === categoryId || cat._id === categoryId
+          (cat) => cat.id === categoryId || cat._id === categoryId,
         ) || null
       );
     },
-    [categories]
+    [categories],
   );
 
   // Get categories for select input
@@ -533,7 +540,7 @@ export const ProductProvider = ({ children }) => {
   const getSubcategories = useCallback(
     (categoryId) => {
       const category = categories.find(
-        (cat) => cat.id === categoryId || cat._id === categoryId
+        (cat) => cat.id === categoryId || cat._id === categoryId,
       );
 
       if (!category || !category.subcategoriesDetailed) return [];
@@ -545,7 +552,7 @@ export const ProductProvider = ({ children }) => {
         totalProducts: subcat.totalProducts || 0,
       }));
     },
-    [categories]
+    [categories],
   );
 
   // Update category status
@@ -562,8 +569,8 @@ export const ProductProvider = ({ children }) => {
         prev.map((cat) =>
           cat._id === categoryId
             ? { ...cat, isActive: responseData.data?.isActive || isActive }
-            : cat
-        )
+            : cat,
+        ),
       );
 
       // Stats will update automatically via useEffect
@@ -599,8 +606,8 @@ export const ProductProvider = ({ children }) => {
         prev.map((cat) =>
           cat._id === categoryId
             ? { ...cat, featured: responseData.data?.featured || featured }
-            : cat
-        )
+            : cat,
+        ),
       );
 
       // Stats will update automatically via useEffect
@@ -657,18 +664,16 @@ export const ProductProvider = ({ children }) => {
     try {
       const response = await categoryService.bulkUpdateCategories(
         categoryIds,
-        updates
+        updates,
       );
       const responseData = response.data || response;
 
       // Update in local state
       setCategories((prev) =>
         prev.map((cat) =>
-          categoryIds.includes(cat._id) ? { ...cat, ...updates } : cat
-        )
+          categoryIds.includes(cat._id) ? { ...cat, ...updates } : cat,
+        ),
       );
-
- 
 
       toast.success(responseData.message || "Categories updated successfully");
 
@@ -696,7 +701,7 @@ export const ProductProvider = ({ children }) => {
 
       // Remove from local state
       setCategories((prev) =>
-        prev.filter((cat) => !categoryIds.includes(cat._id))
+        prev.filter((cat) => !categoryIds.includes(cat._id)),
       );
 
       // Stats will update automatically via useEffect
@@ -726,13 +731,11 @@ export const ProductProvider = ({ children }) => {
     }
   };
 
-
   // Get products count by category
   const getProductsCountByCategory = async (categoryId) => {
     try {
-      const response = await categoryService.getProductsCountByCategory(
-        categoryId
-      );
+      const response =
+        await categoryService.getProductsCountByCategory(categoryId);
       const responseData = response.data || response;
 
       // Update the specific category's product count
@@ -740,8 +743,8 @@ export const ProductProvider = ({ children }) => {
         prev.map((cat) =>
           cat._id === categoryId
             ? { ...cat, totalProducts: responseData.count || 0 }
-            : cat
-        )
+            : cat,
+        ),
       );
 
       return {
@@ -778,94 +781,97 @@ export const ProductProvider = ({ children }) => {
   };
 
   // Get products count for all categories
-const fetchProductsCountForCategories = async () => {
-  setCategoriesCountLoading(true);
-  try {
-    const response = await categoryService.getProductsCountForAllCategories();
+  const fetchProductsCountForCategories = useCallback(async () => {
+    setCategoriesCountLoading(true);
+    try {
+      const response = await categoryService.getProductsCountForAllCategories();
 
-    if (response && response.success === false) {
-      throw new Error(response.message || "Failed to fetch product counts");
+      if (response && response.success === false) {
+        throw new Error(response.message || "Failed to fetch product counts");
+      }
+
+      const categoriesData = response.data || [];
+
+      // Merge returned counts into existing categories state instead of replacing
+      if (categoriesData.length > 0) {
+        setCategories((prevCategories) => {
+          // Build lookup map from returned data by _id and id
+          const countsById = new Map();
+          categoriesData.forEach((c) => {
+            const key = c._id || c.id;
+            countsById.set(String(key), c.totalProducts || 0);
+          });
+
+          // Merge counts into previous categories, preserving other fields
+          const merged = prevCategories.map((pc) => {
+            const key = pc._id || pc.id;
+            if (countsById.has(String(key))) {
+              return { ...pc, totalProducts: countsById.get(String(key)) };
+            }
+            return pc;
+          });
+
+          // For any returned category not present in prevCategories, add it
+          const prevKeys = new Set(merged.map((c) => String(c._id || c.id)));
+          categoriesData.forEach((c) => {
+            const key = String(c._id || c.id);
+            if (!prevKeys.has(key)) {
+              merged.push({
+                ...c,
+                id: c._id || c.id,
+                isActive: c.isActive !== undefined ? c.isActive : true,
+                featured: c.featured || false,
+                totalProducts: c.totalProducts || 0,
+              });
+            }
+          });
+
+          // Recalculate stats based on merged categories
+          const newStats = calculateStatsFromCategories(merged);
+          setStats(newStats);
+
+          return merged;
+        });
+      }
+
+      return {
+        success: true,
+        data: categoriesData,
+        message: response.message || "Product counts fetched successfully",
+      };
+    } catch (error) {
+      console.error("Error fetching products count for categories:", error);
+      const errorMessage = error.message || "Failed to fetch product counts";
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setCategoriesCountLoading(false);
     }
+  }, []);
+  // Add this function to your ProductContext
+  const getProductsByCategory = useCallback(async (categoryId, params = {}) => {
+    setLoading(true);
+    try {
+      // Fetch products with category filter
+      const response = await getProducts({ category: categoryId, ...params });
+      const responseData = response.data;
 
-    const categoriesData = response.data || [];
+      // The API returns { success, data, pagination } structure
+      const productsData = responseData.data || [];
 
-    // Merge returned counts into existing categories state instead of replacing
-    if (categoriesData.length > 0) {
-      setCategories((prevCategories) => {
-        // Build lookup map from returned data by _id and id
-        const countsById = new Map();
-        categoriesData.forEach((c) => {
-          const key = c._id || c.id;
-          countsById.set(String(key), c.totalProducts || 0);
-        });
-
-        // Merge counts into previous categories, preserving other fields
-        const merged = prevCategories.map((pc) => {
-          const key = pc._id || pc.id;
-          if (countsById.has(String(key))) {
-            return { ...pc, totalProducts: countsById.get(String(key)) };
-          }
-          return pc;
-        });
-
-        // For any returned category not present in prevCategories, add it
-        const prevKeys = new Set(merged.map((c) => String(c._id || c.id)));
-        categoriesData.forEach((c) => {
-          const key = String(c._id || c.id);
-          if (!prevKeys.has(key)) {
-            merged.push({
-              ...c,
-              id: c._id || c.id,
-              isActive: c.isActive !== undefined ? c.isActive : true,
-              featured: c.featured || false,
-              totalProducts: c.totalProducts || 0,
-            });
-          }
-        });
-
-        // Recalculate stats based on merged categories
-        const newStats = calculateStatsFromCategories(merged);
-        setStats(newStats);
-
-        return merged;
-      });
+      return productsData;
+    } catch (error) {
+      console.error("Error fetching products by category:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch products";
+      toast.error(errorMessage);
+      return [];
+    } finally {
+      setLoading(false);
     }
-
-    return {
-      success: true,
-      data: categoriesData,
-      message: response.message || "Product counts fetched successfully",
-    };
-  } catch (error) {
-    console.error("Error fetching products count for categories:", error);
-    const errorMessage = error.message || "Failed to fetch product counts";
-    toast.error(errorMessage);
-    return { success: false, error: errorMessage };
-  } finally {
-    setCategoriesCountLoading(false);
-  }
-};
-// Add this function to your ProductContext
-const getProductsByCategory = useCallback(async (categoryId, params = {}) => {
-  setLoading(true);
-  try {
-    // Fetch products with category filter
-    const response = await getProducts({ category: categoryId, ...params });
-    const responseData = response.data;
-
-    // The API returns { success, data, pagination } structure
-    const productsData = responseData.data || [];
-    
-    return productsData;
-  } catch (error) {
-    console.error("Error fetching products by category:", error);
-    const errorMessage = error.response?.data?.message || error.message || "Failed to fetch products";
-    toast.error(errorMessage);
-    return [];
-  } finally {
-    setLoading(false);
-  }
-}, []);
+  }, []);
 
   // Clear product state
   const clearProduct = () => {

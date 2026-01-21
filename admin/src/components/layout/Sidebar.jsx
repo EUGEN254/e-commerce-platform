@@ -13,7 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = ({ closeSidebar }) => {
   const [expandedMenus, setExpandedMenus] = useState({});
-  const { logout } = useAuth();
+  const { logout,admin } = useAuth();
   const location = useLocation();
 
   const toggleMenu = (menuId) => {
@@ -149,8 +149,8 @@ const Sidebar = ({ closeSidebar }) => {
         <div className="flex items-center space-x-3 bg-gray-800/50 rounded-lg p-3">
           <FaUserCircle className="text-3xl text-gray-400" />
           <div className="flex-1">
-            <p className="text-sm font-medium">Admin User</p>
-            <p className="text-xs text-gray-400">admin@example.com</p>
+            <p className="text-sm font-medium">{admin?.name}</p>
+            <p className="text-xs text-gray-400">{admin?.email}</p>
           </div>
           <button 
           onClick={logout}
